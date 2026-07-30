@@ -32,6 +32,7 @@ export type Resource =
 /** User object returned by auth services (never contains password_hash) */
 export interface User {
   id: string
+  ecole_id?: string
   username: string
   role: UserRole
   full_name: string
@@ -72,6 +73,7 @@ export interface AuditLog {
 /** User row from the database (excludes password_hash) */
 export interface UserRow {
   id: string
+  ecole_id?: string
   username: string
   role: UserRole
   full_name: string | null
@@ -107,6 +109,7 @@ export interface FinancePrices {
 
 export interface Student {
   id: string
+  ecole_id?: string
   first_name: string
   last_name: string
   gender?: 'M' | 'F'
@@ -155,6 +158,7 @@ export interface Student {
 
 export interface Payment {
   id: string
+  ecole_id?: string
   student_id: string
   payment_date: string
   amount: number
@@ -178,6 +182,7 @@ export interface Payment {
 
 export interface CashJournalEntry {
   id: string
+  ecole_id?: string
   transaction_date: string
   type: 'income' | 'expense'
   department: 'bus' | 'ecole' | 'eleve'
@@ -204,6 +209,7 @@ export interface CashJournalFilters {
 
 export interface FeeRecord {
   id: string
+  ecole_id?: string
   student_id: string
   school_year: string
   class_name: string
@@ -241,6 +247,7 @@ export interface SchoolConfig {
 
 export interface Personnel {
   id: string
+  ecole_id?: string
   first_name: string
   last_name: string
   photo_path?: string
@@ -279,6 +286,7 @@ export interface Personnel {
 
 export interface TimeTracking {
   id: string
+  ecole_id?: string
   personnel_id: string
   month: string // "2025-09"
   hours_worked: number
@@ -293,6 +301,7 @@ export interface TimeTracking {
 
 export interface PersonnelAbsence {
   id: string
+  ecole_id?: string
   personnel_id: string
   start_date: string
   end_date: string
@@ -307,6 +316,7 @@ export interface PersonnelAbsence {
 
 export interface SalaryAdvance {
   id: string
+  ecole_id?: string
   personnel_id: string
   amount: number
   advance_date: string
@@ -321,6 +331,7 @@ export interface SalaryAdvance {
 
 export interface CustomDeduction {
   id: string
+  ecole_id?: string
   personnel_id: string
   month: string // "2025-09"
   label: string
@@ -333,6 +344,7 @@ export interface CustomDeduction {
 
 export interface DailyAttendance {
   id: string
+  ecole_id?: string
   personnel_id: string
   attendance_date: string // "2025-09-15"
   status: 'present' | 'absent' | 'late' | 'half_day' | 'excused' | 'paid_leave'
@@ -374,6 +386,7 @@ export interface SalaryCalculation {
 
 export interface Subject {
   id: string
+  ecole_id?: string
   name: string
   default_coefficient?: number
   created_at?: string
@@ -385,6 +398,7 @@ export interface Subject {
 
 export interface Grade {
   id: string
+  ecole_id?: string
   student_id: string
   teacher_id?: string
   subject_id: string
@@ -414,6 +428,7 @@ export interface GradeWithSubject extends Grade {
 
 export interface StudentTermAverage {
   student_id: string
+  ecole_id?: string
   first_name: string
   last_name: string
   class: string
@@ -424,6 +439,7 @@ export interface StudentTermAverage {
 
 export interface SubjectClassAverage {
   subject_id: string
+  ecole_id?: string
   subject_name: string
   average: number
   student_count: number
@@ -436,6 +452,7 @@ export interface SubjectClassAverage {
 /** Mapping between a class level and a subject with class-specific coefficient */
 export interface ClassSubject {
   id: string
+  ecole_id?: string
   class_name: string
   subject_id: string
   coefficient: number
@@ -454,6 +471,7 @@ export interface ClassSubject {
 export interface ClassSubjectInput {
   class_name: string
   subject_id: string
+  ecole_id?: string
   coefficient?: number
   position?: number
 }

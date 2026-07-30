@@ -117,6 +117,15 @@ const api = {
     setup: (tenantId: string) => ipcRenderer.invoke('tenant:setup', tenantId)
   },
 
+  builder: {
+    createAndBuild: (config: any) => ipcRenderer.invoke('builder:createAndBuild', config),
+    onLog: (callback: (log: string) => void) => {
+      // Remove all previous listeners to avoid memory leaks
+      ipcRenderer.removeAllListeners('builder:log');
+      ipcRenderer.on('builder:log', (_, log) => callback(log));
+    }
+  },
+
   // --------------------------------------------
   // Authentication & User Management
   // --------------------------------------------
@@ -125,6 +134,9 @@ const api = {
     login: (username: string, password: string) =>
       ipcRenderer.invoke('auth:login', username, password),
     checkSession: (token: string) => ipcRenderer.invoke('auth:checkSession', token),
+    checkFirstBoot: () => ipcRenderer.invoke('auth:checkFirstBoot'),
+    createFirstAdmin: (userData: Record<string, unknown>) =>
+      ipcRenderer.invoke('auth:createFirstAdmin', userData),
 
     // Authenticated channels
     logout: (token?: string) => ipcRenderer.invoke('auth:logout', token),

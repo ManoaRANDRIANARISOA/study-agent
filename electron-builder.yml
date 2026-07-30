@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: lms
+productName: ${env.VITE_APP_NAME}
 directories:
   buildResources: build
 files:
@@ -17,7 +17,7 @@ extraResources:
   - from: ".env"
     to: ".env"
 win:
-  executableName: lms
+  executableName: ${env.VITE_APP_NAME}
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

@@ -25,6 +25,7 @@ import { registerAssessmentHandlers } from './ipc/assessment.handler'
 import { registerEmailHandlers } from './ipc/email.handler'
 import { registerReportHandlers } from './ipc/report.handler'
 import { registerTenantHandlers } from './ipc/tenant.handler'
+import { registerBuilderHandlers } from './ipc/builder.handler'
 import { startPeriodicSync } from './services/sync.service'
 import { startSessionMonitor, stopSessionMonitor } from './auth/session.service'
 import { EmailService } from './services/email.service'
@@ -36,7 +37,7 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    show: false,
+    show: true,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
@@ -59,6 +60,7 @@ function createWindow(): void {
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    mainWindow.webContents.openDevTools()
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
@@ -99,6 +101,7 @@ app.whenReady().then(() => {
   registerEmailHandlers()
   registerReportHandlers()
   registerTenantHandlers()
+  registerBuilderHandlers()
 
   // Register custom protocol for local resources
   protocol.handle('local-resource', async (req) => {

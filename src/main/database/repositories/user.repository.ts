@@ -69,6 +69,19 @@ const VALID_ROLES: UserRole[] = ['admin', 'secretariat', 'accounting', 'directio
 // --------------------------------------------
 
 export class UserRepository {
+  // ---------- Queries ----------
+
+  /**
+   * Count the total number of users.
+   * Useful for detecting first-boot scenarios (Onboarding).
+   */
+  static count(): number {
+    const row = db.prepare('SELECT count(*) as count FROM users WHERE deleted = 0').get() as {
+      count: number
+    }
+    return row.count
+  }
+
   // ---------- Helpers ----------
 
   /**

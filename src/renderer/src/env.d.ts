@@ -48,6 +48,13 @@ interface AuthAPI {
   checkSession: (token: string) => Promise<User | null>
   logout: (token?: string) => Promise<{ ok: boolean }>
   getCurrentUser: () => Promise<User | null>
+  checkFirstBoot: () => Promise<{ isFirstBoot: boolean }>
+  createFirstAdmin: (userData: {
+    username: string
+    password: string
+    full_name?: string
+    email?: string
+  }) => Promise<{ success: boolean; user?: UserRow; error?: string }>
   getPermissions: () => Promise<{
     success: boolean
     user?: User
@@ -658,6 +665,14 @@ interface APIType {
   }
   auth: AuthAPI
   dialog: DialogAPI
+  builder: {
+    getDbSchema: () => Promise<{ success: boolean; schema?: any; error?: string }>
+    executeSqlQuery: (query: string) => Promise<{ success: boolean; data?: any; error?: string }>
+    generateCrud: (config: any) => Promise<{ success: boolean; files?: string[]; error?: string }>
+    getSupabaseSchema: () => Promise<{ success: boolean; schema?: string; error?: string }>
+    onLog: (callback: (log: string) => void) => () => void
+    createAndBuild: (config: any) => Promise<{ success: boolean; error?: string }>
+  }
 }
 
 declare global {

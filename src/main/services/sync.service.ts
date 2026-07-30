@@ -294,13 +294,10 @@ async function pushLocalChanges() {
         continue
       }
 
-      // Special case: Do not push `last_sync_time` or other machine-specific settings
+      // Special case: Do not push ANY local machine settings
       if (item.table_name === 'settings') {
-        const data = JSON.parse(item.data)
-        if (data.key === 'last_sync_time' || item.record_id === 'last_sync_time') {
-          db.prepare(`UPDATE sync_queue SET status = 'synced' WHERE id = ?`).run(item.id)
-          continue
-        }
+        db.prepare(`UPDATE sync_queue SET status = 'synced' WHERE id = ?`).run(item.id)
+        continue
       }
 
       // Check dependencies to prevent FK violations

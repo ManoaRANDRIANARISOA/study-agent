@@ -18,7 +18,7 @@ export default function TenantOnboarding({ onComplete }: { onComplete: () => voi
 
     try {
       // Nettoyer l'identifiant pour éviter les erreurs (espaces, majuscules)
-      const cleanTenantId = tenantId.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_')
+      const cleanTenantId = tenantId.trim().toLowerCase()
       
       const res = await window.api.tenant.setup(cleanTenantId)
       if (res.success) {
@@ -46,7 +46,7 @@ export default function TenantOnboarding({ onComplete }: { onComplete: () => voi
           <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
             <School size={32} />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Bienvenue sur Study Agent</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Bienvenue sur {import.meta.env.VITE_APP_NAME || 'Study Agent'}</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm">
             Configuration initiale de votre établissement
           </p>

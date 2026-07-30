@@ -23,6 +23,9 @@ import {
   resetPassword as authResetPassword
 } from '../auth/auth.service'
 import { UserRepository, type UserRole } from '../database/repositories/user.repository'
+import { SettingsRepository } from '../database/repositories/settings.repository'
+import { v4 as uuidv4 } from 'uuid'
+import { reinitSupabaseClient } from '../services/sync.service'
 import {
   canWrite,
   canRead,
@@ -109,6 +112,66 @@ export function registerAuthHandlers(): void {
       return user
     } catch (e) {
       return null
+    }
+  })
+
+  /**
+   * Check if the database has 0 users (First Boot scenario).
+   */
+  ipcMain.handle('auth:checkFirstBoot', async () => {
+    try {
+      const count = UserRepository.count()
+      return { isFirstBoot: count === 0 }
+    } catch (e) {
+      return { isFirstBoot: false }
+    }
+  })
+
+  /**
+   * Create the first admin user (unauthenticated route).
+   * Only works if the database has 0 users.
+   */
+  ipcMain.handle('auth:createFirstAdmin', async (_, userData) => {
+    try {
+      const count = UserRepository.count()
+      if (count > 0) {
+        return { success: false, error: "Création non autorisée : un administrateur existe déjà." }
+      }
+
+      // Force role to admin for the first user
+      const result = UserRepository.create({
+        username: userData.username,
+        password: userData.password,
+        role: 'admin',
+        full_name: userData.full_name || 'Administrateur Principal',
+        email: userData.email
+      })
+
+      // Get existing ecole_id or generate a new one
+      let ecoleId = SettingsRepository.get('ecole_id') as string | undefined
+      if (!ecoleId) {
+        ecoleId = uuidv4()
+        SettingsRepository.set('ecole_id', ecoleId)
+      }
+      
+      // Initialize Supabase with the new ecoleId to ensure sync works right away
+      reinitSupabaseClient(ecoleId)
+
+      if (result.success && result.user) {
+        logAction(
+          result.user.id,
+          'create',
+          'users',
+          result.user.id,
+          null,
+          'First boot admin creation'
+        )
+      }
+
+      return result
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Erreur de création du premier admin'
+      return { success: false, error: message }
     }
   })
 

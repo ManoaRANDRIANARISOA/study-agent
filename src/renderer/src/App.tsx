@@ -21,23 +21,36 @@ import LoginPage from '@/pages/auth/LoginPage'
 import MainLayout from '@/components/layout/MainLayout'
 
 import TenantOnboarding from '@/components/TenantOnboarding'
+import SuperAdminBuilder from '@/pages/SuperAdminBuilder'
+import FirstBootOnboarding from '@/pages/FirstBootOnboarding'
 
 // --------------------------------------------
 // Auth Initialization Wrapper
 // --------------------------------------------
-function AuthInitializer({ children }: { children: React.ReactNode }) {
+function AuthInitializer({ children }: { children: React.ReactNode | ((isFirstBoot: boolean | null) => React.ReactNode) }) {
   const checkExistingSession = useAuthStore((s) => s.checkExistingSession)
   const loading = useAuthStore((s) => s.loading)
   const [initialized, setInitialized] = useState(false)
   const [tenantConfigured, setTenantConfigured] = useState<boolean | null>(null)
+  const [isFirstBoot, setIsFirstBoot] = useState<boolean | null>(null)
 
   useEffect(() => {
     // 1. D'abord vérifier si le Tenant est configuré
     window.api.tenant.check().then((res) => {
       setTenantConfigured(res.isConfigured)
       if (res.isConfigured) {
-        // 2. S'il est configuré, on check la session
-        checkExistingSession().finally(() => setInitialized(true))
+        // 2. Vérifier s'il n'y a aucun utilisateur (First Boot)
+        window.api.auth.checkFirstBoot().then((bootRes) => {
+          setIsFirstBoot(bootRes.isFirstBoot)
+          
+          if (!bootRes.isFirstBoot) {
+            // 3. S'il y a des utilisateurs, on check la session
+            checkExistingSession().finally(() => setInitialized(true))
+          } else {
+            // C'est le premier lancement, on est prêt
+            setInitialized(true)
+          }
+        })
       } else {
         // S'il n'est pas configuré, on arrête le chargement pour afficher l'onboarding
         setInitialized(true)
@@ -68,25 +81,33 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     )
   }
 
-  return <>{children}</>
+  return <>{typeof children === 'function' ? children(isFirstBoot) : children}</>
 }
 
 // --------------------------------------------
 // Route Switcher
 // --------------------------------------------
-function AppRoutes(): React.JSX.Element {
+function AppRoutes({ isFirstBoot }: { isFirstBoot: boolean | null }): React.JSX.Element {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
   return (
     <Routes>
       <Route
+        path="/onboarding"
+        element={isFirstBoot ? <FirstBootOnboarding /> : <Navigate to="/" replace />}
+      />
+      <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
+        element={isFirstBoot ? <Navigate to="/onboarding" replace /> : isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
       />
       <Route
         path="/*"
-        element={isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />}
+        element={isFirstBoot ? <Navigate to="/onboarding" replace /> : isAuthenticated ? <MainLayout /> : <Navigate to="/login" replace />}
       />
+      {/* Route protégée : uniquement en mode développement */}
+      {import.meta.env.DEV && (
+        <Route path="/superadmin" element={<SuperAdminBuilder />} />
+      )}
     </Routes>
   )
 }
@@ -95,11 +116,14 @@ function AppRoutes(): React.JSX.Element {
 // Root
 // --------------------------------------------
 export default function App(): React.JSX.Element {
+  // On remonte isFirstBoot au niveau de AuthInitializer en utilisant un context ou via children prop render
+  // Ou plus simple, on modifie AuthInitializer pour passer isFirstBoot en cloneElement ou Context
+  // Pour la simplicité, déplaçons la logique de Router dans AppRoutes 
   return (
     <Router>
       <ErrorBoundary>
         <AuthInitializer>
-          <AppRoutes />
+          {(isFirstBoot) => <AppRoutes isFirstBoot={isFirstBoot} />}
         </AuthInitializer>
       </ErrorBoundary>
     </Router>

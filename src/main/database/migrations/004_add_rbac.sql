@@ -34,25 +34,10 @@ ALTER TABLE users ADD COLUMN last_synced_at DATETIME;
 ALTER TABLE users ADD COLUMN deleted BOOLEAN DEFAULT 0;
 
 -- --------------------------------------------
--- 3. Seed default admin user
---    Password: "admin123" (bcrypt hash, cost factor 10)
---    The admin MUST change this on first login.
---    Hash generated with: bcryptjs.hashSync('admin123', 10)
+-- 3. (Supprimé) Le compte admin par défaut n'est plus créé ici.
+--    Il sera créé dynamiquement via l'écran d'Onboarding FirstBoot
+--    afin d'éviter les collisions d'ID dans l'architecture multi-tenant.
 -- --------------------------------------------
-INSERT OR IGNORE INTO users (id, username, password_hash, role, full_name, email, active, last_login, version, sync_status, deleted)
-VALUES (
-    'default-admin-00000000-0000-0000-000000000001',
-    'admin',
-    '$2b$10$2VK2TkuYDUBo2imZ2.Mw2uFP2VDLYPYTA3ftqtK87FkUtzZuDBYxi',
-    'admin',
-    'Administrateur',
-    'admin@manjary.mg',
-    1,
-    NULL,
-    1,
-    'pending',
-    0
-);
 
 -- --------------------------------------------
 -- 4. Audit logs enhancements

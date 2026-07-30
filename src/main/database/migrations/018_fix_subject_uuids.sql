@@ -48,7 +48,7 @@ SELECT id as old_id,
 FROM subjects;
 
 -- Step 2: Update subjects primary key
-UPDATE subjects SET id = (
+UPDATE OR IGNORE subjects SET id = (
   SELECT m.new_id FROM subject_id_map m WHERE m.old_id = subjects.id AND m.new_id IS NOT NULL
 ) WHERE id IN (SELECT old_id FROM subject_id_map WHERE new_id IS NOT NULL);
 

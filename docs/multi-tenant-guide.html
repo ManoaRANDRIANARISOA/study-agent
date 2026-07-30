@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guide SaaS : Architecture Multi-Tenant (Option A)</title>
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-color: #1e293b;
+      --border-color: #e2e8f0;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      line-height: 1.6;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 2rem 1rem;
+      text-align: center;
+    }
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border-color);
+    }
+    h2 {
+      color: var(--primary-color);
+      margin-top: 0;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+    code {
+      background-color: #f1f5f9;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9em;
+      color: #b91c1c;
+    }
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      background-color: #fef2f2;
+      border-left: 4px solid #ef4444;
+      margin: 1.5rem 0;
+    }
+    .alert-title {
+      font-weight: bold;
+      color: #991b1b;
+      margin-bottom: 0.5rem;
+    }
+    .success {
+      background-color: #f0fdf4;
+      border-left: 4px solid #22c55e;
+    }
+    .success .alert-title { color: #166534; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Guide Architecture SaaS : Study Agent Multi-Tenant (Option A)</h1>
+    <p>Documentation officielle sur le fonctionnement centralisé de la base de données.</p>
+  </header>
+
+  <main>
+    
+    <div class="card">
+      <h2>1. Le concept du SaaS Multi-Tenant</h2>
+      <p>
+        Study Agent est conçu pour héberger un nombre illimité d'établissements scolaires 
+        en utilisant <strong>une seule base de données Supabase partagée (le Cloud)</strong>.
+      </p>
+      <ul>
+        <li><strong>Une seule base, un seul schéma :</strong> Au lieu d'avoir 50 bases de données pour 50 écoles, toutes les données vont dans les mêmes tables (<code>students</code>, <code>users</code>, <code>payments</code>...).</li>
+        <li><strong>Le passeport <code>ecole_id</code> :</strong> Pour que les données ne se mélangent pas, absolument chaque ligne de chaque table possède une colonne <code>ecole_id</code>.</li>
+        <li><strong>Sécurité Absolue (RLS) :</strong> Supabase utilise le Row Level Security (RLS) de PostgreSQL. Il est techniquement impossible pour l'école A de voir les données de l'école B, car la base de données filtre automatiquement toutes les requêtes SQL avec <code>WHERE ecole_id = [ID_DU_CLIENT]</code>.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>2. L'Installation chez un Client (Zero-Config)</h2>
+      <p>L'installation chez un nouveau client a été grandement simplifiée. Il n'y a plus aucun script en ligne de commande à exécuter manuellement.</p>
+      
+      <ol>
+        <li>
+          <strong>Le Premier Lancement :</strong> Le client installe l'exécutable (<code>.exe</code>) sur son ordinateur. Sa base SQLite locale (<code>study_agent.db</code>) est totalement vierge.
+        </li>
+        <li>
+          <strong>L'Onboarding Automatique :</strong> L'application détecte que la base est vierge et affiche l'interface de "Premier Démarrage" (<code>FirstBootOnboarding.tsx</code>).
+        </li>
+        <li>
+          <strong>Création de l'Administrateur :</strong> Le directeur renseigne son propre identifiant ("admin") et son propre mot de passe. 
+        </li>
+        <li>
+          <strong>Génération de l'Empreinte (UUID) :</strong> C'est le moment magique ! En arrière-plan, le logiciel génère un UUID ultra-sécurisé et aléatoire pour être le nouvel <code>ecole_id</code> exclusif de ce client. Cet identifiant est stocké dans la table <code>settings</code> locale et lie définitivement le logiciel.
+        </li>
+      </ol>
+
+      <div class="alert success">
+        <div class="alert-title">Aucun risque de collision</div>
+        <p>Parce que chaque directeur créé son compte depuis l'Onboarding, l'ID généré pour ce compte et pour l'école est unique au monde. Ainsi, même si l'École A et l'École B utilisent toutes les deux "admin" comme identifiant, elles coexisteront pacifiquement sur Supabase, séparées par leur ecole_id unique.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. Comment faire évoluer le logiciel (Nouvelles Colonnes)</h2>
+      <p>Lorsqu'une norme ou une option spécifique est demandée par un (ou plusieurs) client(s), vous devez modifier les <strong>deux</strong> bases de données pour qu'elles restent un miroir parfait.</p>
+      
+      <ul>
+        <li><strong>Étape 1 (Local) :</strong> Créez un fichier de migration SQLite (ex: <code>src/main/database/migrations/034_add_nouvelle_colonne.sql</code>) pour ajouter la fonctionnalité sur l'ordinateur des clients existants via une mise à jour.</li>
+        <li><strong>Étape 2 (Cloud) :</strong> Allez sur le Dashboard Supabase (SQL Editor) et tapez manuellement votre commande <code>ALTER TABLE</code>. C'est fait une bonne fois pour toutes pour l'ensemble des écoles actuelles et futures !</li>
+      </ul>
+      <p><em>Rappel : Si une colonne ne concerne que l'école C, elle restera vide (NULL) pour l'école A et B. C'est normal et recommandé.</em></p>
+    </div>
+
+    <div class="card">
+      <h2>4. Que contient le fichier <code>setup_multi_tenant.sql</code> ?</h2>
+      <p>
+        Ce fichier historique servait à convertir une ancienne architecture mono-établissement (LMS) en architecture Multi-Tenant.
+        Il se charge d'ajouter la colonne <code>ecole_id</code> sur toutes les tables existantes et d'activer le filtre de sécurité RLS.
+      </p>
+      <div class="alert">
+        <div class="alert-title">Attention au fichier supabase_full_schema.sql</div>
+        <p>Le fichier <code>scripts/supabase_full_schema.sql</code> est le schéma "Maître" qui représente l'état exact de la base Cloud avec la règle <code>UNIQUE(username, ecole_id)</code> pour la table des utilisateurs.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>5. Auto-Seeding (Données par défaut pour les nouveaux clients)</h2>
+      <p>
+        Livrer une application avec une base de données totalement vide (0 classe, 0 matière) offre une mauvaise expérience au premier lancement. Pour pallier cela, le système peut utiliser l'<strong>Auto-Seeding</strong>.
+      </p>
+      <ul>
+        <li><strong>Le Principe :</strong> Juste après la création du compte Administrateur lors de l'Onboarding, l'application peut proposer au client de pré-charger une "Configuration Standard" (ex: Primaire, Collège, Lycée).</li>
+        <li><strong>L'Injection :</strong> Si accepté, l'application injecte silencieusement dans la base SQLite locale les données par défaut (ex: matières "Maths", "Français", Rôles de base).</li>
+        <li><strong>Pour les Démos :</strong> Pour générer une instance de démonstration complète, vous pouvez exécuter <code>node scripts/clone_test_db.js</code>. Cela clonera vos données LMS existantes et assignera un <code>ecole_id</code> automatiquement en contournant l'Onboarding.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>6. L'Outil SuperAdmin (Générateur Marque Blanche)</h2>
+      <p>
+        L'interface <strong>SuperAdminBuilder</strong> est un outil interne caché, conçu strictement pour vous (le créateur) afin de générer des exécutables <code>.exe</code> sur-mesure (Marque Blanche) pour des clients VIP. Il modifie le <code>.env</code> et lance la compilation <code>npm run build:win</code>.
+      </p>
+      <div class="alert">
+        <div class="alert-title">Comment y accéder (Mode DEV uniquement)</div>
+        <p>Cet outil n'existe pas dans l'application finale compilée. Pour l'ouvrir en phase de développement :</p>
+        <ol>
+          <li>Lancez l'application en mode développement (<code>npm run dev</code>).</li>
+          <li>Ouvrez la console développeur (<code>F12</code> ou <code>Ctrl + Maj + I</code>).</li>
+          <li>Tapez la commande suivante puis faites Entrée : <br><code>window.location.hash = '#/superadmin'</code></li>
+        </ol>
+        <p>Vous serez instantanément téléporté sur l'interface de création.</p>
+      </div>
+    </div>
+
+  </main>
+</body>
+</html>

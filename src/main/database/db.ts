@@ -5,8 +5,8 @@ import fs from 'fs'
 
 const isDev = !app.isPackaged
 const dbPath = isDev
-  ? path.join(__dirname, '../../database.sqlite')
-  : path.join(app.getPath('userData'), 'database.sqlite')
+  ? path.join(__dirname, '../../study_agent.db')
+  : path.join(app.getPath('userData'), 'study_agent.db')
 
 // Ensure directory exists
 const dbDir = path.dirname(dbPath)
@@ -70,8 +70,15 @@ const runMigrations = () => {
       db.exec(migrationSql)
       db.prepare('INSERT INTO migrations (name) VALUES (?)').run(migFile)
       if (isDev) console.log(`Migration ${migFile} applied successfully.`)
-    } catch (err) {
-      console.error(`Migration ${migFile} failed:`, err)
+    } catch (err: any) {
+      const errMsg = err.message || ''
+      if (errMsg.includes('duplicate column name') || errMsg.includes('already exists')) {
+        // Silently mark as applied because 001_init.sql might have already included this schema
+        db.prepare('INSERT INTO migrations (name) VALUES (?)').run(migFile)
+        if (isDev) console.log(`Migration ${migFile} (déjà présente dans init) marquée comme appliquée.`)
+      } else {
+        console.error(`Migration ${migFile} failed:`, err)
+      }
     }
   }
 
@@ -109,7 +116,9 @@ const runMigrations = () => {
     '028_add_school_year_to_payments.sql',
     '029_add_payroll_ignores.sql',
     '030_fix_event_school_year.sql',
-    '031_add_payroll_start_date.sql'
+    '031_add_payroll_start_date.sql',
+    '032_add_ecoles_table.sql',
+    '033_add_ecole_id_to_all.sql'
   ]
   migrations.forEach(applyMigration)
 }
