@@ -25,6 +25,7 @@ import {
   CalendarDays,
   FileText,
   LogOut,
+  Wrench,
   type LucideIcon
 } from 'lucide-react'
 import type { Resource } from '@shared/types'
@@ -266,6 +267,11 @@ export default function Sidebar(): React.JSX.Element {
             { to: '/audit', label: "Journal d'audit", resource: 'audit' }
           ]}
         />
+
+        {/* Superadmin Builder (Visible uniquement en mode Développement) */}
+        {import.meta.env.DEV && (
+          <NavLeaf to="/superadmin" label="Superadmin Builder" icon={Wrench} exact={true} />
+        )}
       </nav>
 
       {/* Infos utilisateur + Déconnexion */}
