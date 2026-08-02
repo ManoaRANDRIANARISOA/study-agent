@@ -2,6 +2,7 @@ import db from '../db'
 import { v4 as uuidv4 } from 'uuid'
 import { addToSyncQueue } from '../../services/sync.service'
 import { StudentRepository } from './student.repository'
+import { SettingsRepository } from './settings.repository'
 
 export interface Payment {
   id: string
@@ -297,16 +298,26 @@ export class PaymentRepository {
       )
       .all(studentId) as { month: string; amount: number }[]
 
+    // Track whether student is personnel child & check establishment setting
+    let isPersonnelChild = false
+    const shouldExonerate = SettingsRepository.get('exonerate_personnel_children') !== false
+    try {
+      const studentObj = db
+        .prepare('SELECT is_personnel_child FROM students WHERE id = ?')
+        .get(studentId) as { is_personnel_child: any } | undefined
+      const rawPC = studentObj?.is_personnel_child
+      const isPC = rawPC == 1 || rawPC === '1' || rawPC === '1.0' || rawPC === true || rawPC === 'true'
+      if (isPC && shouldExonerate) {
+        isPersonnelChild = true
+      }
+    } catch {
+      // Ignore
+    }
+
     // Fetch global settings for dynamic pricing
     let globalMonthlyTuition: number | null = null
     try {
       if (feeRecord && feeRecord.tuition_level) {
-        const studentObj = db
-          .prepare('SELECT is_personnel_child FROM students WHERE id = ?')
-          .get(studentId) as { is_personnel_child: any } | undefined
-        const rawPC = studentObj?.is_personnel_child
-        const isPersonnelChild =
-          rawPC == 1 || rawPC === '1' || rawPC === '1.0' || rawPC === true || rawPC === 'true'
         if (isPersonnelChild) {
           globalMonthlyTuition = 0
         } else {
@@ -354,16 +365,22 @@ export class PaymentRepository {
         .reduce((sum, p) => sum + p.amount, 0)
 
       let status = 'unpaid'
-      if (paidForMonth >= monthlyTuition) status = 'paid'
-      else if (paidForMonth > 0) status = 'partial'
+      if (isPersonnelChild) {
+        status = 'exempt'
+      } else if (monthlyTuition > 0) {
+        if (paidForMonth >= monthlyTuition) status = 'paid'
+        else if (paidForMonth > 0) status = 'partial'
+      } else {
+        status = paidForMonth > 0 ? 'paid' : 'unassigned_class'
+      }
 
       return {
         month: m.name,
         key: m.key,
-        expected: monthlyTuition,
+        expected: isPersonnelChild ? 0 : monthlyTuition,
         paid: paidForMonth,
         status,
-        balance: monthlyTuition - paidForMonth
+        balance: isPersonnelChild ? 0 : Math.max(0, monthlyTuition - paidForMonth)
       }
     })
 
@@ -506,11 +523,13 @@ export class PaymentRepository {
         }
 
         // --- Tuition ---
+        const shouldExonerate = SettingsRepository.get('exonerate_personnel_children') !== false
         const isPersonnelChild =
-          student.is_personnel_child === 1 ||
-          student.is_personnel_child === '1' ||
-          student.is_personnel_child === true ||
-          student.is_personnel_child === 'true'
+          shouldExonerate &&
+          (student.is_personnel_child === 1 ||
+            student.is_personnel_child === '1' ||
+            student.is_personnel_child === true ||
+            student.is_personnel_child === 'true')
         const tuitionCost = isPersonnelChild ? 0 : student.monthly_tuition || 0
         checkMonthlyService('tuition', tuitionCost, 'Écolage')
 
@@ -531,10 +550,12 @@ export class PaymentRepository {
             } catch (e) {}
           }
           const effectiveDays = daysCount === 0 ? 5 : daysCount
-          if (effectiveDays >= 5) {
-            canteenCost = prices?.canteen?.monthly || 0
+          const monthlyPrice = Number(prices?.canteen?.monthly) || 0
+          const dailyPrice = Number(prices?.canteen?.daily) || 0
+          if (monthlyPrice > 0 && effectiveDays >= 5) {
+            canteenCost = monthlyPrice
           } else {
-            canteenCost = (prices?.canteen?.daily || 0) * effectiveDays * 4
+            canteenCost = dailyPrice * effectiveDays * 4
           }
           checkMonthlyService('canteen', canteenCost, 'Cantine')
         }

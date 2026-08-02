@@ -89,12 +89,21 @@ const getCanteenCost = (record: FeeRecord | undefined | null, prices: FinancePri
   let daysCount = record.canteen_days_per_week || 0
   if (Array.isArray(record.canteen_days) && record.canteen_days.length > 0) {
     daysCount = record.canteen_days.length
+  } else if (typeof record.canteen_days === 'string') {
+    try {
+      const parsed = JSON.parse(record.canteen_days)
+      if (Array.isArray(parsed) && parsed.length > 0) daysCount = parsed.length
+    } catch {
+      // Ignore parse error
+    }
   }
 
   const effectiveDays = daysCount === 0 ? 5 : daysCount
+  const monthlyPrice = Number(prices?.canteen?.monthly) || 0
+  const dailyPrice = Number(prices?.canteen?.daily) || 0
 
-  if (effectiveDays >= 5) return prices?.canteen?.monthly || 0
-  return (prices?.canteen?.daily || 0) * effectiveDays * 4
+  if (monthlyPrice > 0 && effectiveDays >= 5) return monthlyPrice
+  return dailyPrice * effectiveDays * 4
 }
 
 interface FinanceTabProps {

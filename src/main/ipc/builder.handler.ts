@@ -18,10 +18,16 @@ export function registerBuilderHandlers(): void {
       // 1. Create Tenant in Supabase
       log(`Création de l'école "${config.nom}" dans Supabase...`);
       
+      const defaultParametrage = {
+        exonerate_personnel_children: config.exonerate_personnel_children !== false,
+        recipient_email: config.recipient_email || config.email || '',
+        ...(config.parametrage || {})
+      }
+
       const { data, error } = await supabase
         .from('ecoles')
         .insert([
-          { nom: config.nom, parametrage: config.parametrage || {} }
+          { nom: config.nom, parametrage: defaultParametrage }
         ])
         .select();
 

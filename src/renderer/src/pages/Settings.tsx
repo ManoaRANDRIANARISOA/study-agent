@@ -22,6 +22,7 @@ export default function Settings() {
   const [schoolLogo, setSchoolLogo] = useState('')
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [isLoadingImage, setIsLoadingImage] = useState(false)
+  const [exoneratePersonnelChildren, setExoneratePersonnelChildren] = useState(true)
 
   const { sections, addClass, removeClass, renameClass, moveClass } = useClasses()
   const [newClassName, setNewClassName] = useState('')
@@ -51,9 +52,13 @@ export default function Settings() {
           const name = await window.api.settings.get('school_name')
           const year = await window.api.settings.get('school_year')
           const logo = await window.api.settings.get('school_logo')
+          const exonerate = await window.api.settings.get('exonerate_personnel_children')
 
           if (name) setSchoolName(name as string)
           if (year) setCurrentYear(year as string)
+          if (exonerate !== null && exonerate !== undefined) {
+            setExoneratePersonnelChildren(exonerate !== false)
+          }
           if (logo) {
             setSchoolLogo(logo as string)
             setLogoPreview(logo as string | null)
@@ -74,6 +79,7 @@ export default function Settings() {
         await window.api.settings.set('school_name', schoolName)
         await window.api.settings.set('school_year', currentYear)
         await window.api.settings.set('school_logo', schoolLogo)
+        await window.api.settings.set('exonerate_personnel_children', exoneratePersonnelChildren)
         
         // Mettre à jour le store global instantanément pour éviter de devoir redémarrer
         await useAppStore.getState().fetchSettings()
@@ -244,6 +250,18 @@ export default function Settings() {
                 value={currentYear}
                 onChange={(e) => setCurrentYear(e.target.value)}
               />
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <input
+                type="checkbox"
+                id="exoneratePersonnelChildren"
+                checked={exoneratePersonnelChildren}
+                onChange={(e) => setExoneratePersonnelChildren(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+              />
+              <Label htmlFor="exoneratePersonnelChildren" className="text-sm font-medium cursor-pointer">
+                Exonérer automatiquement les enfants du personnel des frais d'écolage
+              </Label>
             </div>
             <Button
               onClick={handleSaveConfig}

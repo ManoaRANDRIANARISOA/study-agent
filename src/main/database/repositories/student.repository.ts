@@ -115,6 +115,17 @@ export class StudentRepository {
     return `${year}-${String(nextNum).padStart(5, '0')}`
   }
 
+  static getCurrentSchoolYear(): string {
+    const saved = this.getSetting('school_year')
+    if (saved && saved.trim()) {
+      return saved.replace(/['"]/g, '').trim()
+    }
+    const now = new Date()
+    const month = now.getMonth() + 1
+    const year = now.getFullYear()
+    return month >= 9 ? `${year}-${year + 1}` : `${year - 1}-${year}`
+  }
+
   static getSetting(key: string): string {
     const result = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as {
       value: string
@@ -313,7 +324,7 @@ export class StudentRepository {
 
       // Initialize Student Fees for current year (Only if class is provided)
       if (studentDataClean.class) {
-        let schoolYear = this.getSetting('school_year') || '2025-2026'
+        let schoolYear = this.getSetting('school_year') || this.getCurrentSchoolYear()
         schoolYear = schoolYear.replace(/['"]/g, '').trim()
 
         const config = this.resolveTuitionConfig(studentDataClean.class as string)
@@ -733,7 +744,7 @@ export class StudentRepository {
 
         // Update Fees Table
         if (Object.keys(feeUpdates).length > 0 || studentUpdates.class) {
-          let schoolYear = this.getSetting('school_year') || '2025-2026'
+          let schoolYear = this.getSetting('school_year') || this.getCurrentSchoolYear()
           schoolYear = schoolYear.replace(/['"]/g, '').trim()
 
           // If class or personnel status changed, update fee record too
@@ -1136,7 +1147,7 @@ export class StudentRepository {
   }
 
   static getServiceStats() {
-    const schoolYear = this.getSetting('school_year') || '2025-2026'
+    const schoolYear = this.getSetting('school_year') || this.getCurrentSchoolYear()
 
     const rows = db
       .prepare(
