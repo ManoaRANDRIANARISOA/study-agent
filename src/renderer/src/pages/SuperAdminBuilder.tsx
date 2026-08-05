@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Play, Box, Check, Loader2, Image as ImageIcon } from 'lucide-react'
-import { useAppStore } from '@/store/useAppStore'
 
 export default function SuperAdminBuilder() {
   const [step, setStep] = useState(1)

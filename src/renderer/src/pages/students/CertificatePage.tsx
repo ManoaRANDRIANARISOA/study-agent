@@ -19,7 +19,6 @@ export default function CertificatePage() {
   const schoolLogo = schoolConfig.school_logo || null
   const schoolCity = schoolConfig.school_city || 'Ville'
   const schoolType = schoolConfig.school_type || 'Enseignement Général'
-  const directorName = schoolConfig.director_name || ''
   const directorTitle = schoolConfig.director_title || 'Le Directeur'
 
   useEffect(() => {
