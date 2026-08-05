@@ -16,11 +16,7 @@ const supabaseKey = process.env.SUPABASE_ANON_KEY
 let supabaseClient: any = null
 
 export function reinitSupabaseClient(newSchema?: string) {
-  let targetSchema = newSchema || process.env.VITE_SUPABASE_SCHEMA || 'public'
-  try {
-    const row = db.prepare("SELECT value FROM settings WHERE key = 'tenant_id'").get() as any
-    if (row && row.value) targetSchema = row.value.replace(/['"]/g, '')
-  } catch(e) {}
+  const targetSchema = newSchema || process.env.VITE_SUPABASE_SCHEMA || 'public'
 
   if (supabaseUrl && supabaseKey) {
     try {
