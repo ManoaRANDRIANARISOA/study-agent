@@ -142,7 +142,8 @@ function NavModule({ label, icon: Icon, items, isOpen, onToggle }: NavModuleProp
   )
 }
 
-import logo from '@/assets/logo.png'
+import { useAppStore } from '@/store/useAppStore'
+import defaultLogo from '@/assets/logo.png'
 
 // --------------------------------------------
 // Sidebar Component
@@ -151,6 +152,7 @@ export default function Sidebar(): React.JSX.Element {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const location = useLocation()
+  const { schoolConfig } = useAppStore()
 
   // CRITICAL: We must subscribe to permissions to trigger a re-render
   // when fetchPermissions() completes after login/refresh.
@@ -184,14 +186,12 @@ export default function Sidebar(): React.JSX.Element {
       {/* Nom de l'école */}
       <div className="flex items-center gap-3 mb-6 pl-2">
         <img
-          src={logo}
-          alt="Logo Manjary Soa"
+          src={schoolConfig.school_logo || defaultLogo}
+          alt={`Logo ${schoolConfig.school_name || 'Study Agent'}`}
           className="w-10 h-10 object-contain bg-white rounded-md p-0.5"
         />
         <div className="text-xl font-bold tracking-wide leading-tight">
-          Lycée
-          <br />
-          Manjary Soa
+          {schoolConfig.school_name || 'Study Agent'}
         </div>
       </div>
 
@@ -229,25 +229,29 @@ export default function Sidebar(): React.JSX.Element {
         />
 
         {/* Notes — module collapsible */}
-        <NavModule
-          label="Notes & Bulletins"
-          icon={BookOpen}
-          isOpen={openModule === 'Notes & Bulletins'}
-          onToggle={() => handleToggle('Notes & Bulletins')}
-          items={[
-            { to: '/grades/entry', label: 'Saisie des notes', resource: 'grades' },
-            { to: '/grades/book', label: 'Carnet de notes', resource: 'grades' },
-            { to: '/grades/subjects', label: 'Matières', resource: 'grades' }
-          ]}
-        />
+        {schoolConfig.module_evaluations !== false && (
+          <NavModule
+            label="Notes & Bulletins"
+            icon={BookOpen}
+            isOpen={openModule === 'Notes & Bulletins'}
+            onToggle={() => handleToggle('Notes & Bulletins')}
+            items={[
+              { to: '/grades/entry', label: 'Saisie des notes', resource: 'grades' },
+              { to: '/grades/book', label: 'Carnet de notes', resource: 'grades' },
+              { to: '/grades/subjects', label: 'Matières', resource: 'grades' }
+            ]}
+          />
+        )}
 
         {/* Pointage Bus/Cantine — standalone */}
-        <NavLeaf
-          to="/attendance"
-          label="Pointage Bus/Cantine"
-          resource="attendance"
-          icon={ClipboardCheck}
-        />
+        {(schoolConfig.module_bus !== false || schoolConfig.module_cantine !== false) && (
+          <NavLeaf
+            to="/attendance"
+            label="Pointage Bus/Cantine"
+            resource="attendance"
+            icon={ClipboardCheck}
+          />
+        )}
 
         {/* Événements — standalone */}
         <NavLeaf to="/events" label="Événements" resource="events" icon={CalendarDays} />

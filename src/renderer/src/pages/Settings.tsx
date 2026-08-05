@@ -9,6 +9,7 @@ import { useClasses } from '@/lib/useClasses'
 import { Trash2, Plus } from 'lucide-react'
 import EmailSettings from '@/pages/settings/EmailSettings'
 import AssessmentSettings from '@/pages/settings/AssessmentSettings'
+import ThermalPrinterSettings from '@/pages/settings/ThermalPrinterSettings'
 
 export default function Settings() {
   const canRead = useAuthStore((s) => s.canRead)
@@ -19,6 +20,13 @@ export default function Settings() {
 
   const [schoolName, setSchoolName] = useState('')
   const [currentYear, setCurrentYear] = useState(useAppStore.getState().currentYear)
+  const [schoolAddress, setSchoolAddress] = useState('')
+  const [schoolCity, setSchoolCity] = useState('')
+  const [schoolPhone, setSchoolPhone] = useState('')
+  const [schoolEmail, setSchoolEmail] = useState('')
+  const [directorName, setDirectorName] = useState('')
+  const [directorTitle, setDirectorTitle] = useState('')
+  const [primaryColor, setPrimaryColor] = useState('')
   const [schoolLogo, setSchoolLogo] = useState('')
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [isLoadingImage, setIsLoadingImage] = useState(false)
@@ -53,6 +61,22 @@ export default function Settings() {
           const year = await window.api.settings.get('school_year')
           const logo = await window.api.settings.get('school_logo')
           const exonerate = await window.api.settings.get('exonerate_personnel_children')
+          const address = await window.api.settings.get('school_address')
+          const city = await window.api.settings.get('school_city')
+          const phone = await window.api.settings.get('school_phone')
+          const email = await window.api.settings.get('school_email')
+          const dName = await window.api.settings.get('director_name')
+          const dTitle = await window.api.settings.get('director_title')
+          const color = await window.api.settings.get('primary_color')
+
+          if (address) setSchoolAddress(address as string)
+          if (city) setSchoolCity(city as string)
+          if (phone) setSchoolPhone(phone as string)
+          if (email) setSchoolEmail(email as string)
+          if (dName) setDirectorName(dName as string)
+          if (dTitle) setDirectorTitle(dTitle as string)
+          if (color) setPrimaryColor(color as string)
+
 
           if (name) setSchoolName(name as string)
           if (year) setCurrentYear(year as string)
@@ -78,6 +102,14 @@ export default function Settings() {
       if (window.api) {
         await window.api.settings.set('school_name', schoolName)
         await window.api.settings.set('school_year', currentYear)
+        await window.api.settings.set('school_address', schoolAddress)
+        await window.api.settings.set('school_city', schoolCity)
+        await window.api.settings.set('school_phone', schoolPhone)
+        await window.api.settings.set('school_email', schoolEmail)
+        await window.api.settings.set('director_name', directorName)
+        await window.api.settings.set('director_title', directorTitle)
+        await window.api.settings.set('primary_color', primaryColor)
+
         await window.api.settings.set('school_logo', schoolLogo)
         await window.api.settings.set('exonerate_personnel_children', exoneratePersonnelChildren)
         
@@ -433,6 +465,8 @@ export default function Settings() {
         </div>
 
         <AssessmentSettings />
+
+        <ThermalPrinterSettings />
 
         <div className="bg-white p-6 rounded shadow max-w-xl border-red-100 border">
           <h2 className="text-lg font-semibold mb-4 text-red-600">Zone de Danger</h2>

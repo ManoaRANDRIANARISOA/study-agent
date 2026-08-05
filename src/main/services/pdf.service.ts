@@ -10,12 +10,25 @@
 import { jsPDF } from 'jspdf'
 import { app } from 'electron'
 import path from 'path'
+import { SettingsRepository } from '../database/repositories/settings.repository'
 import fs from 'fs'
 
 const isDev = !app.isPackaged
 
+function getSchoolConfig() {
+  const all = SettingsRepository.getAll() as Record<string, any>
+  return {
+    name: all.school_name || 'Study Agent',
+    city: all.school_city || 'Ville, Pays',
+    address: all.school_address || 'Adresse',
+    director_name: all.director_name || '',
+    director_title: all.director_title || 'Le Directeur'
+  }
+}
+
 function getOutputDir(category: string): string {
-  const dir = path.join(app.getPath('desktop'), 'lms', category)
+  const appName = process.env.VITE_APP_NAME || 'StudyAgent'
+  const dir = path.join(app.getPath('documents'), appName, category)
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })
   }
@@ -23,12 +36,13 @@ function getOutputDir(category: string): string {
 }
 
 function addHeader(doc: jsPDF, title: string): number {
+  const config = getSchoolConfig()
   doc.setFontSize(16)
   doc.setFont('helvetica', 'bold')
-  doc.text('Lycée Manjary Soa', 105, 20, { align: 'center' })
+  doc.text(config.name, 105, 20, { align: 'center' })
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
-  doc.text('Antananarivo, Madagascar', 105, 27, { align: 'center' })
+  doc.text(config.city, 105, 27, { align: 'center' })
   doc.setLineWidth(0.5)
   doc.line(20, 32, 190, 32)
   doc.setFontSize(14)
@@ -90,12 +104,13 @@ export class PdfService {
       }
 
       // Header Text
+      const config = getSchoolConfig()
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
-      doc.text('Lycée Manjary Soa', 74, 18, { align: 'center' })
+      doc.text(config.name, 74, 18, { align: 'center' })
       doc.setFontSize(9)
       doc.setFont('helvetica', 'normal')
-      doc.text('Lot H 61 Miadana Alasora, Antananarivo', 74, 24, { align: 'center' })
+      doc.text(config.address, 74, 24, { align: 'center' })
 
       // Separator
       doc.setDrawColor(200, 200, 200)
@@ -255,12 +270,13 @@ export class PdfService {
         }
       }
 
+      const config = getSchoolConfig()
       doc.setFontSize(12)
       doc.setFont('helvetica', 'bold')
-      doc.text('LYCEE MANJARY SOA', 50, 25)
+      doc.text(config.name.toUpperCase(), 50, 25)
       doc.setFontSize(10)
       doc.setFont('helvetica', 'normal')
-      doc.text('Lot H 61 Miadana Alasora', 50, 32)
+      doc.text(config.address, 50, 32)
 
       y = 60
       doc.setFontSize(16)
@@ -274,8 +290,7 @@ export class PdfService {
       doc.setFontSize(12)
       doc.setFont('helvetica', 'normal')
 
-      const text1 =
-        'Je soussignée, RAZAFINTSEHENO Anjarasoa Christine, Directrice du Lycée Privé MANJARY SOA sise à Miadana Alasora, certifie que :'
+      const text1 = `Je soussigné(e), ${config.director_name || '.......................'}, ${config.director_title} de ${config.name} sise à ${config.city}, certifie que :`
       const splitText1 = doc.splitTextToSize(text1, 170)
       doc.text(splitText1, 20, y)
       y += splitText1.length * 7 + 10
@@ -306,12 +321,12 @@ export class PdfService {
       doc.text('Ce certificat lui est délivré pour servir et valoir ce que de droit.', 20, y)
       y += 25
 
-      doc.text(`Alasora, le ${new Date().toLocaleDateString('fr-FR')}`, 130, y)
+      doc.text(`${config.city.split(',')[0]}, le ${new Date().toLocaleDateString('fr-FR')}`, 130, y)
       y += 10
-      doc.text('La Directrice,', 130, y)
+      doc.text(`${config.director_title},`, 130, y)
       y += 20
       doc.setFont('helvetica', 'bold')
-      doc.text('RAZAFINTSEHENO Anjarasoa Christine', 115, y)
+      doc.text(config.director_name, 115, y)
 
       addFooter(doc, 1)
 
@@ -423,7 +438,9 @@ export class PdfService {
 
       // Add Logo
       try {
-        const logoPath = 'c:\\rep\\School\\assets\\logo.png'
+        const logoPath = isDev
+          ? path.join(process.cwd(), 'resources', 'logo.png')
+          : path.join(process.resourcesPath, 'logo.png')
         if (fs.existsSync(logoPath)) {
           const logoData = fs.readFileSync(logoPath).toString('base64')
           doc.addImage(`data:image/png;base64,${logoData}`, 'PNG', 15, 10, 20, 20)

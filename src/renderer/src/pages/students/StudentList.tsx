@@ -19,9 +19,10 @@ export default function StudentList() {
   const [selectedClass, setSelectedClass] = useState<string>('')
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [sortField, setSortField] = useState<string>('registration_number')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc') // desc puts new ones at top
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'detail'>('list')
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   useEffect(() => {
     fetchStudents()
@@ -75,6 +76,8 @@ export default function StudentList() {
         <StudentForm
           onSuccess={() => {
             setView('list')
+            setSuccessMessage("Le dossier de l'élève a été créé avec succès.")
+            setTimeout(() => setSuccessMessage(null), 5000)
           }}
           onCancel={() => setView('list')}
         />
@@ -154,6 +157,15 @@ export default function StudentList() {
           )}
         </div>
       </div>
+
+      {successMessage && (
+        <div className="bg-green-100 border border-green-200 text-green-800 px-4 py-3 rounded mb-4 flex justify-between items-center shadow-sm">
+          <span className="font-medium">{successMessage}</span>
+          <button onClick={() => setSuccessMessage(null)} className="text-green-600 hover:text-green-800">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       <div className="mb-4 flex gap-2">
         <Input

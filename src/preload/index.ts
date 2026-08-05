@@ -112,6 +112,11 @@ const api = {
     getAll: () => ipcRenderer.invoke('settings:getAll')
   },
 
+  printer: {
+    getPrinters: () => ipcRenderer.invoke('printer:getPrinters'),
+    printReceipt: (data) => ipcRenderer.invoke('printer:printReceipt', data),
+    testPrint: (size) => ipcRenderer.invoke('printer:testPrint', size)
+  },
   tenant: {
     check: () => ipcRenderer.invoke('tenant:check'),
     setup: (tenantId: string) => ipcRenderer.invoke('tenant:setup', tenantId)

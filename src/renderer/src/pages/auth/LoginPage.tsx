@@ -10,7 +10,8 @@
 
 import React, { useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
-import logo from '@/assets/logo.png'
+import { useAppStore } from '@/store/useAppStore'
+import defaultLogo from '@/assets/logo.png'
 
 export default function LoginPage(): React.JSX.Element {
   const [username, setUsername] = useState('')
@@ -21,6 +22,7 @@ export default function LoginPage(): React.JSX.Element {
   const loading = useAuthStore((s) => s.loading)
   const error = useAuthStore((s) => s.error)
   const clearError = useAuthStore((s) => s.clearError)
+  const { schoolConfig } = useAppStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,11 +36,11 @@ export default function LoginPage(): React.JSX.Element {
         {/* Logo / Header */}
         <div className="text-center mb-8">
           <img
-            src={logo}
-            alt="Logo Lycée Manjary Soa"
+            src={schoolConfig.school_logo || defaultLogo}
+            alt={`Logo ${schoolConfig.school_name || 'Study Agent'}`}
             className="w-24 h-24 mx-auto object-contain bg-white rounded-2xl p-2 shadow-sm mb-4 border"
           />
-          <h1 className="text-2xl font-bold text-foreground">Lycée Manjary Soa</h1>
+          <h1 className="text-2xl font-bold text-foreground">{schoolConfig.school_name || 'Study Agent'}</h1>
           <p className="text-muted-foreground mt-1">Système de gestion scolaire</p>
         </div>
 
@@ -125,7 +127,7 @@ export default function LoginPage(): React.JSX.Element {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Lycée Manjary Soa — Gestion Scolaire v1.0
+          {schoolConfig.school_name || 'Study Agent'} — Gestion Scolaire v1.0
         </p>
       </div>
     </div>

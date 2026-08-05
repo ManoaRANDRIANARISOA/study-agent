@@ -3,6 +3,7 @@ import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
 import { supabase } from '../services/sync.service' // Uses the initialized supabase client
+import { uploadSchoolLogo } from '../services/storage.service'
 
 export function registerBuilderHandlers(): void {
   ipcMain.handle('builder:createAndBuild', async (event, config: any) => {
@@ -41,6 +42,16 @@ export function registerBuilderHandlers(): void {
 
       const ecoleId = data[0].id;
       log(`✅ École créée avec succès. ID: ${ecoleId}`);
+
+      if (config.logoBase64) {
+        log(`Upload du logo vers le cloud...`)
+        const logoUrl = await uploadSchoolLogo(ecoleId, config.logoBase64)
+        
+        // Update parametrage with the logo URL
+        const updatedParametrage = { ...defaultParametrage, school_logo: logoUrl }
+        await supabase.from('ecoles').update({ parametrage: updatedParametrage }).eq('id', ecoleId)
+        log(`✅ Logo uploadé et configuration mise à jour.`)
+      }
 
       // 2. Modifying .env
       const envPath = path.join(process.cwd(), '.env');

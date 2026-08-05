@@ -31,7 +31,24 @@ export function registerSettingsHandlers(): void {
       'school_year',
       'school_name',
       'school_logo',
-      'auth_require_password_change'
+      'school_address',
+      'school_city',
+      'school_phone',
+      'school_email',
+      'school_type',
+      'director_name',
+      'director_title',
+      'receipt_prefix',
+      'primary_color',
+      'module_cantine',
+      'module_bus',
+      'module_uniforms',
+      'module_evaluations',
+      'exonerate_personnel_children',
+      'auth_require_password_change',
+      'thermal_printer_enabled',
+      'thermal_printer_name',
+      'thermal_printer_size'
     ]
 
     if (!PUBLIC_SETTINGS.includes(key) && !canRead('settings')) {
@@ -50,7 +67,22 @@ export function registerSettingsHandlers(): void {
         'school_year',
         'school_name',
         'school_logo',
-        'auth_require_password_change'
+        'school_address',
+        'school_city',
+        'school_phone',
+        'school_email',
+        'school_type',
+        'director_name',
+        'director_title',
+        'receipt_prefix',
+        'primary_color',
+        'module_cantine',
+        'module_bus',
+        'module_uniforms',
+        'module_evaluations',
+        'exonerate_personnel_children',
+        'auth_require_password_change',
+        'thermal_printer_enabled'
       ]
       const filtered: Record<string, unknown> = {}
       for (const key of PUBLIC_SETTINGS) {

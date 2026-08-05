@@ -168,7 +168,7 @@ export default function ReportCardView(): React.JSX.Element {
       {/* En-tête bulletin */}
       <div className="bg-white rounded-xl border shadow-sm p-6 space-y-2">
         <div className="text-center">
-          <h2 className="text-xl font-bold">Lycée Manjary Soa</h2>
+          <h2 className="text-xl font-bold">{useAppStore.getState().schoolConfig.school_name || 'Study Agent'}</h2>
           <p className="text-sm text-muted-foreground">
             Bulletin de notes — {schoolYear} —{' '}
             {term === 4

@@ -453,7 +453,7 @@ CREATE TABLE settings (
 
 -- Seed default settings
 INSERT INTO settings (key, value) VALUES
-('school_name', '"Lycée Manjary Soa"'),
+('school_name', '""'),
 ('school_year', '"2025-2026"'),
 ('tuition_preschool', '50000'),
 ('tuition_primary', '60000'),

@@ -13,6 +13,7 @@ import { Search, X, Plus, UserCircle } from 'lucide-react'
 import { useFinanceStore } from '@/store/useFinanceStore'
 import { usePersonnelStore } from '@/store/usePersonnelStore'
 import { useClasses } from '@/lib/useClasses'
+import { useAppStore } from '@/store/useAppStore'
 
 const studentSchema = z.object({
   first_name: z.string().min(2, 'Le prénom est requis'),
@@ -113,6 +114,7 @@ export default function StudentForm({
     fetchPersonnel()
   }, [])
 
+  const { schoolConfig } = useAppStore()
   const form = useForm<StudentFormValues>({
     resolver: zodResolver(studentSchema),
     defaultValues: {
@@ -820,135 +822,142 @@ export default function StudentForm({
             {initialData && (
               <>
                 {/* Bus */}
-                <div className="border p-4 rounded-md">
-                  <h3 className="font-semibold mb-3">Transport Scolaire (Bus)</h3>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Checkbox
-                      id="bus_subscribed"
-                      checked={form.watch('bus_subscribed')}
-                      onCheckedChange={(checked) =>
-                        form.setValue('bus_subscribed', checked as boolean)
-                      }
-                    />
-                    <label htmlFor="bus_subscribed" className="text-sm font-medium">
-                      Inscription au Bus
-                    </label>
-                  </div>
-
-                  {form.watch('bus_subscribed') && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Ligne de Bus</label>
-                      <select
-                        {...form.register('bus_route')}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="">Sélectionner une zone</option>
-                        {availableBusRoutes.map((route) => (
-                          <option key={route} value={route}>
-                            {route} ({prices.bus[route]?.toLocaleString()} Ar)
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-gray-500">
-                        Note: Sélectionnez la zone correspondant à l'arrêt de l'élève.
-                      </p>
+                {schoolConfig.module_bus !== false && (
+                  <div className="border p-4 rounded-md">
+                    <h3 className="font-semibold mb-3">Transport Scolaire (Bus)</h3>
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Checkbox
+                        id="bus_subscribed"
+                        checked={form.watch('bus_subscribed')}
+                        onCheckedChange={(checked) =>
+                          form.setValue('bus_subscribed', checked as boolean)
+                        }
+                      />
+                      <label htmlFor="bus_subscribed" className="text-sm font-medium">
+                        Inscription au Bus
+                      </label>
                     </div>
-                  )}
-                </div>
 
-                {/* Canteen */}
-                <div className="border p-4 rounded-md mt-4">
-                  <h3 className="font-semibold mb-3">Cantine</h3>
-                  <div className="flex items-center space-x-2 mb-4">
-                    <Checkbox
-                      id="canteen_subscribed"
-                      checked={form.watch('canteen_subscribed')}
-                      onCheckedChange={(checked) =>
-                        form.setValue('canteen_subscribed', checked as boolean)
-                      }
-                    />
-                    <label htmlFor="canteen_subscribed" className="text-sm font-medium">
-                      Inscription à la Cantine
-                    </label>
-                  </div>
-
-                  {form.watch('canteen_subscribed') && (
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Jours de cantine</label>
-                      <div className="flex gap-2 flex-wrap">
-                        {[
-                          { id: 'Monday', label: 'Lun' },
-                          { id: 'Tuesday', label: 'Mar' },
-                          { id: 'Wednesday', label: 'Mer' },
-                          { id: 'Thursday', label: 'Jeu' },
-                          { id: 'Friday', label: 'Ven' }
-                        ].map((day) => {
-                          const currentDays = form.watch('canteen_days') || []
-                          const isSelected = currentDays.includes(day.id)
-                          return (
-                            <button
-                              key={day.id}
-                              type="button"
-                              onClick={() => {
-                                const newDays = isSelected
-                                  ? currentDays.filter((d) => d !== day.id)
-                                  : [...currentDays, day.id]
-                                form.setValue('canteen_days', newDays)
-                                form.setValue('canteen_days_per_week', newDays.length)
-                              }}
-                              className={`px-3 py-2 rounded text-sm font-medium transition-colors border ${
-                                isSelected
-                                  ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
-                                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                              }`}
-                            >
-                              {day.label}
-                            </button>
-                          )
-                        })}
+                    {form.watch('bus_subscribed') && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Ligne de Bus</label>
+                        <select
+                          {...form.register('bus_route')}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Sélectionner une zone</option>
+                          {availableBusRoutes.map((route) => (
+                            <option key={route} value={route}>
+                              {route} ({prices.bus[route]?.toLocaleString()} Ar)
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-500">
+                          Note: Sélectionnez la zone correspondant à l'arrêt de l'élève.
+                        </p>
                       </div>
-                      <p className="text-xs text-gray-500">
-                        {form.watch('canteen_days_per_week')} jour(s) par semaine
-                      </p>
-                      <input type="hidden" {...form.register('canteen_days_per_week')} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Uniforms */}
-                <div className="border p-4 rounded-md mt-4">
-                  <h3 className="font-semibold mb-3">Tenues & Accessoires</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {Object.keys(prices?.uniforms || {}).map((item) => {
-                      const itemsPurchased = form.watch('uniform_items_purchased') || []
-                      const isChecked = itemsPurchased.includes(item)
-                      return (
-                        <div key={item} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`uniform_${item}`}
-                            checked={isChecked}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                form.setValue('uniform_items_purchased', [...itemsPurchased, item])
-                              } else {
-                                form.setValue(
-                                  'uniform_items_purchased',
-                                  itemsPurchased.filter((i) => i !== item)
-                                )
-                              }
-                            }}
-                          />
-                          <label htmlFor={`uniform_${item}`} className="text-sm">
-                            {item}
-                          </label>
-                        </div>
-                      )
-                    })}
-                    {Object.keys(prices?.uniforms || {}).length === 0 && (
-                      <p className="text-sm text-gray-500 italic">Aucun article configuré</p>
                     )}
                   </div>
-                </div>
+                )}
+                {/* Canteen */}
+                {schoolConfig.module_cantine !== false && (
+                  <div className="border p-4 rounded-md mt-4">
+                    <h3 className="font-semibold mb-3">Cantine</h3>
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Checkbox
+                        id="canteen_subscribed"
+                        checked={form.watch('canteen_subscribed')}
+                        onCheckedChange={(checked) =>
+                          form.setValue('canteen_subscribed', checked as boolean)
+                        }
+                      />
+                      <label htmlFor="canteen_subscribed" className="text-sm font-medium">
+                        Inscription à la Cantine
+                      </label>
+                    </div>
+
+                    {form.watch('canteen_subscribed') && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Jours de cantine</label>
+                        <div className="flex gap-2 flex-wrap">
+                          {[
+                            { id: 'Monday', label: 'Lun' },
+                            { id: 'Tuesday', label: 'Mar' },
+                            { id: 'Wednesday', label: 'Mer' },
+                            { id: 'Thursday', label: 'Jeu' },
+                            { id: 'Friday', label: 'Ven' }
+                          ].map((day) => {
+                            const currentDays = form.watch('canteen_days') || []
+                            const isSelected = currentDays.includes(day.id)
+                            return (
+                              <button
+                                key={day.id}
+                                type="button"
+                                onClick={() => {
+                                  const newDays = isSelected
+                                    ? currentDays.filter((d) => d !== day.id)
+                                    : [...currentDays, day.id]
+                                  form.setValue('canteen_days', newDays)
+                                  form.setValue('canteen_days_per_week', newDays.length)
+                                }}
+                                className={`px-3 py-2 rounded text-sm font-medium transition-colors border ${
+                                  isSelected
+                                    ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                }`}
+                              >
+                                {day.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {form.watch('canteen_days_per_week')} jour(s) par semaine
+                        </p>
+                        <input type="hidden" {...form.register('canteen_days_per_week')} />
+                      </div>
+                    )}
+                  </div>
+                )}
+                {/* Uniforms */}
+                {schoolConfig.module_uniforms !== false && (
+                  <div className="border p-4 rounded-md mt-4">
+                    <h3 className="font-semibold mb-3">Tenues & Accessoires</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {Object.keys(prices?.uniforms || {}).map((item) => {
+                        const itemsPurchased = form.watch('uniform_items_purchased') || []
+                        const isChecked = itemsPurchased.includes(item)
+                        return (
+                          <div key={item} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`uniform_${item}`}
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  form.setValue('uniform_items_purchased', [
+                                    ...itemsPurchased,
+                                    item
+                                  ])
+                                } else {
+                                  form.setValue(
+                                    'uniform_items_purchased',
+                                    itemsPurchased.filter((i) => i !== item)
+                                  )
+                                }
+                              }}
+                            />
+                            <label htmlFor={`uniform_${item}`} className="text-sm">
+                              {item}
+                            </label>
+                          </div>
+                        )
+                      })}
+                      {Object.keys(prices?.uniforms || {}).length === 0 && (
+                        <p className="text-sm text-gray-500 italic">Aucun article configuré</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </TabsContent>

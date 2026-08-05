@@ -289,6 +289,11 @@ interface APIType {
     set: (key: string, value: unknown) => Promise<{ success: boolean; error?: string }>
     getAll: () => Promise<Record<string, unknown>>
   }
+  printer: {
+    getPrinters: () => Promise<any[]>
+    printReceipt: (data: any) => Promise<{ success: boolean; error?: string }>
+    testPrint: (size: '58mm' | '80mm') => Promise<{ success: boolean; error?: string }>
+  }
   tenant: {
     check: () => Promise<{ isConfigured: boolean; tenantId: string | null }>
     setup: (tenantId: string) => Promise<{ success: boolean }>

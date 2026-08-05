@@ -15,6 +15,7 @@
 import React, { useEffect, useState } from 'react'
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAppStore } from '@/store/useAppStore'
 
 import ErrorBoundary from '@/components/shared/ErrorBoundary'
 import LoginPage from '@/pages/auth/LoginPage'
@@ -30,6 +31,7 @@ import FirstBootOnboarding from '@/pages/FirstBootOnboarding'
 function AuthInitializer({ children }: { children: React.ReactNode | ((isFirstBoot: boolean | null) => React.ReactNode) }) {
   const checkExistingSession = useAuthStore((s) => s.checkExistingSession)
   const loading = useAuthStore((s) => s.loading)
+  const fetchSettings = useAppStore((s) => s.fetchSettings)
   const [initialized, setInitialized] = useState(false)
   const [tenantConfigured, setTenantConfigured] = useState<boolean | null>(null)
   const [isFirstBoot, setIsFirstBoot] = useState<boolean | null>(null)
@@ -39,17 +41,20 @@ function AuthInitializer({ children }: { children: React.ReactNode | ((isFirstBo
     window.api.tenant.check().then((res) => {
       setTenantConfigured(res.isConfigured)
       if (res.isConfigured) {
-        // 2. Vérifier s'il n'y a aucun utilisateur (First Boot)
-        window.api.auth.checkFirstBoot().then((bootRes) => {
-          setIsFirstBoot(bootRes.isFirstBoot)
-          
-          if (!bootRes.isFirstBoot) {
-            // 3. S'il y a des utilisateurs, on check la session
-            checkExistingSession().finally(() => setInitialized(true))
-          } else {
-            // C'est le premier lancement, on est prêt
-            setInitialized(true)
-          }
+        // Charger la configuration de l'école (nom, logo, couleurs, etc.)
+        fetchSettings().finally(() => {
+          // 2. Vérifier s'il n'y a aucun utilisateur (First Boot)
+          window.api.auth.checkFirstBoot().then((bootRes) => {
+            setIsFirstBoot(bootRes.isFirstBoot)
+            
+            if (!bootRes.isFirstBoot) {
+              // 3. S'il y a des utilisateurs, on check la session
+              checkExistingSession().finally(() => setInitialized(true))
+            } else {
+              // C'est le premier lancement, on est prêt
+              setInitialized(true)
+            }
+          })
         })
       } else {
         // S'il n'est pas configuré, on arrête le chargement pour afficher l'onboarding

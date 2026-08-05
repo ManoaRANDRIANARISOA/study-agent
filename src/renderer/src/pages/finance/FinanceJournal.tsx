@@ -23,6 +23,7 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
+  Printer,
   Percent,
   Trash2
 } from 'lucide-react'
@@ -234,6 +235,7 @@ export default function FinanceJournal() {
   } = useCashJournalStore()
   const { canWrite } = usePermissions()
   const { currentYear } = useAppStore()
+  const thermalPrinterEnabled = useAppStore((s) => s.schoolConfig?.thermal_printer_enabled)
 
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -953,6 +955,39 @@ export default function FinanceJournal() {
                           >
                             <FileText className="w-4 h-4 text-gray-400 hover:text-blue-600" />
                           </Button>
+                          {thermalPrinterEnabled && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 ml-1"
+                              title="Imprimer (Thermique)"
+                              onClick={async () => {
+                                let studentName = ''
+                                if (entry.first_name && entry.last_name) {
+                                  studentName = `${entry.last_name} ${entry.first_name}`
+                                }
+                                const monthMatch = entry.description?.match(/\(([^)]+)\)/)
+                                const extractedMonth = monthMatch ? monthMatch[1] : undefined
+
+                                const r = await window.api.printer.printReceipt({
+                                  studentName: studentName || entry.description?.replace('Paiement ', '')?.replace(/ — .*/, '') || '—',
+                                  className: entry.student_class || '-',
+                                  amount: entry.amount,
+                                  paymentTypeLabel: entry.category || 'Paiement',
+                                  date: new Date(entry.transaction_date).toLocaleDateString('fr-FR'),
+                                  month: extractedMonth,
+                                  receiptNumber: entry.id.slice(0,8),
+                                  paymentMethod: entry.payment_method || 'Espèces',
+                                  cashier: (entry as any).cashier_name || 'Admin'
+                                })
+                                if (!r.success) {
+                                  alert('Erreur impression thermique: ' + r.error)
+                                }
+                              }}
+                            >
+                              <Printer className="w-4 h-4 text-gray-400 hover:text-green-600" />
+                            </Button>
+                          )}
                           {canWrite('cash_journal') && (
                             <Button
                               variant="ghost"

@@ -1,0 +1,756 @@
+# Study Agent — Plan Définitif de Dynamisation Universelle
+
+> **Objectif** : Transformer Study Agent d'un logiciel codé en dur pour une seule école (Lycée Manjary Soa) en un produit SaaS universel et personnalisable, où chaque établissement client reçoit un `.exe` configuré à ses couleurs, son nom, son logo et ses modules.
+
+> **Audience** : Ce document est conçu pour être exécutable par n'importe quel développeur ou agent IA. Chaque modification est décrite avec le fichier exact, les lignes concernées, et la raison technique.
+
+---
+
+## Table des matières
+
+1. [Audit Complet du Codebase](#1-audit-complet-du-codebase)
+2. [Décisions de Design Validées](#2-décisions-de-design-validées)
+3. [Phase 1 — Store Global & Migration SQLite](#phase-1--store-global--migration-sqlite)
+4. [Phase 2 — Logo Cloud via Supabase Storage](#phase-2--logo-cloud-via-supabase-storage)
+5. [Phase 3 — Éradication du Hardcoding (15 fichiers)](#phase-3--éradication-du-hardcoding-15-fichiers)
+6. [Phase 4 — Palette de Couleurs Dynamique](#phase-4--palette-de-couleurs-dynamique)
+7. [Phase 5 — Superadmin Builder CMS Multi-Étapes](#phase-5--superadmin-builder-cms-multi-étapes)
+8. [Phase 6 — Feature Flags & Modules Conditionnels](#phase-6--feature-flags--modules-conditionnels)
+9. [Phase 7 — Imprimante Thermique (Option)](#phase-7--imprimante-thermique-option)
+10. [Vérification](#vérification)
+
+---
+
+## 1. Audit Complet du Codebase
+
+### 🔴 CRITIQUE — Bugs silencieux et chemins fantômes
+
+| # | Fichier | Ligne(s) | Problème | Impact |
+|---|---------|----------|----------|--------|
+| 1 | [pdf.service.ts](file:///C:/wrk/study-agent/src/main/services/pdf.service.ts#L426) | L426 | **Chemin fantôme** `c:\\rep\\School\\assets\\logo.png` hardcodé dans `generateReportCard()`. Ce chemin est celui du PC de dev original et n'existera **jamais** chez aucun client. | Logo absent sur TOUS les bulletins de notes |
+| 2 | [pdf.service.ts](file:///C:/wrk/study-agent/src/main/services/pdf.service.ts#L28) | L28-31 | `addHeader()` écrit en dur `'Lycée Manjary Soa'` et `'Antananarivo, Madagascar'` | Tous les PDFs (bilan journalier, fiches de paie) affichent le mauvais nom |
+| 3 | [pdf.service.ts](file:///C:/wrk/study-agent/src/main/services/pdf.service.ts#L95-98) | L95-98 | Reçu de caisse : `'Lycée Manjary Soa'` et `'Lot H 61 Miadana Alasora, Antananarivo'` en dur | Tous les reçus clients portent le mauvais nom/adresse |
+| 4 | [pdf.service.ts](file:///C:/wrk/study-agent/src/main/services/pdf.service.ts#L260-314) | L260-314 | Certificat de scolarité : Nom complet de la directrice (`RAZAFINTSEHENO Anjarasoa Christine`), son titre (`Directrice du Lycée Privé MANJARY SOA`), l'adresse (`Miadana Alasora`) — tout en dur | Certificats inutilisables pour toute autre école |
+| 5 | [pdf.service.ts](file:///C:/wrk/study-agent/src/main/services/pdf.service.ts#L18) | L18 | Dossier de sortie PDF : `path.join(app.getPath('desktop'), 'lms', category)` — le dossier s'appelle `lms` au lieu du nom de l'application | Confusion pour les clients, nom périmé |
+| 6 | [pdf.handler.ts](file:///C:/wrk/study-agent/src/main/ipc/pdf.handler.ts#L120) | L120 | Validation de chemin : `path.join(app.getPath('desktop'), 'lms')` — même problème que #5 | Sécurité : pourrait bloquer l'ouverture de PDFs si le dossier n'est pas `lms` |
+| 7 | [index.ts](file:///C:/wrk/study-agent/src/main/index.ts#L74) | L74 | `setAppUserModelId('com.lycee.manjary')` — identifiant Windows hardcodé pour l'ancien projet | Windows va confondre des instances de différentes écoles |
+
+### 🟡 MAJEUR — Hardcoding dans l'interface utilisateur
+
+| # | Fichier | Ligne(s) | Problème |
+|---|---------|----------|----------|
+| 8 | [LoginPage.tsx](file:///C:/wrk/study-agent/src/renderer/src/pages/auth/LoginPage.tsx#L38-41) | L38, L41, L128 | `'Logo Lycée Manjary Soa'`, `'Lycée Manjary Soa'`, footer `'Lycée Manjary Soa — Gestion Scolaire v1.0'` |
+| 9 | [Sidebar.tsx](file:///C:/wrk/study-agent/src/renderer/src/components/layout/Sidebar.tsx#L188-194) | L188, L192-194 | `alt="Logo Manjary Soa"`, texte affiché `'Lycée\nManjary Soa'` |
+| 10 | [ReportCardView.tsx](file:///C:/wrk/study-agent/src/renderer/src/pages/grades/ReportCardView.tsx#L171) | L171 | `'Lycée Manjary Soa'` en en-tête du bulletin HTML |
+| 11 | [CertificatePage.tsx](file:///C:/wrk/study-agent/src/renderer/src/pages/students/CertificatePage.tsx#L14) | L14, L228-229, L276-277 | `useState('Lycée Manjary Soa')`, `'Enseignement Général'`, `'Antananarivo, Madagascar'`, `'Fait à Antananarivo'`, `'Le Directeur'` |
+| 12 | [001_init.sql](file:///C:/wrk/study-agent/src/main/database/migrations/001_init.sql#L456) | L456 | Seed : `school_name` initialisé à `'"Lycée Manjary Soa"'` |
+| 13 | [types.ts](file:///C:/wrk/study-agent/src/shared/types.ts#L2) | L2 | Commentaire : `// Shared Types — Lycée Manjary Soa LMS` |
+| 14 | [storage.service.ts](file:///C:/wrk/study-agent/src/main/services/storage.service.ts#L46-57) | L46, L57 | Nom du bucket Supabase Storage : `'lms_files'` — devrait être renommé `'school_files'` ou équivalent neutre |
+| 15 | [DashboardPage.tsx](file:///C:/wrk/study-agent/src/renderer/src/pages/DashboardPage.tsx#L79-84) | L79-84 | Devise hardcodée `currency: 'MGA'` dans `formatMGA()` |
+
+### 🟢 AMÉLIORATION — Points à dynamiser pour la commercialisation
+
+| # | Fichier | Problème |
+|---|---------|----------|
+| 16 | [useAppStore.ts](file:///C:/wrk/study-agent/src/renderer/src/store/useAppStore.ts) | Store minimal : ne charge que `school_year`, pas le nom, logo, adresse, palette, devise, modules |
+| 17 | [SuperAdminBuilder.tsx](file:///C:/wrk/study-agent/src/renderer/src/pages/SuperAdminBuilder.tsx) | Formulaire minimaliste : manque adresse, directeur, devise, couleurs, modules évaluation/uniformes |
+| 18 | [base.css](file:///C:/wrk/study-agent/src/renderer/src/assets/base.css) | Palette `#AD8B73` (Brown) non personnalisable — nécessite support de thème dynamique |
+| 19 | [electron-builder.yml](file:///C:/wrk/study-agent/electron-builder.yml#L1) | `appId: com.electron.app` — générique, devrait être dynamique par école |
+| 20 | [FinanceTab.tsx](file:///C:/wrk/study-agent/src/renderer/src/components/students/FinanceTab.tsx) | `Ar` hardcodé en ~40 endroits comme suffixe de montant |
+| 21 | [ReEnrollModal.tsx](file:///C:/wrk/study-agent/src/renderer/src/components/students/ReEnrollModal.tsx) | `Ar` hardcodé en ~6 endroits |
+| 22 | [StudentDetail.tsx](file:///C:/wrk/study-agent/src/renderer/src/pages/students/StudentDetail.tsx) | `Ar` hardcodé dans les affichages financiers |
+
+---
+
+## 2. Décisions de Design Validées
+
+> Ces décisions ont été confirmées avec le product owner :
+
+### Logo
+- Le logo est fourni lors de la **création de l'école** dans le Superadmin Builder.
+- Il est **stocké dans Supabase Storage** dans un dossier nommé par `ecole_id` (ex: `logos/ecole_001/logo.png`).
+- Il est **utilisé partout** : Login, Sidebar, PDFs (reçus, bulletins, certificats, fiches de paie).
+- Au build `.exe`, le logo est aussi copié dans `resources/logo.png` pour fonctionner hors-ligne.
+
+### Directeur / Direction
+- Le nom et titre du directeur sont saisis lors de la **création de l'école** dans le Superadmin.
+- Ils sont **aussi modifiables** dans les Paramètres de l'application (car le directeur peut changer).
+
+### Devise
+- Configurable par école. **Ariary (`Ar`) par défaut**.
+- Stocké dans `settings` sous la clé `currency`.
+- Un helper `formatCurrency(amount)` centralisé remplace toutes les occurrences `Ar` hardcodées.
+
+### Numéro de reçu
+- Format personnalisable par école (ex: `REC-ECOLE-2026-0001`).
+- Stocké sous la clé `receipt_prefix` dans `settings`.
+
+### Palette de couleurs
+- **Seule la couleur primaire est modifiable** pour préserver l'harmonie du design.
+- L'utilisateur choisit une couleur primaire dans le Superadmin.
+- Les variantes (secondary, muted, accent, border, ring) sont **calculées automatiquement** par ajustement HSL.
+- Application via `document.documentElement.style.setProperty()` au chargement.
+
+### Dossier de téléchargement
+- Renommé de `lms` à une valeur dynamique basée sur le nom de l'application.
+- Le dossier sera `Documents/{VITE_APP_NAME ou 'Study Agent'}/` au lieu de `Desktop/lms/`.
+- Plus professionnel et ne pollue pas le Bureau.
+
+### Imprimante thermique
+- Intégrée en **option activable** dans les paramètres.
+- Un bouton "Imprimer reçu (thermique)" apparaît à côté de "Télécharger PDF" si activé.
+- Utilise le format ESC/POS standard (58mm ou 80mm).
+
+---
+
+## Phase 1 — Store Global & Migration SQLite
+
+> **Objectif** : Créer le socle de données pour que toutes les informations d'école soient disponibles partout dans l'application.
+
+---
+
+### [NEW] `src/main/database/migrations/034_add_school_config_settings.sql`
+
+**Raison** : Ajouter les nouvelles clés de configuration dans la table `settings` pour chaque école.
+
+```sql
+-- Migration 034: Add school configuration settings for universal CMS
+INSERT OR IGNORE INTO settings (key, value) VALUES ('school_address', '""');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('school_city', '""');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('school_phone', '""');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('school_email', '""');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('school_type', '"Enseignement Général"');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('director_name', '""');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('director_title', '"Le Directeur"');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('currency', '"Ar"');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('receipt_prefix', '"REC"');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('primary_color', '"24 23% 57%"');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('module_cantine', 'true');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('module_bus', 'true');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('module_uniforms', 'true');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('module_evaluations', 'true');
+INSERT OR IGNORE INTO settings (key, value) VALUES ('thermal_printer_enabled', 'false');
+```
+
+**Action** : Ajouter aussi ce fichier dans la liste des migrations de [db.ts](file:///C:/wrk/study-agent/src/main/database/db.ts#L86-123) (L122, après `'033_add_ecole_id_to_all.sql'`).
+
+---
+
+### [MODIFY] `src/renderer/src/store/useAppStore.ts`
+
+**Raison** : Le store actuel ne charge que `school_year`. Il doit devenir la source unique de vérité pour TOUTES les informations de l'école.
+
+**Changement** : Remplacer tout le contenu par un store étendu qui :
+1. Charge **toutes** les clés de settings au démarrage via `fetchSettings()`
+2. Expose un objet `schoolConfig` typé avec tous les champs
+3. Expose un helper `formatCurrency(amount: number): string` qui utilise la devise configurée
+4. Appelle `applyTheme()` pour injecter la couleur primaire dans le CSS
+
+**Interface TypeScript du store** :
+```typescript
+interface SchoolConfig {
+  school_name: string
+  school_address: string
+  school_city: string
+  school_phone: string
+  school_email: string
+  school_type: string
+  school_logo: string
+  school_year: string
+  director_name: string
+  director_title: string
+  currency: string
+  receipt_prefix: string
+  primary_color: string
+  module_cantine: boolean
+  module_bus: boolean
+  module_uniforms: boolean
+  module_evaluations: boolean
+  exonerate_personnel_children: boolean
+  thermal_printer_enabled: boolean
+}
+
+interface AppState {
+  currentYear: string
+  schoolConfig: SchoolConfig
+  setCurrentYear: (year: string) => void
+  fetchSettings: () => Promise<void>
+  formatCurrency: (amount: number) => string
+}
+```
+
+**Fonction `applyTheme(primaryHsl: string)`** :
+- Parse la couleur primaire HSL (ex: `"210 80% 50%"`)
+- Calcule la couleur secondary (même hue, +12% lightness)
+- Calcule muted, accent, border, ring par ajustement relatif
+- Applique via `document.documentElement.style.setProperty('--primary', value)` etc.
+- Les valeurs dans [base.css](file:///C:/wrk/study-agent/src/renderer/src/assets/base.css) restent les défauts (Brown) en fallback
+
+---
+
+### [MODIFY] `src/main/ipc/settings.handler.ts`
+
+**Raison** : Ajouter les nouvelles clés de settings (`school_address`, `director_name`, etc.) à la liste `PUBLIC_SETTINGS` (L30-34, L49-54) pour qu'elles soient lisibles par tous les utilisateurs connectés (nécessaire pour l'affichage de l'en-tête).
+
+**Changement** : Étendre `PUBLIC_SETTINGS` pour inclure :
+```typescript
+const PUBLIC_SETTINGS = [
+  'school_year', 'school_name', 'school_logo', 'school_address',
+  'school_city', 'school_phone', 'school_email', 'school_type',
+  'director_name', 'director_title', 'currency', 'receipt_prefix',
+  'primary_color', 'module_cantine', 'module_bus', 'module_uniforms',
+  'module_evaluations', 'exonerate_personnel_children',
+  'auth_require_password_change', 'thermal_printer_enabled'
+]
+```
+
+---
+
+## Phase 2 — Logo Cloud via Supabase Storage
+
+> **Objectif** : Le logo de chaque école est stocké dans Supabase Storage, accessible partout (Login, Sidebar, PDFs), et embarqué dans le `.exe` pour le mode hors-ligne.
+
+---
+
+### [MODIFY] `src/main/services/storage.service.ts`
+
+**Raison** : Le bucket s'appelle `lms_files` (L46, L57) — nom périmé du projet LMS. Renommer en `school_files`.
+
+**Changements** :
+1. L6 : Commentaire → `Uploads a local file to Supabase Storage bucket 'school_files'`
+2. L44 : `lms_files` → `school_files`
+3. L46 : `lms_files` → `school_files`
+4. L57 : `lms_files` → `school_files`
+
+**Ajouter** une nouvelle fonction `uploadSchoolLogo(ecoleId: string, base64Data: string): Promise<string>` qui :
+1. Décode le base64
+2. Upload vers `school_files` avec le chemin `logos/{ecoleId}/logo.png`
+3. Retourne l'URL publique Supabase
+
+---
+
+### [MODIFY] `src/main/ipc/builder.handler.ts`
+
+**Raison** : Lors de la création d'une école, le logo doit être uploadé vers Supabase Storage ET copié en local pour le build.
+
+**Changements** :
+1. Après la création de l'école dans Supabase (L27-36), appeler `uploadSchoolLogo(ecoleId, config.logoBase64)` pour stocker le logo dans le cloud
+2. Sauvegarder l'URL retournée dans `settings` sous `school_logo`
+3. Le block existant (L70-82) reste pour écrire le logo en local dans `resources/` pour le build `.exe`
+
+---
+
+### [MODIFY] Logo dans les composants Frontend
+
+Les composants suivants importent un logo statique `import logo from '@/assets/logo.png'` :
+- [LoginPage.tsx L13](file:///C:/wrk/study-agent/src/renderer/src/pages/auth/LoginPage.tsx#L13)
+- [Sidebar.tsx L145](file:///C:/wrk/study-agent/src/renderer/src/components/layout/Sidebar.tsx#L145)
+
+**Changement** : Remplacer `import logo from '@/assets/logo.png'` par une lecture dynamique depuis le store `useAppStore` (clé `school_logo`). Le fichier `@/assets/logo.png` reste comme **fallback** si aucun logo n'est configuré.
+
+---
+
+## Phase 3 — Éradication du Hardcoding (15 fichiers)
+
+> **Objectif** : Remplacer chaque occurrence de texte spécifique à une école par une valeur dynamique lue depuis `settings` / store.
+
+---
+
+### [MODIFY] `src/main/services/pdf.service.ts` — LE PLUS CRITIQUE
+
+**Raison** : Ce fichier contient 5 blocs distincts de texte hardcodé et un chemin fantôme. C'est le fichier le plus dangereux car il produit des documents officiels imprimés.
+
+#### Changement A — Helper `getSchoolConfig()`
+
+Ajouter en haut du fichier (après les imports) un helper qui lit les settings SQLite une seule fois :
+
+```typescript
+import { SettingsRepository } from '../database/repositories/settings.repository'
+
+function getSchoolConfig() {
+  return {
+    name: (SettingsRepository.get('school_name') as string) || 'Mon École',
+    address: (SettingsRepository.get('school_address') as string) || '',
+    city: (SettingsRepository.get('school_city') as string) || '',
+    phone: (SettingsRepository.get('school_phone') as string) || '',
+    director_name: (SettingsRepository.get('director_name') as string) || '',
+    director_title: (SettingsRepository.get('director_title') as string) || 'Le Directeur',
+    currency: (SettingsRepository.get('currency') as string) || 'Ar',
+    receipt_prefix: (SettingsRepository.get('receipt_prefix') as string) || 'REC',
+    app_name: process.env.VITE_APP_NAME || 'Study Agent'
+  }
+}
+```
+
+#### Changement B — Logo universel
+
+Créer un helper `getLogoPath()` qui centralise la résolution du chemin logo :
+
+```typescript
+function getLogoPath(): string | null {
+  const logoPath = isDev
+    ? path.join(process.cwd(), 'resources', 'logo.png')
+    : path.join(process.resourcesPath, 'logo.png')
+  return fs.existsSync(logoPath) ? logoPath : null
+}
+```
+
+#### Changement C — `addHeader()` (L25-38)
+
+```diff
+ function addHeader(doc: jsPDF, title: string): number {
++  const config = getSchoolConfig()
+   doc.setFontSize(16)
+   doc.setFont('helvetica', 'bold')
+-  doc.text('Lycée Manjary Soa', 105, 20, { align: 'center' })
++  doc.text(config.name, 105, 20, { align: 'center' })
+   doc.setFontSize(10)
+   doc.setFont('helvetica', 'normal')
+-  doc.text('Antananarivo, Madagascar', 105, 27, { align: 'center' })
++  doc.text(config.city || config.address, 105, 27, { align: 'center' })
+```
+
+#### Changement D — `generateReceipt()` (L92-98)
+
+```diff
++  const config = getSchoolConfig()
+   // Header Text
+   doc.setFontSize(14)
+   doc.setFont('helvetica', 'bold')
+-  doc.text('Lycée Manjary Soa', 74, 18, { align: 'center' })
++  doc.text(config.name, 74, 18, { align: 'center' })
+   doc.setFontSize(9)
+   doc.setFont('helvetica', 'normal')
+-  doc.text('Lot H 61 Miadana Alasora, Antananarivo', 74, 24, { align: 'center' })
++  doc.text(config.address ? `${config.address}, ${config.city}` : config.city, 74, 24, { align: 'center' })
+```
+
+Et remplacer `${safeAmount} Ar` (L179) par `${safeAmount} ${config.currency}`.
+
+#### Changement E — `generateCertificate()` (L258-314)
+
+Remplacer tout le bloc hardcodé :
+- L260 : `'LYCEE MANJARY SOA'` → `config.name.toUpperCase()`
+- L263 : `'Lot H 61 Miadana Alasora'` → `config.address`
+- L278 : Texte légal complet → construire dynamiquement avec `config.director_name`, `config.director_title`, `config.name`, `config.address`
+- L309 : `'Alasora, le ...'` → `'${config.city}, le ...'`
+- L311 : `'La Directrice,'` → `config.director_title + ','`
+- L314 : `'RAZAFINTSEHENO Anjarasoa Christine'` → `config.director_name`
+
+#### Changement F — `generateReportCard()` (L424-433)
+
+**SUPPRIMER** le chemin fantôme (L426) et utiliser `getLogoPath()` :
+
+```diff
+       try {
+-        const logoPath = 'c:\\rep\\School\\assets\\logo.png'
++        const logoPath = getLogoPath()
+         if (fs.existsSync(logoPath)) {
+```
+
+#### Changement G — `generatePayslip()` (L545)
+
+Le header utilise `addHeader()` qui est déjà corrigé en C. Rien d'autre à modifier ici.
+
+#### Changement H — `getOutputDir()` (L17-23)
+
+**Raison** : Le dossier de sortie s'appelle `lms` sur le Bureau. Doit être dynamique.
+
+```diff
+ function getOutputDir(category: string): string {
+-  const dir = path.join(app.getPath('desktop'), 'lms', category)
++  const appName = process.env.VITE_APP_NAME || 'Study Agent'
++  const dir = path.join(app.getPath('documents'), appName, category)
+   if (!fs.existsSync(dir)) {
+     fs.mkdirSync(dir, { recursive: true })
+   }
+   return dir
+ }
+```
+
+> **Note** : `Documents/` est plus professionnel que `Desktop/`. Le nom du dossier sera le nom de l'application configurée (ex: `Documents/École Saint-Joseph/Recus/`).
+
+#### Changement I — Devise dans tous les PDFs
+
+Remplacer toutes les occurrences de `Ar` en dur par `config.currency` dans :
+- `generateReceipt()` : L179
+- `generateDailyReport()` : L357, L359, L362, L384
+- `generatePayslip()` : L560, L562, L564, L566, L572, L575
+
+---
+
+### [MODIFY] `src/main/ipc/pdf.handler.ts`
+
+**Raison** : Le chemin de validation d'ouverture de fichier est hardcodé à `'lms'` (L120).
+
+```diff
+-      const desktopDir = path.resolve(path.join(app.getPath('desktop'), 'lms'))
++      const appName = process.env.VITE_APP_NAME || 'Study Agent'
++      const documentsDir = path.resolve(path.join(app.getPath('documents'), appName))
+       const resolvedPath = path.resolve(filePath)
+
+-      if (!resolvedPath.startsWith(allowedDir) && !resolvedPath.startsWith(desktopDir)) {
++      if (!resolvedPath.startsWith(allowedDir) && !resolvedPath.startsWith(documentsDir)) {
+```
+
+---
+
+### [MODIFY] `src/main/index.ts`
+
+**Raison** : L'identifiant Windows `com.lycee.manjary` (L74) va faire que toutes les instances d'écoles différentes se confondent dans la barre des tâches.
+
+```diff
+-  electronApp.setAppUserModelId('com.lycee.manjary')
++  electronApp.setAppUserModelId('com.studyagent.app')
+```
+
+---
+
+### [MODIFY] `src/renderer/src/pages/auth/LoginPage.tsx`
+
+**Raison** : Nom et logo de l'école hardcodés (L13, L38, L41, L128).
+
+**Changements** :
+1. Supprimer `import logo from '@/assets/logo.png'` (L13)
+2. Importer le store : `import { useAppStore } from '@/store/useAppStore'`
+3. Lire la config : `const { schoolConfig } = useAppStore()`
+4. L37-39 : Utiliser `schoolConfig.school_logo` comme `src`, avec fallback vers le logo par défaut
+5. L41 : `schoolConfig.school_name || 'Study Agent'`
+6. L128 : `${schoolConfig.school_name || 'Study Agent'} — Gestion Scolaire v1.0`
+
+> **Attention** : `LoginPage` est rendu AVANT l'authentification. Le store doit charger les settings publics au démarrage dans `AuthInitializer` ou dans un effet séparé dans `App.tsx`.
+
+---
+
+### [MODIFY] `src/renderer/src/components/layout/Sidebar.tsx`
+
+**Raison** : Nom et logo hardcodés (L145, L188, L192-194).
+
+**Changements** :
+1. Supprimer `import logo from '@/assets/logo.png'` (L145)
+2. Importer le store : `import { useAppStore } from '@/store/useAppStore'`
+3. Lire : `const { schoolConfig } = useAppStore()`
+4. L187-195 : Remplacer le logo statique et le texte par des valeurs dynamiques :
+   - `src={schoolConfig.school_logo || defaultLogo}`
+   - `alt={schoolConfig.school_name || 'Logo'}`
+   - Texte : `schoolConfig.school_name || 'Study Agent'`
+
+---
+
+### [MODIFY] `src/renderer/src/pages/grades/ReportCardView.tsx`
+
+**Raison** : Nom de l'école hardcodé (L171).
+
+**Changement** :
+1. Importer le store
+2. L171 : `<h2 ...>{schoolConfig.school_name || 'Mon École'}</h2>`
+
+---
+
+### [MODIFY] `src/renderer/src/pages/students/CertificatePage.tsx`
+
+**Raison** : Nom, adresse, ville, type d'enseignement, titre du directeur — tous hardcodés.
+
+**Changements** :
+1. Importer le store
+2. L14 : Supprimer `useState('Lycée Manjary Soa')` → utiliser `schoolConfig.school_name`
+3. L228 : `{schoolConfig.school_type || 'Enseignement Général'}`
+4. L229 : `{schoolConfig.school_city || ''}`
+5. L276 : `Fait à ${schoolConfig.school_city || '...'}, le ...`
+6. L277 : `{schoolConfig.director_title || 'Le Directeur'}`
+
+---
+
+### [MODIFY] `src/renderer/src/pages/DashboardPage.tsx`
+
+**Raison** : La fonction `formatMGA()` (L79-85) utilise une devise hardcodée.
+
+**Changement** : Remplacer `formatMGA` par `useAppStore().formatCurrency` partout dans ce fichier. Ou alternativement, lire la devise depuis le store et l'utiliser dans la fonction locale.
+
+---
+
+### [MODIFY] `src/renderer/src/components/students/FinanceTab.tsx`
+
+**Raison** : `Ar` hardcodé en ~40 endroits comme suffixe de montant monétaire.
+
+**Changement** : Importer `formatCurrency` depuis le store et remplacer chaque pattern `` `${amount.toLocaleString()} Ar` `` par `formatCurrency(amount)`.
+
+> **Note de faisabilité** : Ce fichier fait ~1140 lignes et contient des dizaines d'occurrences. La stratégie recommandée est de créer un composant `<Currency amount={value} />` ou un helper importable. Cela évite les oublis et centralise le format.
+
+---
+
+### [MODIFY] `src/renderer/src/components/students/ReEnrollModal.tsx`
+
+**Raison** : `Ar` hardcodé en ~6 endroits.
+
+**Changement** : Même traitement que FinanceTab — utiliser `formatCurrency()`.
+
+---
+
+### [MODIFY] `src/renderer/src/pages/students/StudentDetail.tsx`
+
+**Raison** : `Ar` hardcodé dans les affichages financiers.
+
+**Changement** : Utiliser `formatCurrency()`.
+
+---
+
+### [MODIFY] `src/main/database/migrations/001_init.sql`
+
+**Raison** : La valeur seed `school_name` est hardcodée (L456).
+
+```diff
+-('school_name', '"Lycée Manjary Soa"'),
++('school_name', '"Mon École"'),
+```
+
+> **Note** : Ce changement ne s'applique que pour les NOUVELLES installations (première création de base). Les bases existantes ne seront pas affectées car la migration est déjà marquée comme appliquée.
+
+---
+
+### [MODIFY] `src/shared/types.ts`
+
+**Raison** : Commentaire L2 contient le nom de l'ancien projet.
+
+```diff
+-// Shared Types — Lycée Manjary Soa LMS
++// Shared Types — Study Agent
+```
+
+---
+
+## Phase 4 — Palette de Couleurs Dynamique
+
+> **Objectif** : Permettre à chaque école d'avoir sa couleur primaire personnalisée sans casser l'harmonie du design.
+
+---
+
+### [MODIFY] `src/renderer/src/store/useAppStore.ts` (extension de Phase 1)
+
+**Ajouter** dans `fetchSettings()` l'appel à `applyTheme()` :
+
+```typescript
+// Après avoir chargé toutes les settings :
+const primaryColor = schoolConfig.primary_color
+if (primaryColor && primaryColor !== '24 23% 57%') {
+  applyTheme(primaryColor)
+}
+```
+
+**Fonction `applyTheme(primaryHsl: string)`** :
+
+```typescript
+function applyTheme(primaryHsl: string) {
+  const root = document.documentElement
+  const [h, s, l] = primaryHsl.split(' ').map(v => parseFloat(v))
+
+  root.style.setProperty('--primary', primaryHsl)
+  root.style.setProperty('--primary-foreground', `${h} ${Math.min(s + 30, 100)}% 96%`)
+  root.style.setProperty('--secondary', `${h} ${Math.min(s + 12, 100)}% ${Math.min(l + 12, 90)}%`)
+  root.style.setProperty('--secondary-foreground', `${h} ${s}% 20%`)
+  root.style.setProperty('--ring', primaryHsl)
+  root.style.setProperty('--border', `${h} ${s}% 85%`)
+  root.style.setProperty('--input', `${h} ${s}% 85%`)
+}
+```
+
+> **base.css ne change PAS** — les valeurs CSS restent les défauts. Le JavaScript les override dynamiquement si une couleur personnalisée est configurée.
+
+---
+
+## Phase 5 — Superadmin Builder CMS Multi-Étapes
+
+> **Objectif** : Transformer le formulaire basique en un assistant guidé et esthétique pour créer des écoles clientes.
+
+---
+
+### [MODIFY] `src/renderer/src/pages/SuperAdminBuilder.tsx`
+
+**Refonte complète** en assistant multi-étapes avec :
+
+**Étape 1 — Identité** :
+- Nom de l'établissement ✅ (existe)
+- Nom officiel de l'application ✅ (existe)
+- Logo officiel (PNG) ✅ (existe)
+- Adresse complète (NEW — `school_address`)
+- Ville (NEW — `school_city`)
+- Téléphone (NEW — `school_phone`)
+- Email de contact (NEW — `school_email`)
+- Type d'enseignement (NEW — `school_type`, dropdown : Enseignement Général / Technique / Professionnel)
+
+**Étape 2 — Direction & Administration** :
+- Nom du Directeur/Directrice (NEW — `director_name`)
+- Titre officiel (dropdown : Directeur / Directrice / Proviseur) (NEW — `director_title`)
+- Email de destination des rapports (NEW — `recipient_email`)
+- Devise (NEW — `currency`, défaut : Ar)
+- Préfixe de numéro de reçu (NEW — `receipt_prefix`, défaut : REC)
+
+**Étape 3 — Modules Activés** :
+- 🍱 Module Cantine ✅ (existe)
+- 🚌 Module Transport / Bus ✅ (existe)
+- 👔 Module Uniformes & Fournitures (NEW)
+- 📊 Module Évaluations & Notes (NEW)
+- ☑️ Exonération enfants du personnel (NEW)
+
+**Étape 4 — Branding** :
+- Color Picker pour couleur primaire (NEW)
+- Prévisualisation live avec mini-card de démo
+
+**Étape 5 — Récapitulatif & Build** :
+- Résumé complet de la config
+- Terminal de build ✅ (existe)
+
+**Design** : Barre de progression horizontale en haut, boutons Précédent/Suivant, même style slate-950 que l'actuel.
+
+---
+
+### [MODIFY] `src/main/ipc/builder.handler.ts`
+
+**Changements** :
+1. Recevoir la config étendue (tous les nouveaux champs)
+2. Stocker dans Supabase `ecoles.parametrage` (JSON) : tous les settings de l'école
+3. Uploader le logo vers Supabase Storage via `uploadSchoolLogo()`
+4. Injecter les variables `.env` étendues :
+   - `VITE_DEFAULT_TENANT_ID`
+   - `VITE_APP_NAME`
+   - `VITE_PRIMARY_COLOR` (pour le thème)
+5. Écrire les settings par défaut dans la base SQLite locale AVANT le build, pour que la migration 034 n'écrase pas les valeurs personnalisées
+
+---
+
+### [MODIFY] `src/renderer/src/pages/Settings.tsx`
+
+**Raison** : L'admin d'une école doit pouvoir modifier les infos post-création (le directeur change, numéro de téléphone change...).
+
+**Changements** :
+- Ajouter les champs : `school_address`, `school_city`, `school_phone`, `director_name`, `director_title`, `currency`, `receipt_prefix`
+- Organiser en sections avec tabs ou accordions
+
+---
+
+## Phase 6 — Feature Flags & Modules Conditionnels
+
+> **Objectif** : Masquer les modules désactivés de toute l'interface.
+
+---
+
+### [MODIFY] `src/renderer/src/components/layout/Sidebar.tsx`
+
+**Changements** :
+- Lire les feature flags depuis le store
+- Conditionner l'affichage de chaque groupe de navigation :
+
+```tsx
+// Exemple pour le module Finance > Cantine
+{schoolConfig.module_cantine && (
+  <NavLeaf to="/finance/cantine" label="Cantine" />
+)}
+```
+
+> **Note** : Les NavLeaf Cantine et Bus sont actuellement dans le module Finance. Ils doivent être masqués individuellement, pas tout le module Finance.
+
+---
+
+### [MODIFY] `src/renderer/src/pages/finance/FinanceConfig.tsx`
+
+- Masquer la section "Cantine" si `module_cantine === false`
+- Masquer la section "Bus" si `module_bus === false`
+- Masquer la section "Uniformes" si `module_uniforms === false`
+
+---
+
+### [MODIFY] `src/renderer/src/components/students/FinanceTab.tsx`
+
+- Masquer les onglets/sections Cantine, Bus, Uniformes conditionnellement
+- Ne pas calculer de frais pour les modules désactivés
+
+---
+
+### [MODIFY] `src/renderer/src/pages/students/StudentForm.tsx`
+
+- Masquer les champs de souscription Cantine/Bus/Uniforme si les modules sont désactivés
+
+---
+
+## Phase 7 — Imprimante Thermique (Option)
+
+> **Objectif** : Permettre l'impression de reçus de caisse directement sur imprimante thermique ESC/POS (58mm ou 80mm).
+
+---
+
+### Analyse de faisabilité
+
+- **Package recommandé** : `electron-pos-printer` ou `node-thermal-printer`
+- **Fonctionnement** : L'imprimante thermique est connectée via USB. Electron peut y accéder directement via le module natif.
+- **Format** : Reçu simplifié en texte brut (nom école, date, élève, montant, numéro de reçu) — pas de PDF.
+
+### Fichiers à créer/modifier
+
+1. **[NEW] `src/main/services/thermal-printer.service.ts`** :
+   - Service d'impression ESC/POS
+   - Détection automatique de l'imprimante USB connectée
+   - Méthode `printReceipt(paymentData, schoolConfig)` qui formate et envoie
+
+2. **[NEW] `src/main/ipc/printer.handler.ts`** :
+   - IPC handler `printer:printReceipt` qui appelle le service
+   - IPC handler `printer:testPrint` pour tester la connexion
+
+3. **[MODIFY] `src/preload/index.d.ts`** et **`src/renderer/src/env.d.ts`** :
+   - Ajouter les types IPC pour `printer:printReceipt` et `printer:testPrint`
+
+4. **[MODIFY] `src/renderer/src/components/students/FinanceTab.tsx`** :
+   - À côté du bouton "Reçu PDF", ajouter un bouton "🖨️ Imprimer" visible uniquement si `thermal_printer_enabled === true`
+
+5. **[MODIFY] `src/renderer/src/pages/Settings.tsx`** :
+   - Ajouter une section "Imprimante Thermique" avec toggle on/off et bouton "Test d'impression"
+
+6. **[MODIFY] `package.json`** :
+   - Ajouter la dépendance `node-thermal-printer` ou équivalent
+
+> **Note** : Cette phase est **optionnelle** et peut être implémentée après les phases 1-6.
+
+---
+
+## Vérification
+
+### Automated Tests
+```bash
+cd C:\wrk\study-agent && npm run build
+```
+Build complet TypeScript + Vite : 0 erreur attendue.
+
+### Checklist de Vérification Manuelle
+
+| # | Test | Attendu |
+|---|------|---------|
+| 1 | `npm run dev` → page de Login | Nom de l'école dynamique (ou "Mon École" par défaut) |
+| 2 | Sidebar | Nom + logo de l'école dynamiques |
+| 3 | Paramètres → changer le nom | Le nom se met à jour partout sans redémarrage |
+| 4 | Générer un reçu PDF | Nom, adresse et devise dynamiques |
+| 5 | Générer un certificat PDF | Nom école, directeur, adresse dynamiques |
+| 6 | Générer un bulletin PDF | Logo chargé correctement (plus de chemin fantôme) |
+| 7 | Superadmin Builder | Formulaire multi-étapes complet |
+| 8 | Désactiver module Cantine | Le lien Cantine disparaît du menu et des formulaires |
+| 9 | Changer la couleur primaire | L'interface change de couleur harmonieusement |
+| 10 | Dossier de téléchargement | PDFs enregistrés dans `Documents/{AppName}/` |
+| 11 | Deux PC de dev | Même données via Supabase, aucun conflit |
+
+---
+
+## Ordre d'Exécution Recommandé
+
+```mermaid
+graph TD
+    A["Phase 1: Store + Migration"] --> B["Phase 2: Logo Cloud"]
+    A --> C["Phase 3: Hardcoding"]
+    B --> C
+    C --> D["Phase 4: Palette"]
+    C --> E["Phase 5: Superadmin CMS"]
+    C --> F["Phase 6: Feature Flags"]
+    D --> E
+    F --> G["Phase 7: Imprimante Thermique"]
+```
+
+> **Phase 1 est le prérequis absolu** — tout le reste en dépend.
+> **Phases 3, 4, 5, 6** peuvent être parallélisées après Phase 1+2.
+> **Phase 7** est indépendante et optionnelle.

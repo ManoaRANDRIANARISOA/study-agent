@@ -10,31 +10,21 @@ export default function CertificatePage() {
   const { studentId } = useParams<{ studentId: string }>()
   const navigate = useNavigate()
   const { currentStudent, getStudent, loading } = useStudentStore()
-  const [schoolYear, setSchoolYear] = useState(useAppStore.getState().currentYear)
-  const [schoolName, setSchoolName] = useState('Lycée Manjary Soa')
-  const [schoolLogo, setSchoolLogo] = useState<string | null>(null)
+  const { schoolConfig, currentYear } = useAppStore()
+  
+  const [schoolYear, setSchoolYear] = useState(currentYear)
   const [certType, setCertType] = useState<'scolarite' | 'radiation' | 'assiduite'>('scolarite')
+
+  const schoolName = schoolConfig.school_name || 'Study Agent'
+  const schoolLogo = schoolConfig.school_logo || null
+  const schoolCity = schoolConfig.school_city || 'Ville'
+  const schoolType = schoolConfig.school_type || 'Enseignement Général'
+  const directorName = schoolConfig.director_name || ''
+  const directorTitle = schoolConfig.director_title || 'Le Directeur'
 
   useEffect(() => {
     if (studentId) {
       getStudent(studentId)
-    }
-
-    // Fetch settings via IPC
-    if (window.api) {
-      Promise.all([
-        window.api.settings.get('school_year'),
-        window.api.settings.get('school_name'),
-        window.api.settings.get('school_logo')
-      ])
-        .then(([year, name, logo]) => {
-          if (year !== undefined && year !== null) setSchoolYear(year as string)
-          if (name) setSchoolName(name as string)
-          if (logo) setSchoolLogo(logo as string)
-        })
-        .catch((err) => {
-          if (import.meta.env.DEV) console.error(err)
-        })
     }
   }, [studentId, getStudent])
 
@@ -85,7 +75,7 @@ export default function CertificatePage() {
       case 'radiation':
         return (
           <p>
-            Je soussigné(e), Directeur de l'établissement <strong>{schoolName}</strong>, certifie
+            Je soussigné(e), {directorTitle} de l'établissement <strong>{schoolName}</strong>, certifie
             que l'élève{' '}
             <strong>
               {currentStudent.last_name} {currentStudent.first_name}
@@ -105,7 +95,7 @@ export default function CertificatePage() {
       case 'assiduite':
         return (
           <p>
-            Je soussigné(e), Directeur de l'établissement <strong>{schoolName}</strong>, certifie
+            Je soussigné(e), {directorTitle} de l'établissement <strong>{schoolName}</strong>, certifie
             que l'élève{' '}
             <strong>
               {currentStudent.last_name} {currentStudent.first_name}
@@ -123,7 +113,7 @@ export default function CertificatePage() {
       default:
         return (
           <p>
-            Je soussigné(e), Directeur de l'établissement <strong>{schoolName}</strong>, certifie
+            Je soussigné(e), {directorTitle} de l'établissement <strong>{schoolName}</strong>, certifie
             que l'élève{' '}
             <strong>
               {currentStudent.last_name} {currentStudent.first_name}
@@ -225,8 +215,8 @@ export default function CertificatePage() {
 
           <div className="text-center flex-1 px-8">
             <h1 className="text-3xl font-bold uppercase mb-2">{schoolName}</h1>
-            <p className="text-sm text-gray-600">Enseignement Général</p>
-            <p className="text-sm text-gray-600">Antananarivo, Madagascar</p>
+            <p className="text-sm text-gray-600">{schoolType}</p>
+            <p className="text-sm text-gray-600">{schoolCity}</p>
           </div>
 
           <div className="w-32 flex flex-col items-center justify-center">
@@ -273,8 +263,8 @@ export default function CertificatePage() {
         {/* Footer / Signature */}
         <div className="mt-16 flex justify-end px-12 pb-12">
           <div className="text-center">
-            <p className="mb-4">Fait à Antananarivo, le {new Date().toLocaleDateString('fr-FR')}</p>
-            <p className="font-bold mb-16">Le Directeur</p>
+            <p className="mb-4">Fait à {schoolCity.split(',')[0]}, le {new Date().toLocaleDateString('fr-FR')}</p>
+            <p className="font-bold mb-16">{directorTitle}</p>
             <div className="border-t border-gray-400 w-48 mx-auto"></div>
           </div>
         </div>

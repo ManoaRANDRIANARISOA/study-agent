@@ -26,6 +26,7 @@ import { registerEmailHandlers } from './ipc/email.handler'
 import { registerReportHandlers } from './ipc/report.handler'
 import { registerTenantHandlers } from './ipc/tenant.handler'
 import { registerBuilderHandlers } from './ipc/builder.handler'
+import { setupPrinterHandlers } from './ipc/printer.handler'
 import { startPeriodicSync } from './services/sync.service'
 import { startSessionMonitor, stopSessionMonitor } from './auth/session.service'
 import { EmailService } from './services/email.service'
@@ -71,7 +72,8 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.lycee.manjary')
+  const appNameId = (process.env.VITE_APP_NAME || 'StudyAgent').toLowerCase().replace(/\s+/g, '')
+  electronApp.setAppUserModelId(`com.app.${appNameId}`)
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -102,6 +104,7 @@ app.whenReady().then(() => {
   registerReportHandlers()
   registerTenantHandlers()
   registerBuilderHandlers()
+  setupPrinterHandlers()
 
   // Register custom protocol for local resources
   protocol.handle('local-resource', async (req) => {

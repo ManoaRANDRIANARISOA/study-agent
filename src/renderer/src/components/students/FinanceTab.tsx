@@ -24,6 +24,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useFinanceStore } from '@/store/useFinanceStore'
 import { usePermissions } from '@/lib/usePermissions'
+import { useAppStore } from '@/store/useAppStore'
 import type { Payment, FeeRecord, FinancePrices } from '@shared/types'
 
 interface EventWithPayment {
@@ -120,6 +121,7 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
   const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false)
   const { prices: configPrices, fetchPrices } = useFinanceStore()
   const { canWrite } = usePermissions()
+  const { schoolConfig } = useAppStore()
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [isViewPaymentOpen, setIsViewPaymentOpen] = useState(false)
   const [studentInfo, setStudentInfo] = useState<any>(null)
@@ -410,7 +412,7 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
   }
 
   // Service Cards Configuration
-  const services: ServiceCard[] = [
+  const allServices: ServiceCard[] = [
     {
       id: enrollmentType,
       label: enrollmentLabel,
@@ -484,6 +486,13 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
       isOneTime: false
     }
   ]
+
+  const services = allServices.filter(s => {
+    if (s.id === 'bus' && schoolConfig.module_bus === false) return false;
+    if (s.id === 'canteen' && schoolConfig.module_cantine === false) return false;
+    if (s.id === 'uniform' && schoolConfig.module_uniforms === false) return false;
+    return true;
+  })
 
   const handleCardClick = (service: ServiceCard) => {
     if (!service.enabled) return

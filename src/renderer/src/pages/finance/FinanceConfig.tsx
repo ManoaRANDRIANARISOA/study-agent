@@ -7,6 +7,7 @@ import { ArrowUp, ArrowDown, Trash2, Plus, GripVertical } from 'lucide-react'
 import { defaultPrices, FinancePrices } from '@/lib/finance-settings'
 import { useFinanceStore } from '@/store/useFinanceStore'
 import { useClasses } from '@/lib/useClasses'
+import { useAppStore } from '@/store/useAppStore'
 import { usePermissions } from '@/lib/usePermissions'
 import ReadOnlyBanner from '@/components/shared/ReadOnlyBanner'
 
@@ -14,6 +15,7 @@ export default function FinanceConfig() {
   const { prices: storedPrices, fetchPrices, savePrices, loading: storeLoading } = useFinanceStore()
   const { classes: settingsClasses } = useClasses()
   const { canWrite } = usePermissions()
+  const { schoolConfig } = useAppStore()
   const [prices, setPrices] = useState<FinancePrices>(defaultPrices)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -305,202 +307,206 @@ export default function FinanceConfig() {
       </div>
 
       {/* Cantine */}
-      <div className="p-4 border rounded-lg bg-white shadow-sm">
-        <h3 className="text-lg font-semibold mb-2">Prix Cantine</h3>
-        <p className="text-sm text-gray-500 mb-4">Tarifs pour la restauration scolaire.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="canteen-daily">Prix par jour</Label>
-            <div className="relative">
-              <Input
-                id="canteen-daily"
-                type="number"
-                value={prices.canteen.daily}
-                onChange={(e) => handleCanteenChange('daily', e.target.value)}
-                className="pl-8"
-              />
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-                Ar
-              </span>
+      {schoolConfig.module_cantine !== false && (
+        <div className="p-4 border rounded-lg bg-white shadow-sm">
+          <h3 className="text-lg font-semibold mb-2">Prix Cantine</h3>
+          <p className="text-sm text-gray-500 mb-4">Tarifs pour la restauration scolaire.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="canteen-daily">Prix par jour</Label>
+              <div className="relative">
+                <Input
+                  id="canteen-daily"
+                  type="number"
+                  value={prices.canteen.daily}
+                  onChange={(e) => handleCanteenChange('daily', e.target.value)}
+                  className="pl-8"
+                />
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                  Ar
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="canteen-monthly">Prix par mois (Forfait)</Label>
-            <div className="relative">
-              <Input
-                id="canteen-monthly"
-                type="number"
-                value={prices.canteen.monthly}
-                onChange={(e) => handleCanteenChange('monthly', e.target.value)}
-                className="pl-8"
-              />
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-                Ar
-              </span>
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="canteen-monthly">Prix par mois (Forfait)</Label>
+              <div className="relative">
+                <Input
+                  id="canteen-monthly"
+                  type="number"
+                  value={prices.canteen.monthly}
+                  onChange={(e) => handleCanteenChange('monthly', e.target.value)}
+                  className="pl-8"
+                />
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                  Ar
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
+      )}
       {/* Bus */}
-      <div className="p-4 border rounded-lg bg-white shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-lg font-semibold">Prix Transport (Bus)</h3>
-            <p className="text-sm text-gray-500">Tarifs mensuels par zone ou ligne de bus.</p>
+      {schoolConfig.module_bus !== false && (
+        <div className="p-4 border rounded-lg bg-white shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Prix Transport (Bus)</h3>
+              <p className="text-sm text-gray-500">Tarifs mensuels par zone ou ligne de bus.</p>
+            </div>
           </div>
-        </div>
-        <div className="space-y-3">
-          {prices.busRoutes &&
-            prices.busRoutes.map((route, index) => (
-              <div key={route} className="flex items-center gap-4 bg-gray-50 p-2 rounded border">
-                <div className="flex flex-col gap-1 text-gray-400">
-                  <button
-                    onClick={() => handleMoveBusRoute(index, 'up')}
-                    disabled={index === 0}
-                    className="hover:text-blue-600 disabled:opacity-30"
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleMoveBusRoute(index, 'down')}
-                    disabled={index === (prices.busRoutes?.length || 0) - 1}
-                    className="hover:text-blue-600 disabled:opacity-30"
-                  >
-                    <ArrowDown className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="w-8 flex items-center justify-center text-gray-400">
-                  <GripVertical className="w-4 h-4" />
-                </div>
-                <div className="w-1/3">
-                  <div className="text-sm text-gray-500">Zone / Ligne</div>
-                  <div className="font-medium text-lg">{route}</div>
-                </div>
-                <div className="flex-1">
-                  <Label htmlFor={`bus-${route}`} className="text-xs">
-                    Tarif Mensuel
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id={`bus-${route}`}
-                      type="number"
-                      value={prices.bus[route] || 0}
-                      onChange={(e) => handleBusChange(route, e.target.value)}
-                      className="pl-8"
-                    />
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-                      Ar
-                    </span>
+          <div className="space-y-3">
+            {prices.busRoutes &&
+              prices.busRoutes.map((route, index) => (
+                <div key={route} className="flex items-center gap-4 bg-gray-50 p-2 rounded border">
+                  <div className="flex flex-col gap-1 text-gray-400">
+                    <button
+                      onClick={() => handleMoveBusRoute(index, 'up')}
+                      disabled={index === 0}
+                      className="hover:text-blue-600 disabled:opacity-30"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleMoveBusRoute(index, 'down')}
+                      disabled={index === (prices.busRoutes?.length || 0) - 1}
+                      className="hover:text-blue-600 disabled:opacity-30"
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </button>
                   </div>
+                  <div className="w-8 flex items-center justify-center text-gray-400">
+                    <GripVertical className="w-4 h-4" />
+                  </div>
+                  <div className="w-1/3">
+                    <div className="text-sm text-gray-500">Zone / Ligne</div>
+                    <div className="font-medium text-lg">{route}</div>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor={`bus-${route}`} className="text-xs">
+                      Tarif Mensuel
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id={`bus-${route}`}
+                        type="number"
+                        value={prices.bus[route] || 0}
+                        onChange={(e) => handleBusChange(route, e.target.value)}
+                        className="pl-8"
+                      />
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                        Ar
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleRemoveBusRoute(route)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => handleRemoveBusRoute(route)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-        </div>
-        <div className="mt-4 flex gap-2 items-end border-t pt-4">
-          <div className="w-1/3">
-            <Label>Nouvelle Zone</Label>
-            <Input
-              value={newBusRoute}
-              onChange={(e) => setNewBusRoute(e.target.value)}
-              placeholder="Ex: Zone 4, Itaosy..."
-              onKeyDown={(e) => e.key === 'Enter' && handleAddBusRoute()}
-            />
+              ))}
           </div>
-          <Button onClick={handleAddBusRoute} disabled={!newBusRoute.trim()}>
-            <Plus className="w-4 h-4 mr-2" />
-            Ajouter
-          </Button>
+          <div className="mt-4 flex gap-2 items-end border-t pt-4">
+            <div className="w-1/3">
+              <Label>Nouvelle Zone</Label>
+              <Input
+                value={newBusRoute}
+                onChange={(e) => setNewBusRoute(e.target.value)}
+                placeholder="Ex: Zone 4, Itaosy..."
+                onKeyDown={(e) => e.key === 'Enter' && handleAddBusRoute()}
+              />
+            </div>
+            <Button onClick={handleAddBusRoute} disabled={!newBusRoute.trim()}>
+              <Plus className="w-4 h-4 mr-2" />
+              Ajouter
+            </Button>
+          </div>
         </div>
-      </div>
-
+      )}
       {/* Uniformes */}
-      <div className="p-4 border rounded-lg bg-white shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h3 className="text-lg font-semibold">Prix Uniformes & Divers</h3>
-            <p className="text-sm text-gray-500">Prix unitaires pour les articles scolaires.</p>
+      {schoolConfig.module_uniforms !== false && (
+        <div className="p-4 border rounded-lg bg-white shadow-sm">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Prix Uniformes & Divers</h3>
+              <p className="text-sm text-gray-500">Prix unitaires pour les articles scolaires.</p>
+            </div>
           </div>
-        </div>
-        <div className="space-y-3">
-          {prices.uniformItems &&
-            prices.uniformItems.map((item, index) => (
-              <div key={item} className="flex items-center gap-4 bg-gray-50 p-2 rounded border">
-                <div className="flex flex-col gap-1 text-gray-400">
-                  <button
-                    onClick={() => handleMoveUniformItem(index, 'up')}
-                    disabled={index === 0}
-                    className="hover:text-blue-600 disabled:opacity-30"
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleMoveUniformItem(index, 'down')}
-                    disabled={index === (prices.uniformItems?.length || 0) - 1}
-                    className="hover:text-blue-600 disabled:opacity-30"
-                  >
-                    <ArrowDown className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="w-8 flex items-center justify-center text-gray-400">
-                  <GripVertical className="w-4 h-4" />
-                </div>
-                <div className="w-1/3">
-                  <div className="text-sm text-gray-500">Article</div>
-                  <div className="font-medium text-lg">{item}</div>
-                </div>
-                <div className="flex-1">
-                  <Label htmlFor={`uniform-${item}`} className="text-xs">
-                    Prix Unitaire
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id={`uniform-${item}`}
-                      type="number"
-                      value={prices.uniforms[item] || 0}
-                      onChange={(e) => handleUniformChange(item, e.target.value)}
-                      className="pl-8"
-                    />
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-                      Ar
-                    </span>
+          <div className="space-y-3">
+            {prices.uniformItems &&
+              prices.uniformItems.map((item, index) => (
+                <div key={item} className="flex items-center gap-4 bg-gray-50 p-2 rounded border">
+                  <div className="flex flex-col gap-1 text-gray-400">
+                    <button
+                      onClick={() => handleMoveUniformItem(index, 'up')}
+                      disabled={index === 0}
+                      className="hover:text-blue-600 disabled:opacity-30"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleMoveUniformItem(index, 'down')}
+                      disabled={index === (prices.uniformItems?.length || 0) - 1}
+                      className="hover:text-blue-600 disabled:opacity-30"
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </button>
                   </div>
+                  <div className="w-8 flex items-center justify-center text-gray-400">
+                    <GripVertical className="w-4 h-4" />
+                  </div>
+                  <div className="w-1/3">
+                    <div className="text-sm text-gray-500">Article</div>
+                    <div className="font-medium text-lg">{item}</div>
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor={`uniform-${item}`} className="text-xs">
+                      Prix Unitaire
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id={`uniform-${item}`}
+                        type="number"
+                        value={prices.uniforms[item] || 0}
+                        onChange={(e) => handleUniformChange(item, e.target.value)}
+                        className="pl-8"
+                      />
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                        Ar
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => handleRemoveUniformItem(item)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => handleRemoveUniformItem(item)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-        </div>
-        <div className="mt-4 flex gap-2 items-end border-t pt-4">
-          <div className="w-1/3">
-            <Label>Nouvel Article</Label>
-            <Input
-              value={newUniformItem}
-              onChange={(e) => setNewUniformItem(e.target.value)}
-              placeholder="Ex: Polo, Casquette..."
-              onKeyDown={(e) => e.key === 'Enter' && handleAddUniformItem()}
-            />
+              ))}
           </div>
-          <Button onClick={handleAddUniformItem} disabled={!newUniformItem.trim()}>
-            <Plus className="w-4 h-4 mr-2" />
-            Ajouter
-          </Button>
+          <div className="mt-4 flex gap-2 items-end border-t pt-4">
+            <div className="w-1/3">
+              <Label>Nouvel Article</Label>
+              <Input
+                value={newUniformItem}
+                onChange={(e) => setNewUniformItem(e.target.value)}
+                placeholder="Ex: Polo, Casquette..."
+                onKeyDown={(e) => e.key === 'Enter' && handleAddUniformItem()}
+              />
+            </div>
+            <Button onClick={handleAddUniformItem} disabled={!newUniformItem.trim()}>
+              <Plus className="w-4 h-4 mr-2" />
+              Ajouter
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

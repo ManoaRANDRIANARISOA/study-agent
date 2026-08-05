@@ -117,10 +117,11 @@ export function registerPdfHandlers(): void {
           ? path.join(process.cwd(), 'pdf-output')
           : path.join(app.getPath('userData'), 'pdf-output')
       )
-      const desktopDir = path.resolve(path.join(app.getPath('desktop'), 'lms'))
+      const appName = process.env.VITE_APP_NAME || 'StudyAgent'
+      const documentsDir = path.resolve(path.join(app.getPath('documents'), appName))
       const resolvedPath = path.resolve(filePath)
 
-      if (!resolvedPath.startsWith(allowedDir) && !resolvedPath.startsWith(desktopDir)) {
+      if (!resolvedPath.startsWith(allowedDir) && !resolvedPath.startsWith(documentsDir)) {
         console.warn(`Blocked path traversal attempt by user ${user?.username}: ${filePath}`)
         return { success: false, error: 'Accès refusé — Chemin invalide' }
       }

@@ -118,7 +118,9 @@ const runMigrations = () => {
     '030_fix_event_school_year.sql',
     '031_add_payroll_start_date.sql',
     '032_add_ecoles_table.sql',
-    '033_add_ecole_id_to_all.sql'
+    '033_add_ecole_id_to_all.sql',
+    '034_add_school_config_settings.sql',
+    '035_add_thermal_printer_settings.sql'
   ]
   migrations.forEach(applyMigration)
 }

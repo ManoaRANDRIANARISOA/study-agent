@@ -3,7 +3,7 @@ import * as path from 'path'
 import { supabase } from './sync.service'
 
 /**
- * Uploads a local file to Supabase Storage bucket 'lms_files'
+ * Uploads a local file to Supabase Storage bucket 'school_files'
  * and returns the public URL.
  * If the upload fails (e.g., offline) or if the path is already a URL,
  * it returns the original path.
@@ -41,9 +41,9 @@ export async function uploadToStorage(localPath: string, folder: string = ''): P
     // Create a unique filename
     const fileName = `${folder ? folder + '/' : ''}${Date.now()}_${path.basename(normalizedPath)}`
 
-    console.log(`[StorageService] Uploading ${fileName} to lms_files...`)
+    console.log(`[StorageService] Uploading ${fileName} to school_files...`)
 
-    const { error } = await supabase.storage.from('lms_files').upload(fileName, fileBuffer, {
+    const { error } = await supabase.storage.from('school_files').upload(fileName, fileBuffer, {
       contentType: mimeType,
       upsert: true
     })
@@ -54,7 +54,7 @@ export async function uploadToStorage(localPath: string, folder: string = ''): P
     }
 
     // Get public URL
-    const { data: urlData } = supabase.storage.from('lms_files').getPublicUrl(fileName)
+    const { data: urlData } = supabase.storage.from('school_files').getPublicUrl(fileName)
 
     if (urlData && urlData.publicUrl) {
       console.log(`[StorageService] Upload successful: ${urlData.publicUrl}`)
@@ -65,5 +65,49 @@ export async function uploadToStorage(localPath: string, folder: string = ''): P
   } catch (error) {
     console.error(`[StorageService] Error processing file:`, error)
     return localPath
+  }
+}
+
+/**
+ * Uploads a base64 logo to the school_files bucket.
+ */
+export async function uploadSchoolLogo(ecoleId: string, base64Data: string): Promise<string> {
+  if (!base64Data || !base64Data.startsWith('data:image/')) {
+    return base64Data
+  }
+
+  try {
+    const matches = base64Data.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/)
+    if (!matches || matches.length !== 3) {
+      return base64Data
+    }
+    
+    const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1]
+    const buffer = Buffer.from(matches[2], 'base64')
+    const fileName = `logos/${ecoleId}/logo.${ext}`
+
+    console.log(`[StorageService] Uploading school logo to school_files/${fileName}...`)
+
+    const { error } = await supabase.storage.from('school_files').upload(fileName, buffer, {
+      contentType: `image/${matches[1]}`,
+      upsert: true
+    })
+
+    if (error) {
+      console.error(`[StorageService] Logo upload error:`, error)
+      return base64Data
+    }
+
+    const { data: urlData } = supabase.storage.from('school_files').getPublicUrl(fileName)
+    
+    if (urlData && urlData.publicUrl) {
+      console.log(`[StorageService] Logo upload successful: ${urlData.publicUrl}`)
+      return urlData.publicUrl
+    }
+    
+    return base64Data
+  } catch (error) {
+    console.error(`[StorageService] Error processing logo upload:`, error)
+    return base64Data
   }
 }

@@ -1,5 +1,5 @@
 // ============================================
-// Shared Types — Lycée Manjary Soa LMS
+// Shared Types — Study Agent SaaS
 // ============================================
 // Centralized type definitions used across
 // main process, preload, and renderer.
