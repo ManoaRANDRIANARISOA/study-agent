@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { ShieldCheck, User, Lock, Mail, Loader2, ArrowRight } from 'lucide-react'
+import { useAuthStore } from '@/store/useAuthStore'
 
 export default function FirstBootOnboarding() {
   const [formData, setFormData] = useState({
@@ -12,7 +12,7 @@ export default function FirstBootOnboarding() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const login = useAuthStore((s) => s.login)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,8 +39,12 @@ export default function FirstBootOnboarding() {
       })
 
       if (res.success) {
-        // Rediriger vers le login après succès
-        navigate('/login', { state: { message: "Compte Administrateur créé avec succès ! Connectez-vous." } })
+        // Log in automatically and refresh to update AuthInitializer state
+        const loginSuccess = await login(formData.username, formData.password)
+        if (loginSuccess) {
+          window.location.hash = '#/'
+        }
+        window.location.reload()
       } else {
         setError(res.error || 'Erreur lors de la création du compte.')
       }

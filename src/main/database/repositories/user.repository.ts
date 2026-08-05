@@ -181,6 +181,7 @@ export class UserRepository {
       addToSyncQueue('users', id, 'create', {
         id,
         username: input.username,
+        password_hash: passwordHash,
         role: input.role,
         full_name: input.full_name || null,
         email: input.email || null,
