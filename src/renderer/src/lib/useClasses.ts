@@ -25,9 +25,7 @@ export function useClasses() {
     try {
       const stored = (await window.api.settings.get('class_sections')) as ClassSections | null
       if (stored && typeof stored === 'object' && Object.keys(stored).length > 0) {
-        // Ensure all default keys exist
-        const merged = { ...DEFAULT_SECTIONS, ...stored }
-        setSections(merged)
+        setSections(stored)
       } else {
         // Fallback to legacy 'classes' if sections don't exist yet
         const legacy = (await window.api.settings.get('classes')) as string[] | null
@@ -67,14 +65,79 @@ export function useClasses() {
     setSections(newSections)
   }, [])
 
+  const addSection = useCallback(
+    async (sectionName: string) => {
+      const trimmed = sectionName.trim()
+      if (!trimmed || sections[trimmed]) return false
+
+      const newSections = { ...sections, [trimmed]: [] }
+      await saveSections(newSections)
+      return true
+    },
+    [sections, saveSections]
+  )
+
+  const renameSection = useCallback(
+    async (oldName: string, newName: string) => {
+      const trimmed = newName.trim()
+      if (!trimmed || trimmed === oldName || sections[trimmed]) return false
+
+      const newSections: ClassSections = {}
+      Object.keys(sections).forEach((k) => {
+        if (k === oldName) {
+          newSections[trimmed] = sections[oldName]
+        } else {
+          newSections[k] = sections[k]
+        }
+      })
+
+      await saveSections(newSections)
+      return true
+    },
+    [sections, saveSections]
+  )
+
+  const deleteSection = useCallback(
+    async (sectionName: string) => {
+      if (!sections[sectionName]) return false
+
+      const classesToMove = sections[sectionName] || []
+      const newSections: ClassSections = {}
+
+      Object.keys(sections).forEach((k) => {
+        if (k !== sectionName) {
+          newSections[k] = [...sections[k]]
+        }
+      })
+
+      if (classesToMove.length > 0) {
+        let targetKey = Object.keys(newSections)[0]
+        if (!targetKey) {
+          targetKey = 'Autres'
+          newSections[targetKey] = []
+        }
+        newSections[targetKey] = [...newSections[targetKey], ...classesToMove]
+      }
+
+      await saveSections(newSections)
+      return true
+    },
+    [sections, saveSections]
+  )
+
   const addClass = useCallback(
     async (name: string, sectionKey: string = 'Autres') => {
       const trimmed = name.trim()
       if (!trimmed || classes.includes(trimmed)) return false
 
       const newSections = { ...sections }
-      if (!newSections[sectionKey]) newSections[sectionKey] = []
-      newSections[sectionKey] = [...newSections[sectionKey], trimmed]
+      let targetKey = sectionKey
+      if (!newSections[targetKey]) {
+        const firstKey = Object.keys(newSections)[0]
+        targetKey = firstKey || 'Autres'
+        if (!newSections[targetKey]) newSections[targetKey] = []
+      }
+      newSections[targetKey] = [...newSections[targetKey], trimmed]
 
       await saveSections(newSections)
       return true
@@ -137,6 +200,9 @@ export function useClasses() {
     loading,
     fetchClasses,
     saveSections,
+    addSection,
+    renameSection,
+    deleteSection,
     addClass,
     removeClass,
     renameClass,

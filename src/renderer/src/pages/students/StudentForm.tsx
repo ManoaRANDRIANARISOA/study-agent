@@ -357,28 +357,6 @@ export default function StudentForm({
         </div>
       )}
 
-      {!initialData && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-md px-4 py-3 text-sm mb-4 flex items-center gap-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 shrink-0"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path
-              fillRule="evenodd"
-              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <span>
-            Créez d'abord le dossier de l'élève. Vous pourrez ensuite l'
-            <strong>inscrire dans une classe</strong> via le bouton "Inscrire" dans la fiche de
-            l'élève.
-          </span>
-        </div>
-      )}
-
       {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

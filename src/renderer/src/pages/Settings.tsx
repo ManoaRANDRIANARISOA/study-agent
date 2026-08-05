@@ -32,12 +32,39 @@ export default function Settings() {
   const [isLoadingImage, setIsLoadingImage] = useState(false)
   const [exoneratePersonnelChildren, setExoneratePersonnelChildren] = useState(true)
 
-  const { sections, addClass, removeClass, renameClass, moveClass } = useClasses()
+  const { sections, addSection, renameSection, deleteSection, addClass, removeClass, renameClass, moveClass } = useClasses()
   const [newClassName, setNewClassName] = useState('')
+  const [newSectionName, setNewSectionName] = useState('')
   const [editingClass, setEditingClass] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [editingSection, setEditingSection] = useState<string | null>(null)
+  const [editSectionValue, setEditSectionValue] = useState('')
   const [draggedClass, setDraggedClass] = useState<string | null>(null)
   const [targetSectionKey, setTargetSectionKey] = useState<string | null>(null)
+
+  const handleAddSection = async () => {
+    if (!newSectionName.trim()) return
+    const ok = await addSection(newSectionName.trim())
+    if (ok) setNewSectionName('')
+  }
+
+  const handleStartRenameSection = (secName: string) => {
+    setEditingSection(secName)
+    setEditSectionValue(secName)
+  }
+
+  const handleConfirmRenameSection = async () => {
+    if (editingSection && editSectionValue.trim()) {
+      await renameSection(editingSection, editSectionValue.trim())
+    }
+    setEditingSection(null)
+  }
+
+  const handleDeleteSection = async (secName: string) => {
+    if (confirm(`Voulez-vous vraiment supprimer la section "${secName}" ? Les classes associées basculeront dans une autre section.`)) {
+      await deleteSection(secName)
+    }
+  }
 
   // If user cannot read settings at all, show access denied
   if (!canRead('settings')) {
@@ -326,17 +353,32 @@ export default function Settings() {
           </p>
 
           {canWrite('settings') && (
-            <div className="flex gap-2 mb-6 max-w-md">
-              <Input
-                placeholder="Nouvelle classe (ex: CP1)"
-                value={newClassName}
-                onChange={(e) => setNewClassName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddClass()}
-              />
-              <Button onClick={handleAddClass} disabled={!newClassName.trim()}>
-                <Plus className="w-4 h-4 mr-1" />
-                Ajouter
-              </Button>
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="flex gap-2 flex-1 max-w-md">
+                <Input
+                  placeholder="Nouvelle classe (ex: CP1)"
+                  value={newClassName}
+                  onChange={(e) => setNewClassName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddClass()}
+                />
+                <Button onClick={handleAddClass} disabled={!newClassName.trim()}>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Ajouter classe
+                </Button>
+              </div>
+
+              <div className="flex gap-2 flex-1 max-w-md">
+                <Input
+                  placeholder="Nouvelle section (ex: Maternelle, Supérieur)"
+                  value={newSectionName}
+                  onChange={(e) => setNewSectionName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddSection()}
+                />
+                <Button variant="outline" onClick={handleAddSection} disabled={!newSectionName.trim()}>
+                  <Plus className="w-4 h-4 mr-1" />
+                  Ajouter section
+                </Button>
+              </div>
             </div>
           )}
 
@@ -363,12 +405,75 @@ export default function Settings() {
                   }
                 }}
               >
-                <h3 className="font-semibold text-gray-700 text-sm mb-3 px-1 flex items-center justify-between">
-                  {sectionKey}
-                  <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
-                    {classList.length}
-                  </span>
-                </h3>
+                <div className="font-semibold text-gray-700 text-sm mb-3 px-1 flex items-center justify-between min-h-[32px]">
+                  {editingSection === sectionKey ? (
+                    <div className="flex items-center gap-1 w-full">
+                      <Input
+                        value={editSectionValue}
+                        onChange={(e) => setEditSectionValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleConfirmRenameSection()}
+                        className="h-7 text-xs px-2"
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-1.5 text-xs text-green-600 shrink-0"
+                        onClick={handleConfirmRenameSection}
+                      >
+                        OK
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-1.5 text-xs shrink-0"
+                        onClick={() => setEditingSection(null)}
+                      >
+                        Annul
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-1.5 overflow-hidden">
+                        <span className="truncate">{sectionKey}</span>
+                        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full shrink-0">
+                          {classList.length}
+                        </span>
+                      </div>
+                      {canWrite('settings') && (
+                        <div className="flex items-center gap-0.5 opacity-60 hover:opacity-100 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 hover:text-indigo-600"
+                            onClick={() => handleStartRenameSection(sectionKey)}
+                            title="Renommer la section"
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                            >
+                              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            onClick={() => handleDeleteSection(sectionKey)}
+                            title="Supprimer la section"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
 
                 <div className="space-y-2 min-h-[100px]">
                   {classList.map((cls) => (

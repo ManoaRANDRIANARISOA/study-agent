@@ -40,7 +40,7 @@ export default function GradeBook(): React.JSX.Element {
     loading
   } = useGradeStore()
 
-  const { classes: ALL_CLASSES } = useClasses()
+  const { classes: ALL_CLASSES, sections } = useClasses()
   const [selectedClass, setSelectedClass] = useState('')
   const [selectedTerm, setSelectedTerm] = useState(1)
   const [schoolYear, setSchoolYear] = useState(useAppStore.getState().currentYear)
@@ -158,36 +158,29 @@ export default function GradeBook(): React.JSX.Element {
           Classes :
         </div>
 
-        {ALL_CLASSES.map((c) => (
-          <React.Fragment key={c}>
-            {['CP1', '6ème', '2nde', 'TPS'].includes(c) && (
+        {Object.entries(sections).map(([sectionName, classList]) => {
+          if (classList.length === 0) return null
+          return (
+            <React.Fragment key={sectionName}>
               <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mr-1 shrink-0">
-                {c === 'CP1'
-                  ? 'Primaire'
-                  : c === '6ème'
-                    ? 'Collège'
-                    : c === '2nde'
-                      ? 'Lycée'
-                      : 'Autres'}
+                {sectionName}
               </div>
-            )}
-            {c === 'PS' && (
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1 mr-1 shrink-0">
-                Préscolaire
-              </div>
-            )}
-            <button
-              onClick={() => setSelectedClass(c)}
-              className={`shrink-0 px-4 py-2 rounded-full transition-all text-sm ${
-                selectedClass === c
-                  ? 'bg-primary text-primary-foreground font-medium shadow-md shadow-primary/20'
-                  : 'bg-white text-gray-600 hover:bg-gray-50 border hover:border-gray-300'
-              }`}
-            >
-              {c}
-            </button>
-          </React.Fragment>
-        ))}
+              {classList.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setSelectedClass(c)}
+                  className={`shrink-0 px-4 py-2 rounded-full transition-all text-sm ${
+                    selectedClass === c
+                      ? 'bg-primary text-primary-foreground font-medium shadow-md shadow-primary/20'
+                      : 'bg-white text-gray-600 hover:bg-gray-50 border hover:border-gray-300'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </React.Fragment>
+          )
+        })}
         {ALL_CLASSES.length === 0 && (
           <p className="text-xs text-amber-600 ml-2">
             Aucune classe configurée. Ajoutez des classes dans Paramètres.
