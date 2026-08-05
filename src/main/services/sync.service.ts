@@ -129,6 +129,20 @@ export async function syncWithCloud() {
   // For now, we'll assume we can try and catch errors.
 
   try {
+    // Authenticate as the Tenant's Service Account to bypass RLS isolation
+    const syncEmail = process.env.VITE_SYNC_EMAIL
+    const syncPassword = process.env.VITE_SYNC_PASSWORD
+    if (syncEmail && syncPassword) {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: syncEmail,
+        password: syncPassword
+      })
+      if (authError) {
+        console.error('Supabase Sync Auth Error:', authError.message)
+        return { success: false, error: authError.message }
+      }
+    }
+
     // PUSH: Send local changes to cloud
     await pushLocalChanges()
 
@@ -535,6 +549,11 @@ async function pushLocalChanges() {
           }
         }
 
+        // Inject ecole_id to satisfy Supabase Row Level Security (Multi-Tenant Isolation)
+        if (process.env.VITE_DEFAULT_TENANT_ID) {
+          supabasePayload.ecole_id = process.env.VITE_DEFAULT_TENANT_ID
+        }
+
         // Handle tables with composite unique constraints that differ from PK
         let upsertError: any
         if (item.table_name === 'time_tracking') {
@@ -709,7 +728,8 @@ async function pullRemoteChanges() {
       // Check if exists locally
       const local = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(record.id) as any
 
-      const { search_text, ...recordToSave } = record
+      // Remove Supabase-specific or computed columns before saving to SQLite
+      const { search_text, ecole_id, ...recordToSave } = record
 
       // Sanitize object values for SQLite
       for (const key in recordToSave) {
