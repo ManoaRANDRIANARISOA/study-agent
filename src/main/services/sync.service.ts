@@ -711,6 +711,7 @@ async function pullRemoteChanges() {
   }
 
   const tables = [
+    'users',
     'students',
     'student_fees',
     'student_payments',
@@ -729,7 +730,6 @@ async function pullRemoteChanges() {
     'bus_attendance',
     'canteen_attendance',
     'settings'
-    // Note: 'users' table is synced separately below (password_hash excluded)
   ]
 
   for (const table of tables) {
@@ -823,6 +823,7 @@ async function pullRemoteChanges() {
       // If Supabase sends a record that conflicts with a local unique index (but has a different UUID),
       // we delete the local conflicting record to let the Server Authority win.
       const uniqueConstraints = {
+        users: ['username'],
         student_fees: ['student_id', 'school_year'],
         bus_attendance: ['student_id', 'attendance_date'],
         canteen_attendance: ['student_id', 'attendance_date'],

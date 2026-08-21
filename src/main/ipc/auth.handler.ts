@@ -25,7 +25,8 @@ import {
 import { UserRepository, type UserRole } from '../database/repositories/user.repository'
 import { SettingsRepository } from '../database/repositories/settings.repository'
 import { v4 as uuidv4 } from 'uuid'
-import { reinitSupabaseClient } from '../services/sync.service'
+import { reinitSupabaseClient, getSupabaseAdmin } from '../services/sync.service'
+import db from '../database/db'
 import {
   canWrite,
   canRead,
@@ -117,10 +118,53 @@ export function registerAuthHandlers(): void {
 
   /**
    * Check if the database has 0 users (First Boot scenario).
+   * Automatically attempts to pull remote users from Supabase before declaring first boot.
    */
   ipcMain.handle('auth:checkFirstBoot', async () => {
     try {
-      const count = UserRepository.count()
+      let count = UserRepository.count()
+      if (count === 0) {
+        // Tentative de récupération des utilisateurs distants depuis Supabase avant de déclarer le premier boot
+        const tenantId = (SettingsRepository.get('ecole_id') as string) || process.env.VITE_DEFAULT_TENANT_ID
+        const supabaseAdmin = getSupabaseAdmin()
+        if (supabaseAdmin && tenantId) {
+          try {
+            const { data: remoteUsers, error } = await supabaseAdmin
+              .from('users')
+              .select('*')
+              .eq('ecole_id', tenantId)
+              .eq('deleted', false)
+
+            if (!error && remoteUsers && remoteUsers.length > 0) {
+              for (const u of remoteUsers) {
+                try {
+                  db.prepare(`
+                    INSERT OR REPLACE INTO users (id, username, password_hash, role, full_name, email, active, version, sync_status, deleted, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?, ?, ?)
+                  `).run(
+                    u.id,
+                    u.username,
+                    u.password_hash,
+                    u.role,
+                    u.full_name || null,
+                    u.email || null,
+                    u.active === false ? 0 : 1,
+                    u.version || 1,
+                    u.deleted ? 1 : 0,
+                    u.created_at || new Date().toISOString(),
+                    u.updated_at || new Date().toISOString()
+                  )
+                } catch (insertErr) {
+                  console.warn('Error inserting pulled user into local SQLite:', insertErr)
+                }
+              }
+              count = UserRepository.count()
+            }
+          } catch (fetchErr) {
+            console.warn('[Auth] Remote user check failed:', fetchErr)
+          }
+        }
+      }
       return { isFirstBoot: count === 0 }
     } catch (e) {
       return { isFirstBoot: false }
@@ -150,7 +194,7 @@ export function registerAuthHandlers(): void {
       // Get existing ecole_id or generate a new one
       let ecoleId = SettingsRepository.get('ecole_id') as string | undefined
       if (!ecoleId) {
-        ecoleId = uuidv4()
+        ecoleId = process.env.VITE_DEFAULT_TENANT_ID || uuidv4()
         SettingsRepository.set('ecole_id', ecoleId)
       }
       
@@ -158,6 +202,31 @@ export function registerAuthHandlers(): void {
       reinitSupabaseClient(ecoleId)
 
       if (result.success && result.user) {
+        const adminUser = db.prepare('SELECT * FROM users WHERE id = ?').get(result.user.id) as any
+        if (adminUser) {
+          const supabaseAdmin = getSupabaseAdmin()
+          if (supabaseAdmin && ecoleId) {
+            try {
+              await supabaseAdmin.from('users').upsert({
+                id: adminUser.id,
+                username: adminUser.username,
+                password_hash: adminUser.password_hash,
+                role: adminUser.role,
+                full_name: adminUser.full_name,
+                email: adminUser.email,
+                active: true,
+                version: 1,
+                deleted: false,
+                ecole_id: ecoleId,
+                created_at: adminUser.created_at,
+                updated_at: adminUser.updated_at
+              })
+            } catch (upsertErr) {
+              console.warn('[Auth] Remote user upload error:', upsertErr)
+            }
+          }
+        }
+
         logAction(
           result.user.id,
           'create',
