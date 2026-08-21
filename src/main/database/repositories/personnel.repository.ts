@@ -954,7 +954,9 @@ export class PersonnelRepository {
       hourlyEquivalentRate =
         normalExpectedHours > 0 ? person.monthly_salary / normalExpectedHours : 0
 
-      if (person.hire_date && monthEnd < person.hire_date) {
+      const effectiveStartDate = person.payroll_start_date || person.hire_date
+
+      if (effectiveStartDate && monthEnd < effectiveStartDate) {
         // PRE-HIRE MONTH: Employee was not hired yet.
         // Base salary is 0. They only get paid for explicitly tracked hours.
         baseSalary = 0

@@ -310,6 +310,17 @@ interface APIType {
   tenant: {
     check: () => Promise<{ isConfigured: boolean; tenantId: string | null }>
     setup: (tenantId: string) => Promise<{ success: boolean }>
+    checkSubscription: () => Promise<{
+      success: boolean
+      status?: string
+      isBlocked?: boolean
+      isExpiringSoon?: boolean
+      daysRemaining?: number | null
+      subscriptionEndDate?: string | null
+      schoolName?: string
+      offline?: boolean
+      error?: string
+    }>
   }
   personnel: {
     create: (
@@ -603,7 +614,12 @@ interface APIType {
       }>
       error?: string
     }>
-    sendDailyReport: () => Promise<{ success: boolean; error?: string }>
+    sendDailyReport: () => Promise<any>
+  }
+  logs: {
+    get: (limit?: number, offset?: number, tenantId?: string) => Promise<{ success: boolean; logs?: any[]; total?: number; error?: string }>
+    clear: (tenantId?: string) => Promise<{ success: boolean; error?: string }>
+    onError: (callback: (event: any, data: any) => void) => void
   }
   pdf: {
     generateReceipt: (data: {
@@ -677,6 +693,11 @@ interface APIType {
     getSupabaseSchema: () => Promise<{ success: boolean; schema?: string; error?: string }>
     onLog: (callback: (log: string) => void) => () => void
     createAndBuild: (config: any) => Promise<{ success: boolean; error?: string }>
+  }
+  superadmin: {
+    getTenants: () => Promise<{ success: boolean; data?: any[]; error?: string }>
+    updateTenantSubscription: (id: string, status: string) => Promise<{ success: boolean; error?: string }>
+    renewTenantSubscription: (id: string, durationMonths: number, customEndDate?: string) => Promise<{ success: boolean; newEndDate?: string; error?: string }>
   }
 }
 

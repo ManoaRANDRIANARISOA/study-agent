@@ -145,6 +145,9 @@ function NavModule({ label, icon: Icon, items, isOpen, onToggle }: NavModuleProp
 import { useAppStore } from '@/store/useAppStore'
 import defaultLogo from '@/assets/logo.png'
 
+import WhatsNewModal from '@/components/WhatsNewModal'
+import { Sparkles } from 'lucide-react'
+
 // --------------------------------------------
 // Sidebar Component
 // --------------------------------------------
@@ -153,6 +156,7 @@ export default function Sidebar(): React.JSX.Element {
   const logout = useAuthStore((s) => s.logout)
   const location = useLocation()
   const { schoolConfig } = useAppStore()
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
 
   // CRITICAL: We must subscribe to permissions to trigger a re-render
   // when fetchPermissions() completes after login/refresh.
@@ -182,123 +186,132 @@ export default function Sidebar(): React.JSX.Element {
   }
 
   return (
-    <aside className="w-64 bg-primary text-primary-foreground p-4 flex flex-col shadow-xl z-10">
-      {/* Nom de l'école */}
-      <div className="flex items-center gap-3 mb-6 pl-2">
-        <img
-          src={schoolConfig.school_logo || defaultLogo}
-          alt={`Logo ${schoolConfig.school_name || 'Study Agent'}`}
-          className="w-10 h-10 object-contain bg-white rounded-md p-0.5"
-        />
-        <div className="text-xl font-bold tracking-wide leading-tight">
-          {schoolConfig.school_name || 'Study Agent'}
+    <>
+      <WhatsNewModal isOpen={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
+      <aside className="w-64 bg-primary text-primary-foreground p-4 flex flex-col shadow-xl z-10">
+        {/* Nom de l'école */}
+        <div className="flex items-center gap-3 mb-6 pl-2">
+          <img
+            src={schoolConfig.school_logo || defaultLogo}
+            alt={`Logo ${schoolConfig.school_name || 'Study Agent'}`}
+            className="w-10 h-10 object-contain bg-white rounded-md p-0.5"
+          />
+          <div className="text-xl font-bold tracking-wide leading-tight">
+            {schoolConfig.school_name || 'Study Agent'}
+          </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-0.5 overflow-y-auto custom-scrollbar">
-        {/* Dashboard — standalone */}
-        <NavLeaf to="/" label="Tableau de bord" icon={LayoutDashboard} exact={true} />
+        {/* Navigation */}
+        <nav className="flex-1 space-y-0.5 overflow-y-auto custom-scrollbar">
+          {/* Dashboard — standalone */}
+          <NavLeaf to="/" label="Tableau de bord" icon={LayoutDashboard} exact={true} />
 
-        {/* Élèves — standalone */}
-        <NavLeaf to="/students" label="Élèves" resource="students" icon={Users} />
+          {/* Élèves — standalone */}
+          <NavLeaf to="/students" label="Élèves" resource="students" icon={Users} />
 
-        {/* Finance — module collapsible */}
-        <NavModule
-          label="Finance"
-          icon={Wallet}
-          isOpen={openModule === 'Finance'}
-          onToggle={() => handleToggle('Finance')}
-          items={[
-            { to: '/finance', label: 'Journal', resource: 'payments', exact: true },
-            { to: '/finance/alertes', label: 'Alertes impayés', resource: 'payments' },
-            { to: '/finance/config', label: 'Configuration', resource: 'settings' }
-          ]}
-        />
-
-        {/* Personnel — module collapsible */}
-        <NavModule
-          label="Personnel"
-          icon={UserCog}
-          isOpen={openModule === 'Personnel'}
-          onToggle={() => handleToggle('Personnel')}
-          items={[
-            { to: '/personnel', label: 'Liste du personnel', resource: 'personnel', exact: true },
-            { to: '/personnel/payroll', label: 'Paie globale', resource: 'personnel', exact: true }
-          ]}
-        />
-
-        {/* Notes — module collapsible */}
-        {schoolConfig.module_evaluations !== false && (
+          {/* Finance — module collapsible */}
           <NavModule
-            label="Notes & Bulletins"
-            icon={BookOpen}
-            isOpen={openModule === 'Notes & Bulletins'}
-            onToggle={() => handleToggle('Notes & Bulletins')}
+            label="Finance"
+            icon={Wallet}
+            isOpen={openModule === 'Finance'}
+            onToggle={() => handleToggle('Finance')}
             items={[
-              { to: '/grades/entry', label: 'Saisie des notes', resource: 'grades' },
-              { to: '/grades/book', label: 'Carnet de notes', resource: 'grades' },
-              { to: '/grades/subjects', label: 'Matières', resource: 'grades' }
+              { to: '/finance', label: 'Journal', resource: 'payments', exact: true },
+              { to: '/finance/alertes', label: 'Alertes impayés', resource: 'payments' },
+              { to: '/finance/config', label: 'Configuration', resource: 'settings' }
             ]}
           />
-        )}
 
-        {/* Pointage Bus/Cantine — standalone */}
-        {(schoolConfig.module_bus !== false || schoolConfig.module_cantine !== false) && (
-          <NavLeaf
-            to="/attendance"
-            label="Pointage Bus/Cantine"
-            resource="attendance"
-            icon={ClipboardCheck}
+          {/* Personnel — module collapsible */}
+          <NavModule
+            label="Personnel"
+            icon={UserCog}
+            isOpen={openModule === 'Personnel'}
+            onToggle={() => handleToggle('Personnel')}
+            items={[
+              { to: '/personnel', label: 'Liste du personnel', resource: 'personnel', exact: true },
+              { to: '/personnel/payroll', label: 'Paie globale', resource: 'personnel', exact: true }
+            ]}
           />
-        )}
 
-        {/* Événements — standalone */}
-        <NavLeaf to="/events" label="Événements" resource="events" icon={CalendarDays} />
+          {/* Notes — module collapsible */}
+          {schoolConfig.module_evaluations !== false && (
+            <NavModule
+              label="Notes & Bulletins"
+              icon={BookOpen}
+              isOpen={openModule === 'Notes & Bulletins'}
+              onToggle={() => handleToggle('Notes & Bulletins')}
+              items={[
+                { to: '/grades/entry', label: 'Saisie des notes', resource: 'grades' },
+                { to: '/grades/book', label: 'Carnet de notes', resource: 'grades' },
+                { to: '/grades/subjects', label: 'Matières', resource: 'grades' }
+              ]}
+            />
+          )}
 
-        {/* Rapports — standalone */}
-        <NavLeaf to="/reports" label="Rapports" resource="reports" icon={FileText} />
+          {/* Pointage Bus/Cantine — standalone */}
+          {(schoolConfig.module_bus !== false || schoolConfig.module_cantine !== false) && (
+            <NavLeaf
+              to="/attendance"
+              label="Pointage Bus/Cantine"
+              resource="attendance"
+              icon={ClipboardCheck}
+            />
+          )}
 
-        {/* Administration — module collapsible (admin + direction) */}
-        <NavModule
-          label="Administration"
-          icon={Shield}
-          isOpen={openModule === 'Administration'}
-          onToggle={() => handleToggle('Administration')}
-          items={[
-            { to: '/settings', label: 'Paramètres', resource: 'settings', exact: true },
-            { to: '/users', label: 'Utilisateurs', resource: 'users' },
-            { to: '/audit', label: "Journal d'audit", resource: 'audit' }
-          ]}
-        />
+          {/* Événements — standalone */}
+          <NavLeaf to="/events" label="Événements" resource="events" icon={CalendarDays} />
 
-        {/* Superadmin Builder (Visible uniquement en mode Développement) */}
-        {import.meta.env.DEV && (
-          <NavLeaf to="/superadmin" label="Superadmin Builder" icon={Wrench} exact={true} />
-        )}
-      </nav>
+          {/* Rapports — standalone */}
+          <NavLeaf to="/reports" label="Rapports" resource="reports" icon={FileText} />
 
-      {/* Infos utilisateur + Déconnexion */}
-      <div className="border-t border-primary-foreground/20 pt-4 mt-4">
-        <div className="px-2 mb-3">
-          <div className="text-sm font-medium truncate">
-            {user?.full_name || user?.username || 'Utilisateur'}
+          {/* Administration — module collapsible (admin + direction) */}
+          <NavModule
+            label="Administration"
+            icon={Shield}
+            isOpen={openModule === 'Administration'}
+            onToggle={() => handleToggle('Administration')}
+            items={[
+              { to: '/settings', label: 'Paramètres', resource: 'settings', exact: true },
+              { to: '/users', label: 'Utilisateurs', resource: 'users' },
+              { to: '/audit', label: "Journal d'audit", resource: 'audit' }
+            ]}
+          />
+
+          {/* Superadmin Builder (Visible uniquement en mode Développement) */}
+          {import.meta.env.DEV && (
+            <NavLeaf to="/superadmin" label="Superadmin Builder" icon={Wrench} exact={true} />
+          )}
+        </nav>
+
+        {/* Infos utilisateur + Déconnexion */}
+        <div className="border-t border-primary-foreground/20 pt-4 mt-4">
+          <div className="px-2 mb-3">
+            <div className="text-sm font-medium truncate">
+              {user?.full_name || user?.username || 'Utilisateur'}
+            </div>
+            <div className="text-xs text-primary-foreground/60">
+              {user ? roleLabels[user.role] || user.role : ''}
+            </div>
           </div>
-          <div className="text-xs text-primary-foreground/60">
-            {user ? roleLabels[user.role] || user.role : ''}
-          </div>
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 py-2 px-4 rounded-md transition-colors text-sm hover:bg-primary-foreground/10 text-primary-foreground/90 hover:text-primary-foreground"
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            <span className="flex-1 text-left">Déconnexion</span>
+          </button>
         </div>
-        <button
-          onClick={logout}
-          className="w-full flex items-center gap-3 py-2 px-4 rounded-md transition-colors text-sm hover:bg-primary-foreground/10 text-primary-foreground/90 hover:text-primary-foreground"
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          <span className="flex-1 text-left">Déconnexion</span>
-        </button>
-      </div>
 
-      {/* Version */}
-      <div className="text-xs text-primary-foreground/40 text-center mt-2">v1.0.0</div>
-    </aside>
+        {/* Bouton Nouveautés v1.0.7 */}
+        <button
+          onClick={() => setShowWhatsNew(true)}
+          className="mt-3 flex items-center justify-center gap-1.5 text-xs text-primary-foreground/75 hover:text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full mx-auto transition-all border border-white/10 shadow-sm"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+          <span>Nouveautés v1.0.7</span>
+        </button>
+      </aside>
+    </>
   )
 }

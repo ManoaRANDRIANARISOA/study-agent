@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import path from 'path'
 import * as fs from 'fs'
 import { app } from 'electron' // Load env vars
+import { LoggerService } from './logger.service'
 const isDev = !app.isPackaged
 const envPath = isDev ? path.join(process.cwd(), '.env') : path.join(process.resourcesPath, '.env')
 
@@ -11,16 +12,35 @@ dotenv.config({ path: envPath })
 
 // Supabase credentials from .env file only (no hardcoded fallbacks for security)
 const supabaseUrl = process.env.SUPABASE_URL
-const supabaseKey = process.env.SUPABASE_ANON_KEY
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 
 let supabaseClient: any = null
+let supabaseAdminClient: any = null
+
+export function getSupabaseAdmin() {
+  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+  if (supabaseUrl && adminKey) {
+    if (!supabaseAdminClient) {
+      supabaseAdminClient = createClient(supabaseUrl, adminKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        }
+      })
+    }
+    return supabaseAdminClient
+  }
+  return supabase
+}
 
 export function reinitSupabaseClient(newSchema?: string) {
   const targetSchema = newSchema || process.env.VITE_SUPABASE_SCHEMA || 'public'
+  const keyToUse = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 
-  if (supabaseUrl && supabaseKey) {
+  if (supabaseUrl && keyToUse) {
     try {
-      supabaseClient = createClient(supabaseUrl, supabaseKey, {
+      supabaseClient = createClient(supabaseUrl, keyToUse, {
         auth: {
           persistSession: false,
           autoRefreshToken: false,
@@ -134,7 +154,7 @@ export async function syncWithCloud() {
         password: syncPassword
       })
       if (authError) {
-        console.error('Supabase Sync Auth Error:', authError.message)
+        LoggerService.log('error', 'sync', 'Supabase Sync Auth Error', authError.message)
         return { success: false, error: authError.message }
       }
     }
@@ -150,7 +170,7 @@ export async function syncWithCloud() {
 
     return { success: true }
   } catch (error: any) {
-    console.error('Sync error:', error)
+    LoggerService.log('error', 'sync', 'Sync error', error.message)
     return { success: false, error: error.message }
   }
 }
@@ -349,6 +369,13 @@ async function pushLocalChanges() {
       // FIX: Remove GENERATED columns that Postgres will reject
       if ('search_text' in payload) {
         delete payload.search_text
+      }
+      
+      // FIX: Strip local-only columns that do not exist in Supabase
+      if ('is_reenrollment' in payload) delete payload.is_reenrollment
+      if ('payroll_start_date' in payload) delete payload.payroll_start_date
+      if (item.table_name === 'parent_events' && 'school_year' in payload) {
+        delete payload.school_year
       }
 
       // FIX: Sanitize empty date strings for PostgreSQL
@@ -649,7 +676,7 @@ async function pushLocalChanges() {
       const isUnrecoverable = errorCode === '23503' || errorCode === '23505'
 
       if (!isUnrecoverable) {
-        console.error(`Supabase Push Error [${item.table_name}]:`, error)
+        LoggerService.log('error', 'sync', `Supabase Push Error [${item.table_name}]`, error.message || error, null)
       }
 
       db.prepare(
@@ -859,7 +886,7 @@ async function pullRemoteChanges() {
           }
         }
       } catch (err: any) {
-        console.error(`Sync error on pull for ${table} ID ${record.id}:`, err)
+        LoggerService.log('error', 'sync', `Sync error on pull for ${table} ID ${record.id}`, err.message || err, null)
         hasPullErrors = true
       }
     }

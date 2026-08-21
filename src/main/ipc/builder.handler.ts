@@ -2,7 +2,7 @@ import { ipcMain } from 'electron'
 import { spawn } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
-import { supabase } from '../services/sync.service' // Uses the initialized supabase client
+import { getSupabaseAdmin } from '../services/sync.service' // Uses the initialized supabase client
 import { uploadSchoolLogo } from '../services/storage.service'
 
 export function registerBuilderHandlers(): void {
@@ -25,7 +25,9 @@ export function registerBuilderHandlers(): void {
         ...(config.parametrage || {})
       }
 
-      const { data, error } = await supabase
+      const adminClient = getSupabaseAdmin()
+
+      const { data, error } = await adminClient
         .from('ecoles')
         .insert([
           { nom: config.nom, parametrage: defaultParametrage }
@@ -49,7 +51,7 @@ export function registerBuilderHandlers(): void {
         
         // Update parametrage with the logo URL
         const updatedParametrage = { ...defaultParametrage, school_logo: logoUrl }
-        await supabase.from('ecoles').update({ parametrage: updatedParametrage }).eq('id', ecoleId)
+        await adminClient.from('ecoles').update({ parametrage: updatedParametrage }).eq('id', ecoleId)
         log(`✅ Logo uploadé et configuration mise à jour.`)
       }
 

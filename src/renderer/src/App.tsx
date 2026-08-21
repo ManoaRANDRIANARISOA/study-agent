@@ -14,6 +14,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppStore } from '@/store/useAppStore'
 
@@ -25,6 +26,8 @@ import TenantOnboarding from '@/components/TenantOnboarding'
 import SuperAdminBuilder from '@/pages/SuperAdminBuilder'
 import FirstBootOnboarding from '@/pages/FirstBootOnboarding'
 
+import SubscriptionBlocker from '@/components/SubscriptionBlocker'
+
 // --------------------------------------------
 // Auth Initialization Wrapper
 // --------------------------------------------
@@ -35,12 +38,31 @@ function AuthInitializer({ children }: { children: React.ReactNode | ((isFirstBo
   const [initialized, setInitialized] = useState(false)
   const [tenantConfigured, setTenantConfigured] = useState<boolean | null>(null)
   const [isFirstBoot, setIsFirstBoot] = useState<boolean | null>(null)
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [blockedSchoolName, setBlockedSchoolName] = useState('')
+
+  const checkSub = async () => {
+    try {
+      const subRes = await window.api.tenant.checkSubscription()
+      if (subRes && subRes.success) {
+        setIsBlocked(!!subRes.isBlocked)
+        if (subRes.schoolName) {
+          setBlockedSchoolName(subRes.schoolName)
+        }
+      }
+    } catch (err) {
+      console.warn('Subscription check error:', err)
+    }
+  }
 
   useEffect(() => {
     // 1. D'abord vérifier si le Tenant est configuré
     window.api.tenant.check().then((res) => {
       setTenantConfigured(res.isConfigured)
       if (res.isConfigured) {
+        // Vérifier le statut de l'abonnement
+        checkSub()
+
         // Charger la configuration de l'école (nom, logo, couleurs, etc.)
         fetchSettings().finally(() => {
           // 2. Vérifier s'il n'y a aucun utilisateur (First Boot)
@@ -86,7 +108,21 @@ function AuthInitializer({ children }: { children: React.ReactNode | ((isFirstBo
     )
   }
 
-  return <>{typeof children === 'function' ? children(isFirstBoot) : children}</>
+  // Si l'abonnement est suspendu, afficher l'écran de blocage poli
+  // (sauf si on est sur la route de superadmin en dev)
+  const isSuperAdminRoute = window.location.hash.includes('/superadmin')
+
+  return (
+    <>
+      {isBlocked && !isSuperAdminRoute && (
+        <SubscriptionBlocker
+          schoolName={blockedSchoolName}
+          onRefresh={checkSub}
+        />
+      )}
+      {typeof children === 'function' ? children(isFirstBoot) : children}
+    </>
+  )
 }
 
 // --------------------------------------------
@@ -128,7 +164,12 @@ export default function App(): React.JSX.Element {
     <Router>
       <ErrorBoundary>
         <AuthInitializer>
-          {(isFirstBoot) => <AppRoutes isFirstBoot={isFirstBoot} />}
+          {(isFirstBoot) => (
+            <>
+              <AppRoutes isFirstBoot={isFirstBoot} />
+              <Toaster position="top-center" richColors />
+            </>
+          )}
         </AuthInitializer>
       </ErrorBoundary>
     </Router>

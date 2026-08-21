@@ -48,10 +48,13 @@ function StudentDetailRoute(): React.JSX.Element | null {
   )
 }
 
+import SubscriptionAlertBanner from '@/components/SubscriptionAlertBanner'
+
 export default function MainLayout(): React.JSX.Element {
   const token = useAuthStore((s) => s.token)
   const fetchSettings = useAppStore((s) => s.fetchSettings)
   const globalYear = useAppStore((s) => s.currentYear)
+  const schoolConfig = useAppStore((s) => s.schoolConfig)
   const activityPingInterval = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -92,6 +95,7 @@ export default function MainLayout(): React.JSX.Element {
     <div className="flex h-screen bg-background text-foreground font-sans">
       <Sidebar />
       <main className="flex-1 overflow-auto bg-background p-6">
+        <SubscriptionAlertBanner schoolName={schoolConfig.school_name} />
         <div className="w-full h-full">
           <Routes>
             <Route path="/" element={<DashboardPage />} />

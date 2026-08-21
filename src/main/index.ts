@@ -26,7 +26,9 @@ import { registerEmailHandlers } from './ipc/email.handler'
 import { registerReportHandlers } from './ipc/report.handler'
 import { registerTenantHandlers } from './ipc/tenant.handler'
 import { registerBuilderHandlers } from './ipc/builder.handler'
+import { registerLogHandlers } from './ipc/log.handler'
 import { setupPrinterHandlers } from './ipc/printer.handler'
+import { registerSuperAdminHandlers } from './ipc/superadmin.handler'
 import { startPeriodicSync } from './services/sync.service'
 import { startSessionMonitor, stopSessionMonitor } from './auth/session.service'
 import { EmailService } from './services/email.service'
@@ -104,6 +106,8 @@ app.whenReady().then(() => {
   registerReportHandlers()
   registerTenantHandlers()
   registerBuilderHandlers()
+  registerLogHandlers()
+  registerSuperAdminHandlers()
   setupPrinterHandlers()
 
   // Register custom protocol for local resources

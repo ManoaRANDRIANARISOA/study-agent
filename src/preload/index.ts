@@ -119,7 +119,8 @@ const api = {
   },
   tenant: {
     check: () => ipcRenderer.invoke('tenant:check'),
-    setup: (tenantId: string) => ipcRenderer.invoke('tenant:setup', tenantId)
+    setup: (tenantId: string) => ipcRenderer.invoke('tenant:setup', tenantId),
+    checkSubscription: () => ipcRenderer.invoke('tenant:checkSubscription')
   },
 
   builder: {
@@ -129,6 +130,14 @@ const api = {
       ipcRenderer.removeAllListeners('builder:log');
       ipcRenderer.on('builder:log', (_, log) => callback(log));
     }
+  },
+
+  superadmin: {
+    getTenants: () => ipcRenderer.invoke('superadmin:getTenants'),
+    updateTenantSubscription: (id: string, status: string) => 
+      ipcRenderer.invoke('superadmin:updateTenantSubscription', id, status),
+    renewTenantSubscription: (id: string, durationMonths: number, customEndDate?: string) =>
+      ipcRenderer.invoke('superadmin:renewTenantSubscription', id, durationMonths, customEndDate)
   },
 
   // --------------------------------------------
@@ -355,6 +364,15 @@ const api = {
   dialog: {
     openFile: () => ipcRenderer.invoke('dialog:openFile'),
     confirmSync: (message: string) => ipcRenderer.sendSync('dialog:confirmSync', message)
+  },
+
+  // --------------------------------------------
+  // Logs
+  // --------------------------------------------
+  logs: {
+    get: (params?: { startDate?: string; endDate?: string; level?: string; limit?: number; offset?: number }) =>
+      ipcRenderer.invoke('logs:get', params),
+    clear: () => ipcRenderer.invoke('logs:clear')
   }
 }
 

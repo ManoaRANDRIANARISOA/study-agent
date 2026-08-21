@@ -15,5 +15,5 @@ debug_fees.js
 debug_fees_repro.ts
 test_email_validation.js
 test_email_zod.ts
-n u l  
- 
+*.diff
+scratch/

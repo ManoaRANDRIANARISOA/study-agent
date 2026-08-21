@@ -4,14 +4,32 @@ import path from 'path'
 import fs from 'fs'
 
 const isDev = !app.isPackaged
-const dbPath = isDev
-  ? path.join(__dirname, '../../study_agent.db')
-  : path.join(app.getPath('userData'), 'study_agent.db')
+const tenantId = (process.env.VITE_DEFAULT_TENANT_ID || 'ecole_dev').trim()
+const dbFileName = `study_agent_${tenantId}.db`
+
+const dbDir = isDev
+  ? path.resolve(__dirname, '../../')
+  : app.getPath('userData')
 
 // Ensure directory exists
-const dbDir = path.dirname(dbPath)
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true })
+}
+
+const legacyDbPath = path.join(dbDir, 'study_agent.db')
+const dbPath = path.join(dbDir, dbFileName)
+
+// Seamless migration: If legacy database exists and target tenant database does not exist,
+// copy legacy db to the tenant database to avoid any data loss.
+if (fs.existsSync(legacyDbPath) && !fs.existsSync(dbPath)) {
+  try {
+    fs.copyFileSync(legacyDbPath, dbPath)
+    if (isDev) {
+      console.log(`[Database Migration] Copied legacy ${legacyDbPath} to ${dbPath}`)
+    }
+  } catch (err) {
+    console.error(`[Database Migration] Failed to copy legacy database:`, err)
+  }
 }
 
 // Explicitly type db to avoid export errors
@@ -120,7 +138,8 @@ const runMigrations = () => {
     '032_add_ecoles_table.sql',
     '033_add_ecole_id_to_all.sql',
     '034_add_school_config_settings.sql',
-    '035_add_thermal_printer_settings.sql'
+    '035_add_thermal_printer_settings.sql',
+    '036_add_app_logs.sql'
   ]
   migrations.forEach(applyMigration)
 }
@@ -231,3 +250,19 @@ try {
 }
 
 export default db
+
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS app_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT,
+        level TEXT NOT NULL,
+        context TEXT,
+        message TEXT NOT NULL,
+        details TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        resolved BOOLEAN DEFAULT 0,
+        FOREIGN KEY(tenant_id) REFERENCES ecoles(id) ON DELETE CASCADE
+    );
+  `);
+} catch(e) {}

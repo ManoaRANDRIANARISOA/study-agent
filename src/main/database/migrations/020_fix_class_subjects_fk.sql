@@ -4,8 +4,8 @@
 
 PRAGMA foreign_keys = OFF;
 
--- Step 1: Update class_subjects with the mapping
-UPDATE class_subjects SET subject_id = 
+-- Step 1: Update class_subjects with the mapping (using OR IGNORE to prevent duplicate UNIQUE(class_name, subject_id) errors)
+UPDATE OR IGNORE class_subjects SET subject_id = 
   CASE subject_id
     WHEN 'subj-math-00000000-0000-0000-000000000001' THEN 'a0000000-0000-0000-0000-000000000001'
     WHEN 'subj-fr-00000000-0000-0000-000000000002'   THEN 'a0000000-0000-0000-0000-000000000002'
@@ -47,8 +47,11 @@ UPDATE class_subjects SET subject_id =
   END
 WHERE subject_id LIKE 'subj-%';
 
+-- Clean up any remaining legacy subj-% rows in class_subjects
+DELETE FROM class_subjects WHERE subject_id LIKE 'subj-%';
+
 -- Step 2: Update grades with the same mapping
-UPDATE grades SET subject_id = 
+UPDATE OR IGNORE grades SET subject_id = 
   CASE subject_id
     WHEN 'subj-math-00000000-0000-0000-000000000001' THEN 'a0000000-0000-0000-0000-000000000001'
     WHEN 'subj-fr-00000000-0000-0000-000000000002'   THEN 'a0000000-0000-0000-0000-000000000002'
@@ -63,6 +66,8 @@ UPDATE grades SET subject_id =
     ELSE subject_id
   END
 WHERE subject_id LIKE 'subj-%';
+
+DELETE FROM grades WHERE subject_id LIKE 'subj-%';
 
 -- Step 3: Mark all updated rows as pending sync
 UPDATE class_subjects SET sync_status = 'pending', updated_at = CURRENT_TIMESTAMP;

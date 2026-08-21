@@ -189,14 +189,16 @@ export class EmailService {
 
   static async sendDailyReport(pdfPath?: string): Promise<{ success: boolean; error?: string }> {
     const config = getConfig()
-    if (!config?.recipient_email) {
+    const recipient = config?.recipient_email || config?.gmail_address
+    
+    if (!recipient) {
       return { success: false, error: 'Email destinataire non configuré' }
     }
     const today = new Date().toLocaleDateString('fr-FR')
     const subject = `Bilan journalier — ${today}`
     const body = `<h2>Bilan journalier du ${today}</h2><p>Veuillez trouver ci-joint le bilan journalier de caisse.</p>`
     const attachments = pdfPath ? [pdfPath] : undefined
-    return EmailService.sendEmail(config.recipient_email, subject, body, attachments)
+    return EmailService.sendEmail(recipient, subject, body, attachments)
   }
 
   static startScheduler(): void {

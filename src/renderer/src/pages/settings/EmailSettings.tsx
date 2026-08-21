@@ -208,6 +208,9 @@ export default function EmailSettings() {
               placeholder="directeur@ecole.mg"
               className="mt-1"
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Laissez vide pour envoyer à l'adresse Gmail expéditrice.
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <input

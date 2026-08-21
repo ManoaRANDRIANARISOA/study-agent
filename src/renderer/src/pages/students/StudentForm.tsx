@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
@@ -100,6 +101,7 @@ export default function StudentForm({
   const [siblingResults, setSiblingResults] = useState<SiblingDisplay[]>([])
   const [selectedSiblings, setSelectedSiblings] = useState<SiblingDisplay[]>([])
   const [isSearchingSiblings, setIsSearchingSiblings] = useState(false)
+  const [activeTab, setActiveTab] = useState('identity')
   const { prices, fetchPrices } = useFinanceStore()
   const { classes: availableClasses } = useClasses()
   const availableBusRoutes =
@@ -116,11 +118,7 @@ export default function StudentForm({
 
   const { schoolConfig } = useAppStore()
   const form = useForm<StudentFormValues>({
-    resolver: zodResolver(
-      initialData 
-        ? studentSchema.extend({ class: z.string().min(1, 'La classe est requise') }) 
-        : studentSchema
-    ),
+    resolver: zodResolver(studentSchema),
     defaultValues: {
       first_name: '',
       last_name: '',
@@ -321,12 +319,32 @@ export default function StudentForm({
         success = await createStudent(payload)
       }
 
-      if (success && onSuccess) onSuccess()
+      if (success) {
+        toast.success(initialData ? 'Élève mis à jour' : 'Élève créé')
+        if (onSuccess) onSuccess()
+      } else {
+        toast.error("Erreur lors de l'enregistrement de l'élève")
+      }
     } catch (err) {
       if (import.meta.env.DEV) console.error('Error submitting form:', err)
+      toast.error('Une erreur inattendue est survenue')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const onFormError = (errors: any) => {
+    if (errors.first_name || errors.last_name || errors.class || errors.enrollment_date) {
+      setActiveTab('identity')
+    } else if (
+      errors.father_name ||
+      errors.father_contact ||
+      errors.mother_name ||
+      errors.guardian_contact
+    ) {
+      setActiveTab('family')
+    }
+    toast.error('Veuillez corriger les erreurs dans le formulaire.')
   }
 
   return (
@@ -359,8 +377,8 @@ export default function StudentForm({
 
       {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <Tabs defaultValue="identity" className="w-full">
+      <form onSubmit={form.handleSubmit(onSubmit, onFormError)} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className={`grid w-full ${initialData ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="identity">Identité</TabsTrigger>
             <TabsTrigger value="family">Famille</TabsTrigger>
@@ -519,11 +537,10 @@ export default function StudentForm({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="class" className="text-sm font-medium">
-                    Classe Actuelle *
+                    Classe Actuelle
                   </label>
                   <select
                     id="class"
-                    required
                     {...form.register('class')}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
