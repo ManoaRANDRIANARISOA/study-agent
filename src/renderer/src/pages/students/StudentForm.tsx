@@ -110,13 +110,23 @@ export default function StudentForm({
       : Object.keys(prices.bus || {})
 
   const { personnel, fetchPersonnel } = usePersonnelStore()
+  const { schoolConfig, currentYear } = useAppStore()
 
   useEffect(() => {
     fetchPrices()
     fetchPersonnel()
   }, [])
 
-  const { schoolConfig } = useAppStore()
+  const [enrollmentType, setEnrollmentType] = useState<'enrollment' | 'reenrollment'>(() => {
+    if (
+      initialFees?.is_reenrollment === 1 ||
+      initialFees?.is_reenrollment === true ||
+      initialData?.student_status === 'Ancien'
+    ) {
+      return 'reenrollment'
+    }
+    return 'enrollment'
+  })
   const form = useForm<StudentFormValues>({
     resolver: zodResolver(studentSchema),
     defaultValues: {
@@ -873,6 +883,67 @@ export default function StudentForm({
           <TabsContent value="services" className="space-y-4 pt-4">
             {initialData && (
               <>
+                {/* Rectification Inscription / Réinscription */}
+                <div className="border p-4 rounded-md bg-muted/20">
+                  <h3 className="font-semibold mb-1 text-sm text-foreground">
+                    Type d'inscription ({currentYear})
+                  </h3>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Rectifiez si l'élève a été enregistré par erreur en Inscription ou Réinscription. Cela mettra à jour la fiche, les droits d'inscription et le journal de caisse.
+                  </p>
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="radio"
+                        name="enrollment_type_rectify"
+                        checked={enrollmentType === 'enrollment'}
+                        onChange={async () => {
+                          setEnrollmentType('enrollment')
+                          if (initialData && window.api?.student?.rectifyEnrollmentType) {
+                            const res = await window.api.student.rectifyEnrollmentType(
+                              initialData.id,
+                              currentYear,
+                              'enrollment'
+                            )
+                            if (res.success) {
+                              toast.success("Statut rectifié : Nouvel élève (Inscription)")
+                            } else {
+                              toast.error("Erreur de rectification : " + res.error)
+                            }
+                          }
+                        }}
+                        className="w-4 h-4 text-primary"
+                      />
+                      <span>Nouvel élève (Frais d'inscription)</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="radio"
+                        name="enrollment_type_rectify"
+                        checked={enrollmentType === 'reenrollment'}
+                        onChange={async () => {
+                          setEnrollmentType('reenrollment')
+                          if (initialData && window.api?.student?.rectifyEnrollmentType) {
+                            const res = await window.api.student.rectifyEnrollmentType(
+                              initialData.id,
+                              currentYear,
+                              'reenrollment'
+                            )
+                            if (res.success) {
+                              toast.success("Statut rectifié : Ancien élève (Réinscription)")
+                            } else {
+                              toast.error("Erreur de rectification : " + res.error)
+                            }
+                          }
+                        }}
+                        className="w-4 h-4 text-primary"
+                      />
+                      <span>Ancien élève (Frais de réinscription)</span>
+                    </label>
+                  </div>
+                </div>
+
                 {/* Bus */}
                 {schoolConfig.module_bus !== false && (
                   <div className="border p-4 rounded-md">

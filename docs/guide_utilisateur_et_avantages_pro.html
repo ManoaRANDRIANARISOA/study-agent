@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Agent Pro — Guide Complet, Avantages & Manuel d'Utilisation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #eef2ff;
+      --accent: #06b6d4;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --code-bg: #0f172a;
+      --code-text: #38bdf8;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+
+    [data-theme="dark"] {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #1f2937;
+      --primary-light: #1e1b4b;
+      --code-bg: #030712;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Top Navigation */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+      background: rgba(255, 255, 255, 0.85);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    [data-theme="dark"] .top-bar {
+      background: rgba(17, 24, 39, 0.85);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--primary);
+    }
+    .brand-badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      background: var(--primary-light);
+      color: var(--primary);
+      border-radius: 9999px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .theme-toggle {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    .theme-toggle:hover {
+      border-color: var(--primary);
+    }
+
+    /* Layout */
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 2.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .container { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      position: sticky;
+      top: 5rem;
+      height: calc(100vh - 6rem);
+      overflow-y: auto;
+      padding-right: 1rem;
+    }
+    .sidebar-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    .sidebar-nav {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .sidebar-nav a {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.6rem 0.85rem;
+      border-radius: 8px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .sidebar-nav a:hover, .sidebar-nav a.active {
+      color: var(--primary);
+      background: var(--primary-light);
+      font-weight: 600;
+    }
+
+    /* Content Area */
+    .content {
+      min-width: 0;
+    }
+
+    /* Hero Banner */
+    .hero {
+      background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+      color: white;
+      padding: 3rem 2.5rem;
+      border-radius: 16px;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 20px 30px -10px rgba(79, 70, 229, 0.3);
+    }
+    .hero h1 {
+      font-size: 2.25rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    .hero p {
+      font-size: 1.05rem;
+      opacity: 0.92;
+      max-width: 750px;
+      margin-bottom: 1.5rem;
+    }
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+    .hero-tag {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Cards */
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.25rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--shadow);
+    }
+    .section-card h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--primary);
+    }
+    .section-card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin: 1.75rem 0 0.75rem 0;
+      color: var(--text);
+    }
+
+    /* Feature Grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin: 1.5rem 0;
+    }
+    .feature-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .feature-box:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+    .feature-box-title {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .feature-box-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    /* Alerts */
+    .alert {
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      border-left: 4px solid;
+      font-size: 0.9rem;
+    }
+    .alert-info {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1e40af;
+    }
+    [data-theme="dark"] .alert-info {
+      background: #172554;
+      color: #93c5fd;
+    }
+    .alert-success {
+      background: #f0fdf4;
+      border-color: #22c55e;
+      color: #166534;
+    }
+    [data-theme="dark"] .alert-success {
+      background: #052e16;
+      color: #86efac;
+    }
+    .alert-warning {
+      background: #fffbeb;
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+    [data-theme="dark"] .alert-warning {
+      background: #451a03;
+      color: #fde68a;
+    }
+
+    /* Code Blocks */
+    .code-wrapper {
+      background: var(--code-bg);
+      border-radius: 10px;
+      margin: 1.25rem 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .code-header {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    pre {
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #e2e8f0;
+    }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--code-text);
+    }
+    p code, li code {
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+    [data-theme="dark"] p code, [data-theme="dark"] li code {
+      background: #1e1b4b;
+      color: #a5b4fc;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      text-align: left;
+    }
+    th {
+      background: var(--bg);
+      color: var(--text-muted);
+      font-weight: 700;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* Lists */
+    ul, ol {
+      padding-left: 1.5rem;
+      margin: 0.75rem 0;
+    }
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-primary { background: var(--primary-light); color: var(--primary); }
+    .badge-success { background: #dcfce7; color: #15803d; }
+    .badge-warning { background: #fef3c7; color: #b45309; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-outline:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Print styling */
+    @media print {
+      .top-bar, .sidebar, .theme-toggle, .btn { display: none !important; }
+      .container { grid-template-columns: 1fr; }
+      .section-card { border: none; box-shadow: none; padding: 0; margin-bottom: 3rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-bar">
+    <div class="brand">
+      <span>📚 Study Agent Pro</span>
+      <span class="brand-badge">Édition Entreprise & Écoles</span>
+    </div>
+    <div class="nav-actions">
+      <button class="theme-toggle" onclick="toggleTheme()">
+        <span id="theme-icon">🌙</span> <span id="theme-text">Mode Sombre</span>
+      </button>
+      <button class="btn btn-outline" onclick="window.print()">🖨️ Imprimer ce guide</button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="container">
+
+    <!-- Sticky Table of Contents -->
+    <aside class="sidebar">
+      <div class="sidebar-title">Sommaire du Guide</div>
+      <ul class="sidebar-nav">
+        <li><a href="#points-forts">✨ Avantages & Points Forts</a></li>
+        <li><a href="#architecture-offline">🌐 Architecture Offline-First</a></li>
+        <li><a href="#impression-thermique">🖨️ Impression Thermique Directe</a></li>
+        <li><a href="#installation-imprimante">⚡ Guide Installation Xprinter</a></li>
+        <li><a href="#norme-recus">🧾 Norme Reçus & Duplicatas</a></li>
+        <li><a href="#moteur-export">📊 Moteur d'Export Multi-Formats</a></li>
+        <li><a href="#manuel-modules">📖 Manuel d'Emploi par Module</a></li>
+        <li><a href="#comparatif">🏆 Comparatif Concurrentiel</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+
+      <!-- Hero Header -->
+      <section class="hero">
+        <h1>Guide Officiel & Manuel d'Utilisation Professionnel</h1>
+        <p>
+          Découvrez la puissance de <strong>Study Agent Pro</strong> : la solution complète de gestion scolaire moderne, sécurisée, 100% autonome hors-ligne et dotée d'un moteur d'impression thermique direct haute performance.
+        </p>
+        <div class="hero-tags">
+          <span class="hero-tag">🔒 Multi-Tenant Isolé</span>
+          <span class="hero-tag">⚡ 100% Offline-First</span>
+          <span class="hero-tag">🖨️ ESC/POS Direct Windows</span>
+          <span class="hero-tag">🧾 Norme Anti-Fraude & Duplicatas</span>
+          <span class="hero-tag">📊 Export Excel/CSV/PDF/JSON</span>
+        </div>
+      </section>
+
+      <!-- 1. Points Forts et Avantages Concurrentiels -->
+      <section id="points-forts" class="section-card">
+        <h2>✨ Pourquoi Study Agent Pro est la meilleure solution du marché ?</h2>
+        <p>
+          Contrairement aux logiciels scolaires traditionnels (lents, bloqués dès la moindre coupure Internet, ou utilisant des boîtes de dialogue web inadaptées aux caisses), <strong>Study Agent Pro</strong> a été spécialement conçu pour répondre aux exigences réelles des établissements scolaires :
+        </p>
+
+        <div class="grid-2">
+          <div class="feature-box">
+            <div class="feature-box-title">⚡ 100% Autonome Hors-Ligne (Offline-First)</div>
+            <div class="feature-box-desc">
+              Toutes les opérations (inscriptions, encaissements de caisse, impressions de reçus, calcul des bulletins, pointage du personnel) s'exécutent instantanément en local avec <strong>0 ms de latence</strong>, sans dépendre d'Internet.
+            </div>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-box-title">🖨️ Impression Thermique Directe Ultra-Rapide</div>
+            <div class="feature-box-desc">
+              Accès natif au spouleur d'impression Windows (<code>winspool.Drv</code>). Sortie du ticket en <strong>moins de 0,5 seconde</strong>, double exemplaire (Client + Souche Caisse) et massicot automatique sans aucune boîte de dialogue système.
+            </div>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-box-title">🧾 Norme Comptable Anti-Fraude (Original vs Duplicata)</div>
+            <div class="feature-box-desc">
+              Numérotation séquentielle stricte par établissement et par caisse (<code>REC-CODE-C1-AAAA-XXXXX</code>). Détection automatique des réimpressions avec filigrane légal <strong>DUPLICATA</strong>, horodatage et nom de l'opérateur.
+            </div>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-box-title">🔄 Synchronisation Cloud Multi-Postes Sans Conflit</div>
+            <div class="feature-box-desc">
+              Dès qu'une connexion ponctuelle (ADSL, Fibre ou partage 4G) est détectée, les postes synchronisent leurs données de façon bidirectionnelle avec la base centrale Supabase sans aucun doublon.
+            </div>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-box-title">📊 Exportation Universelle de Données</div>
+            <div class="feature-box-desc">
+              Génération instantanée de fichiers <strong>Excel SpreadsheetML natifs</strong>, <strong>CSV (UTF-8 avec BOM)</strong>, <strong>PDF A4 Paysage</strong> et <strong>JSON</strong> avec filtres avancés par classe, statut et date.
+            </div>
+          </div>
+
+          <div class="feature-box">
+            <div class="feature-box-title">🔒 Confidentialité & RLS Multi-Tenant</div>
+            <div class="feature-box-desc">
+              Isolation cryptographique des données par établissement (<code>ecole_id</code>). Chaque école n'accède qu'à ses propres données avec gestion des rôles (RBAC) ultra-sécurisée.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Architecture Offline-First & Multi-Postes -->
+      <section id="architecture-offline" class="section-card">
+        <h2>🌐 Architecture Multi-Postes Offline-First (Sans Internet Permanent)</h2>
+        <p>
+          Dans beaucoup d'écoles, plusieurs ordinateurs sont utilisés simultanément (ex: <strong>Poste 1 au Secrétariat</strong> et <strong>Poste 2 à la Comptabilité</strong>), mais la connexion Internet est souvent instable ou coupée en journée.
+        </p>
+
+        <h3>Comment fonctionne notre système anti-collision ?</h3>
+        <p>
+          Chaque ordinateur possède son propre identifiant de caisse physique (<code>C1</code>, <code>C2</code>, <code>C3</code>...). Ainsi, les numéros de reçus émis ne peuvent jamais entrer en collision :
+        </p>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Poste de travail</th>
+                <th>Code Caisse</th>
+                <th>Série de Reçus Hors-Ligne</th>
+                <th>Comportement lors de la Synchronisation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Secrétariat (Poste 1)</strong></td>
+                <td><span class="badge badge-primary">C1</span></td>
+                <td><code>REC-EPSJ-C1-2026-00001</code> ... <code>00042</code></td>
+                <td>Fusion immédiate dans le Cloud sans aucun conflit</td>
+              </tr>
+              <tr>
+                <td><strong>Comptabilité (Poste 2)</strong></td>
+                <td><span class="badge badge-primary">C2</span></td>
+                <td><code>REC-EPSJ-C2-2026-00001</code> ... <code>00018</code></td>
+                <td>Fusion immédiate dans le Cloud sans aucun conflit</td>
+              </tr>
+              <tr>
+                <td><strong>Direction (Poste 3)</strong></td>
+                <td><span class="badge badge-primary">C3</span></td>
+                <td><code>REC-EPSJ-C3-2026-00001</code></td>
+                <td>Consultation en temps réel de tous les paiements des caisses</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="alert alert-success">
+          <strong>Résultat pour l'école :</strong> Zéro blocage, continuité totale de service en cas de panne réseau ou de coupure de courant, et traçabilité parfaite de chaque tiroir-caisse.
+        </div>
+      </section>
+
+      <!-- 3. Impression Thermique Directe ESC/POS -->
+      <section id="impression-thermique" class="section-card">
+        <h2>🖨️ Moteur d'Impression Thermique Directe ESC/POS (Zero-Config)</h2>
+        <p>
+          Study Agent Pro intègre un moteur bas-niveau d'impression thermique qui dialogue directement avec les imprimantes de caisse USB/Réseau via le spouleur Windows <code>winspool.Drv</code> en utilisant le protocole natif <strong>ESC/POS</strong>.
+        </p>
+
+        <h3>Les avantages du moteur thermique Study Agent Pro :</h3>
+        <ul>
+          <li><strong>Impression instantanée (0,5 s)</strong> : Finies les fenêtres d'impression de navigateur web lentes et encombrantes.</li>
+          <li><strong>Mise en page calibrée au millimètre</strong> : Parfaitement optimisé pour les largeurs <strong>80 mm</strong> (48 caractères/ligne) et <strong>58 mm</strong> (32 caractères/ligne).</li>
+          <li><strong>Double exemplaire automatique</strong> : Sortie consécutive du <em>Reçu Client (Parent)</em> et de la <em>Souche Caisse (Archive Établissement)</em> avec coupure massicot automatique entre les deux.</li>
+          <li><strong>Gestion des caractères accentués</strong> : Utilisation de la page de code <code>CP850 / PC437</code> pour des accents parfaits (é, è, à, ç, etc.).</li>
+          <li><strong>Reçus Groupés Multi-Articles</strong> : Possibilité de regrouper plusieurs mois d'écolage ou plusieurs services (Écolage + Bus + Cantine) sur un seul ticket clair et détaillé.</li>
+        </ul>
+      </section>
+
+      <!-- 4. Guide d'Installation Xprinter & Imprimantes -->
+      <section id="installation-imprimante" class="section-card">
+        <h2>⚡ Guide Pas-à-Pas : Installation de l'Imprimante Thermique chez le Client</h2>
+        <p>
+          Pour installer une imprimante thermique (ex: <strong>Xprinter XP-80U, XP-N160II, POS-80, Epson TM-T20</strong>) sur le poste d'un établissement, suivez ces étapes simples :
+        </p>
+
+        <h3>Étape 1 : Branchement physique</h3>
+        <ol>
+          <li>Branchez le câble d'alimentation de l'imprimante.</li>
+          <li>Insérez un rouleau de papier thermique de 80mm (ou 58mm) avec la face thermique vers le haut.</li>
+          <li>Reliez le câble USB à l'ordinateur Windows.</li>
+          <li>Allumez l'imprimante (le voyant bleu/vert <code>POWER</code> doit s'allumer).</li>
+        </ol>
+
+        <h3>Étape 2 : Installation automatique des pilotes via nos outils fournis</h3>
+        <p>
+          Des scripts automatisés ont été spécialement intégrés dans le dossier <code>tools/printer/</code> de l'application :
+        </p>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>Fichier d'installation rapide (Exécuter en tant qu'administrateur)</span>
+            <span>tools/printer/installer-xprinter.bat</span>
+          </div>
+          <pre><code>REM Double-cliquez sur ce fichier pour installer automatiquement l'imprimante :
+tools\printer\installer-xprinter.bat</code></pre>
+        </div>
+
+        <div class="code-wrapper">
+          <div class="code-header">
+            <span>Test d'impression immédiat (Vérification de la communication USB)</span>
+            <span>tools/printer/test-xprinter.bat</span>
+          </div>
+          <pre><code>REM Lance un ticket test complet avec découpe massicot :
+tools\printer\test-xprinter.bat</code></pre>
+        </div>
+
+        <h3>Étape 3 : Activation dans Study Agent Pro</h3>
+        <ol>
+          <li>Dans l'application, ouvrez le menu <strong>Paramètres</strong> puis l'onglet <strong>Imprimante Thermique</strong>.</li>
+          <li>Cochez la case <strong>"Activer l'impression thermique directe"</strong>.</li>
+          <li>Sélectionnez votre imprimante dans la liste déroulante (ex: <code>POS-80</code> ou <code>Xprinter XP-80C</code>).</li>
+          <li>Indiquez l'identifiant de cette caisse (ex: <code>C1</code> pour Caisse 1).</li>
+          <li>Cliquez sur <strong>"Imprimer un ticket test"</strong> pour valider la configuration.</li>
+        </ol>
+
+        <div class="alert alert-info">
+          <strong>Astuce Dépannage :</strong> Si l'imprimante ne répond pas, assurez-vous que le spouleur d'impression Windows est actif en exécutant dans PowerShell : <code>Restart-Service Spooler</code>.
+        </div>
+      </section>
+
+      <!-- 5. Norme Comptable des Reçus & Duplicatas -->
+      <section id="norme-recus" class="section-card">
+        <h2>🧾 Norme des Reçus de Paiement & Traçabilité des Duplicatas</h2>
+        <p>
+          Dans un établissement d'enseignement, l'émission d'un reçu engage la responsabilité comptable et légale de la direction. Pour éviter tout risque de double utilisation ou de fraude, Study Agent Pro applique des règles strictes :
+        </p>
+
+        <h3>1. Structure du Numéro de Reçu Normalisé</h3>
+        <div class="code-wrapper">
+          <div class="code-header"><span>Format Universel Anti-Collision</span></div>
+          <pre><code>REC-[CODE_ECOLE]-[STATION_CAISSE]-[ANNEE_SCOLAIRE]-[NUMERO_SEQUENCE]
+
+Exemples concrets :
+• REC-EPSJ-C1-2026-00001  (École Privée St Joseph, Caisse 1, Année 2026, Reçu n° 1)
+• REC-EPSJ-C2-2026-00015  (École Privée St Joseph, Caisse 2, Année 2026, Reçu n° 15)
+• REC-GRP-EPSJ-C1-2026-00004 (Reçu Groupé multi-articles)</code></pre>
+        </div>
+
+        <h3>2. Gestion Légale : Original vs Duplicata</h3>
+        <div class="grid-2">
+          <div class="feature-box" style="border-left: 4px solid var(--success);">
+            <div class="feature-box-title" style="color: var(--success);">🟢 1ère Impression : REÇU ORIGINAL</div>
+            <div class="feature-box-desc">
+              Le ticket porte l'en-tête officiel <code>*** REÇU DE PAIEMENT - ORIGINAL ***</code>. Il est délivré au parent comme justificatif légal unique.
+            </div>
+          </div>
+
+          <div class="feature-box" style="border-left: 4px solid var(--warning);">
+            <div class="feature-box-title" style="color: var(--warning);">🟠 Réimpressions : DUPLICATA OFFICIEL</div>
+            <div class="feature-box-desc">
+              Toute réimpression ultérieure bascule automatiquement en <code>*** DUPLICATA N° X ***</code> avec la mention <em>(RÉIMPRESSION - VALEUR INFORMATIVE)</em>, la date d'origine, la date/heure de réémission et le nom de l'opérateur.
+            </div>
+          </div>
+        </div>
+
+        <h3>3. Consultation dans la Fenêtre "Détails de l'Encaissement"</h3>
+        <p>
+          En cliquant sur n'importe quelle ligne de paiement dans l'onglet <strong>Finances</strong> ou dans le <strong>Journal de Caisse</strong>, la modale de détails affiche :
+        </p>
+        <ul>
+          <li>Le numéro officiel de reçu.</li>
+          <li>Le statut d'impression en temps réel (<em>Original non imprimé</em>, <em>Original délivré</em>, ou <em>Duplicata émis</em>).</li>
+          <li>L'historique complet avec horodatage et nom de l'opérateur de caisse.</li>
+          <li>Un bouton direct pour réimprimer un duplicata sécurisé avec traçabilité dans les journaux d'audit (<code>audit_logs</code>).</li>
+        </ul>
+      </section>
+
+      <!-- 6. Moteur d'Export Multi-Formats -->
+      <section id="moteur-export" class="section-card">
+        <h2>📊 Moteur d'Exportation Multi-Formats Professionnel</h2>
+        <p>
+          Study Agent Pro intègre un composant d'export universel (<code>DataExportModal</code>) disponible sur les listes d'élèves, du personnel et du journal de trésorerie :
+        </p>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Format</th>
+                <th>Technologie Utilisée</th>
+                <th>Avantages pour l'Établissement</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Excel (.xls / .xml)</strong></td>
+                <td>SpreadsheetML XML Natif</td>
+                <td>Ouverture immédiate dans Microsoft Excel sans message d'erreur. Les montants et dates conservent leurs vrais types numériques pour calculs automatiques.</td>
+              </tr>
+              <tr>
+                <td><strong>CSV (.csv)</strong></td>
+                <td>UTF-8 avec BOM Signature</td>
+                <td>Compatible à 100% avec Excel français (délimiteur point-virgule <code>;</code>) sans corruption des caractères spéciaux et accents.</td>
+              </tr>
+              <tr>
+                <td><strong>PDF (.pdf)</strong></td>
+                <td>PDF Document A4 Paysage</td>
+                <td>Document prêt pour impression ou archivage avec en-tête d'établissement, numérotation des pages et mise en page soignée.</td>
+              </tr>
+              <tr>
+                <td><strong>JSON (.json)</strong></td>
+                <td>JSON Structuré ISO</td>
+                <td>Permet l'intégration ou l'import vers des systèmes comptables tiers ou des sauvegardes techniques.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 7. Manuel d'Emploi par Module -->
+      <section id="manuel-modules" class="section-card">
+        <h2>📖 Manuel d'Emploi Complet Module par Module</h2>
+
+        <!-- Module 1: Scolarité & Élèves -->
+        <h3>🎓 1. Module Scolarité & Gestion des Élèves</h3>
+        <ul>
+          <li><strong>Création d'un élève</strong> : Formulaire dynamique en 4 onglets (Identité, Responsables, Tarifs & Services, Pièces jointes). Si une erreur de validation survient, le formulaire bascule automatiquement sur l'onglet concerné et surligne le champ requis.</li>
+          <li><strong>Inscription vs Réinscription</strong> : Gestion automatique du type d'inscription. Possibilité de rectifier le statut d'un élève en 1 clic grâce au bouton de conversion intelligent dans la fiche élève.</li>
+          <li><strong>Gestion des fratries</strong> : Liaison automatique des frères et sœurs pour appliquer les réductions familles et éviter la double facturation de la cotisation FRAM.</li>
+          <li><strong>Export des effectifs</strong> : Bouton d'exportation avec filtres par classe, sexe, statut d'inscription et année scolaire.</li>
+        </ul>
+
+        <!-- Module 2: Caisse & Finances -->
+        <h3>💳 2. Module Caisse, Écolages & Trésorerie</h3>
+        <ul>
+          <li><strong>Grille des Écolages</strong> : Suivi visuel mois par mois (Septembre à Juin) avec code couleur (Vert = Réglé, Jaune = Paiement partiel, Rouge = Impayé).</li>
+          <li><strong>Encaissement rapide</strong> : Saisie en quelques secondes avec calcul automatique du reste à payer, choix du mode de règlement (Espèces, Chèque, Mobile Money, Virement).</li>
+          <li><strong>Remise exceptionnelle</strong> : Possibilité d'accorder une remise justifiée avec génération automatique d'une écriture comptable d'ajustement.</li>
+          <li><strong>Journal de Caisse</strong> : Suivi des entrées et sorties en temps réel, solde instantané de caisse, et impression directe des reçus thermiques.</li>
+        </ul>
+
+        <!-- Module 3: Personnel & Salaires -->
+        <h3>👥 3. Module Personnel & Ressources Humaines (RH)</h3>
+        <ul>
+          <li><strong>Gestion des contrats</strong> : Prise en charge des salaires mensuels fixes et des taux horaires pour les enseignants vacataires.</li>
+          <li><strong>Pointage journalier</strong> : Registre de présence des professeurs et employés (Présent, Absent justifié, Absent non justifié, Retard).</li>
+          <li><strong>Acomptes & Retenues</strong> : Saisie des avances sur salaire et des déductions exceptionnelles.</li>
+          <li><strong>Génération de la paie globale</strong> : Calcul automatique du salaire net à payer en 1 clic et impression des bulletins de paie individuels.</li>
+        </ul>
+
+        <!-- Module 4: Transport & Cantine -->
+        <h3>🚌 4. Module Transport (Bus Scolaire) & 🍽️ Cantine</h3>
+        <ul>
+          <li><strong>Abonnements</strong> : Affectation des circuits de bus (Ligne / Arrêt) et inscription au service de cantine (formule mensuelle ou forfaitaire).</li>
+          <li><strong>Pointage de présence</strong> : Contrôle des montées dans le bus et du passage au réfectoire pour la sécurité des enfants.</li>
+          <li><strong>Facturation intégrée</strong> : Les montants d'abonnement apparaissent directement dans l'onglet financier de l'élève.</li>
+        </ul>
+
+        <!-- Module 5: Évaluations & Notes -->
+        <h3>📊 5. Module Évaluations, Notes & Bulletins</h3>
+        <ul>
+          <li><strong>Saisie simplifiée</strong> : Grille de saisie des notes par classe, période (Trimestre / Semestre) et matière.</li>
+          <li><strong>Coefficients modulables</strong> : Configuration des coefficients selon le niveau pédagogique.</li>
+          <li><strong>Calcul automatique des moyennes</strong> : Moyennes générales, rang de l'élève, et appréciations pédagogiques.</li>
+          <li><strong>Impression des bulletins</strong> : Bulletins scolaires élégants au format PDF prêts pour la remise aux parents.</li>
+        </ul>
+
+        <!-- Module 6: Paramètres & Sécurité -->
+        <h3>⚙️ 6. Module Paramètres, Sécurité & Sauvegardes</h3>
+        <ul>
+          <li><strong>Identité de l'école</strong> : Logo officiel, coordonnées, devise, et code de l'établissement.</li>
+          <li><strong>Grille tarifaire</strong> : Définition des montants d'inscription, écolages par classe, tarifs bus et cantine.</li>
+          <li><strong>Configuration Caisse</strong> : Choix de l'imprimante thermique, du format (80mm/58mm), du nombre d'exemplaires et du code station (<code>C1</code>, <code>C2</code>).</li>
+          <li><strong>Gestion des utilisateurs</strong> : Rôles d'accès restreints (Administrateur, Comptable, Secrétaire, Direction) avec journal d'audit complet.</li>
+        </ul>
+      </section>
+
+      <!-- 8. Comparatif Concurrentiel -->
+      <section id="comparatif" class="section-card">
+        <h2>🏆 Tableau Comparatif : Study Agent Pro vs Logiciels Traditionnels</h2>
+        
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Critère de comparaison</th>
+                <th>Study Agent Pro (Notre Solution)</th>
+                <th>Logiciels Web Classiques</th>
+                <th>Fichiers Excel Manuels</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Fonctionnement sans Internet</strong></td>
+                <td><span class="badge badge-success">100% Fonctionnel (0 latence)</span></td>
+                <td><span class="badge badge-warning">Bloqué dès coupure réseau</span></td>
+                <td>Local mais non collaboratif</td>
+              </tr>
+              <tr>
+                <td><strong>Impression de Reçus de Caisse</strong></td>
+                <td><span class="badge badge-success">Thermique Direct ESC/POS (0,5s)</span></td>
+                <td>Lente (Dialogue navigateur A4)</td>
+                <td>Aucune impression automatique</td>
+              </tr>
+              <tr>
+                <td><strong>Sécurité & Anti-Fraude</strong></td>
+                <td><span class="badge badge-success">Séries strictes + Duplicata légal</span></td>
+                <td>Moyenne / Risque de doublons</td>
+                <td>Nulle (Falsifiable facilement)</td>
+              </tr>
+              <tr>
+                <td><strong>Synchronisation Multi-Postes</strong></td>
+                <td><span class="badge badge-success">Automatique sans conflit (Cloud)</span></td>
+                <td>Centralisé mais dépendant du web</td>
+                <td>Impossible (Fichiers en conflit)</td>
+              </tr>
+              <tr>
+                <td><strong>Double Exemplaire + Massicot</strong></td>
+                <td><span class="badge badge-success">Automatique (Client + Caisse)</span></td>
+                <td>Non géré</td>
+                <td>Non géré</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    // Theme Switcher Logic
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      const newTheme = isDark ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      document.getElementById('theme-icon').textContent = isDark ? '🌙' : '☀️';
+      document.getElementById('theme-text').textContent = isDark ? 'Mode Sombre' : 'Mode Clair';
+      localStorage.setItem('study_agent_guide_theme', newTheme);
+    }
+
+    // Init theme from storage or system preference
+    (function() {
+      const saved = localStorage.getItem('study_agent_guide_theme');
+      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.getElementById('theme-icon').textContent = '☀️';
+        document.getElementById('theme-text').textContent = 'Mode Clair';
+      }
+    })();
+  </script>
+</body>
+</html>

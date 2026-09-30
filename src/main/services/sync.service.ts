@@ -3,8 +3,10 @@ import db from '../database/db'
 import dotenv from 'dotenv'
 import path from 'path'
 import * as fs from 'fs'
-import { app } from 'electron' // Load env vars
+import { app, BrowserWindow } from 'electron' // Load env vars
 import { LoggerService } from './logger.service'
+import { TelemetryService } from './telemetry.service'
+import { SettingsRepository } from '../database/repositories/settings.repository'
 const isDev = !app.isPackaged
 const envPath = isDev ? path.join(process.cwd(), '.env') : path.join(process.resourcesPath, '.env')
 
@@ -104,8 +106,223 @@ const SYNCABLE_TABLES = new Set([
   'bus_attendance',
   'canteen_attendance',
   'users',
-  'settings'
+  'settings',
+  'cash_closures'
 ])
+
+export const LOCAL_ONLY_SETTINGS = new Set([
+  'pos_station_code',
+  'printer_name',
+  'printer_copies',
+  'email_logs',
+  'email_last_sent_date'
+])
+
+export interface SyncProgress {
+  phase: 'idle' | 'checking' | 'pushing' | 'pulling' | 'success' | 'error'
+  current: number
+  total: number
+  percent: number
+  message: string
+  tableName?: string
+  lastSync?: string
+  pendingCount?: number
+  errorCount?: number
+}
+
+let isSyncing = false
+
+export function getIsSyncing(): boolean {
+  return isSyncing
+}
+
+export function broadcastProgress(progress: SyncProgress): void {
+  try {
+    const windows = BrowserWindow.getAllWindows()
+    windows.forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('sync:progress', progress)
+      }
+    })
+  } catch {
+    // Ignore if window is unavailable
+  }
+}
+
+/**
+ * Health check to Supabase with latency measurement and 5s timeout
+ */
+export async function checkCloudHealth(): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
+  if (!supabaseUrl || !supabaseKey) {
+    return { ok: false, error: 'Identifiants Supabase absents du fichier .env' }
+  }
+
+  const start = Date.now()
+  try {
+    const timeoutPromise = new Promise<{ error: Error }>((_, reject) =>
+      setTimeout(() => reject(new Error("Délai d'attente réseau dépassé (5s)")), 5000)
+    )
+
+    const probePromise = supabase
+      .from('settings')
+      .select('key')
+      .limit(1)
+
+    const result = (await Promise.race([probePromise, timeoutPromise])) as any
+
+    if (result && result.error) {
+      return { ok: false, error: result.error.message || 'Erreur retournée par Supabase' }
+    }
+
+    return { ok: true, latencyMs: Date.now() - start }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { ok: false, error: msg }
+  }
+}
+
+/**
+ * Retrieve queue status
+ */
+export function getSyncQueueStatus(): {
+  pendingCount: number
+  errorCount: number
+  quarantinedCount: number
+  lastSyncTime: string | null
+} {
+  try {
+    const counts = db
+      .prepare(
+        `SELECT 
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+          SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as errors,
+          SUM(CASE WHEN status = 'quarantined' THEN 1 ELSE 0 END) as quarantined
+         FROM sync_queue`
+      )
+      .get() as { pending: number | null; errors: number | null; quarantined: number | null } | undefined
+
+    const settingRow = db
+      .prepare("SELECT value FROM settings WHERE key = 'last_sync_time'")
+      .get() as { value: string } | undefined
+
+    let lastSyncTime: string | null = null
+    if (settingRow && settingRow.value) {
+      try {
+        lastSyncTime = JSON.parse(settingRow.value)
+      } catch {
+        lastSyncTime = settingRow.value
+      }
+    }
+
+    return {
+      pendingCount: counts?.pending || 0,
+      errorCount: counts?.errors || 0,
+      quarantinedCount: counts?.quarantined || 0,
+      lastSyncTime
+    }
+  } catch {
+    return { pendingCount: 0, errorCount: 0, quarantinedCount: 0, lastSyncTime: null }
+  }
+}
+
+/**
+ * Retrieve failed or quarantined queue items
+ */
+export function getSyncQueueErrors(limit = 100) {
+  try {
+    return db
+      .prepare(
+        `SELECT id, table_name, record_id, action, status, error_message, created_at, COALESCE(updated_at, created_at) as updated_at
+         FROM sync_queue
+         WHERE status IN ('error', 'skipped', 'quarantined')
+         ORDER BY id DESC LIMIT ?`
+      )
+      .all(limit)
+  } catch (err) {
+    console.error('getSyncQueueErrors error:', err)
+    return []
+  }
+}
+
+/**
+ * Reset all failed and skipped records to pending for safe retry
+ */
+export function retrySyncErrors(): { changes: number } {
+  try {
+    const res = db
+      .prepare(
+        `UPDATE sync_queue
+         SET status = 'pending', error_message = NULL, updated_at = CURRENT_TIMESTAMP
+         WHERE status IN ('error', 'skipped', 'quarantined')`
+      )
+      .run()
+    return { changes: res.changes }
+  } catch {
+    return { changes: 0 }
+  }
+}
+
+/**
+ * Quarantines all failed/skipped queue items, transmits error telemetry to Supabase,
+ * and immediately triggers push for the remaining healthy items.
+ */
+export async function quarantineAndUnblockQueue(): Promise<{
+  success: boolean
+  quarantinedCount: number
+  remainingPending: number
+  message: string
+}> {
+  try {
+    const failedItems = db
+      .prepare(
+        `SELECT id, table_name, record_id, error_message 
+         FROM sync_queue 
+         WHERE status IN ('error', 'skipped')`
+      )
+      .all() as { id: number; table_name: string; record_id: string; error_message: string | null }[]
+
+    const currentStatus = getSyncQueueStatus()
+
+    // 1. Report each failed item to Supabase audit_logs via TelemetryService
+    for (const item of failedItems) {
+      await TelemetryService.reportSyncBlockage(
+        item.table_name,
+        item.record_id,
+        item.error_message || 'Blocage persistant isolé par déblocage forcé',
+        currentStatus.pendingCount
+      )
+    }
+
+    // 2. Mark blocking rows as 'quarantined'
+    const res = db
+      .prepare(
+        `UPDATE sync_queue 
+         SET status = 'quarantined', updated_at = CURRENT_TIMESTAMP 
+         WHERE status IN ('error', 'skipped')`
+      )
+      .run()
+
+    // 3. Immediately trigger cloud sync for remaining healthy records
+    syncWithCloud(false).catch((e) => console.error('Auto sync after quarantine error:', e))
+
+    const newStatus = getSyncQueueStatus()
+
+    return {
+      success: true,
+      quarantinedCount: res.changes,
+      remainingPending: newStatus.pendingCount,
+      message: `${res.changes} élément(s) bloquant(s) mis en quarantaine. ${newStatus.pendingCount} élément(s) sains en cours de synchronisation.`
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return {
+      success: false,
+      quarantinedCount: 0,
+      remainingPending: 0,
+      message: `Erreur lors de la mise en quarantaine : ${msg}`
+    }
+  }
+}
 
 /**
  * Add a record to the local sync queue.
@@ -125,8 +342,8 @@ export function addToSyncQueue(
   try {
     db.prepare(
       `
-      INSERT INTO sync_queue (table_name, record_id, action, data)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO sync_queue (table_name, record_id, action, data, updated_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
     `
     ).run(tableName, recordId, action, JSON.stringify(data))
   } catch (error) {
@@ -134,17 +351,52 @@ export function addToSyncQueue(
   }
 }
 
-// Main sync function (called every 5 minutes if online)
-export async function syncWithCloud() {
+// Main sync function (called every 5 minutes if online or manually triggered)
+export async function syncWithCloud(forceFullSync: boolean = false) {
+  if (isSyncing) {
+    return { success: false, reason: 'already_syncing' }
+  }
+
   if (!supabaseUrl || !supabaseKey) {
-    console.warn('Supabase credentials missing, skipping sync.')
+    broadcastProgress({
+      phase: 'error',
+      current: 0,
+      total: 0,
+      percent: 0,
+      message: 'Supabase non configuré (.env manquant)'
+    })
     return { success: false, reason: 'config_missing' }
   }
-  // Simplified check for internet (navigator is not available in main process usually, unless polyfilled or using net module)
-  // In Electron Main process, we can check online status via net.isOnline() (since Electron 24+) or just try request.
-  // For now, we'll assume we can try and catch errors.
+
+  isSyncing = true
 
   try {
+    const queueStatus = getSyncQueueStatus()
+    broadcastProgress({
+      phase: 'checking',
+      current: 0,
+      total: queueStatus.pendingCount,
+      percent: 5,
+      message: 'Vérification de la connexion au cloud Supabase...',
+      pendingCount: queueStatus.pendingCount,
+      errorCount: queueStatus.errorCount
+    })
+
+    const health = await checkCloudHealth()
+    if (!health.ok) {
+      broadcastProgress({
+        phase: 'error',
+        current: 0,
+        total: queueStatus.pendingCount,
+        percent: 0,
+        message: `Connexion impossible : ${health.error}`,
+        pendingCount: queueStatus.pendingCount,
+        errorCount: queueStatus.errorCount
+      })
+      isSyncing = false
+      return { success: false, error: health.error }
+    }
+
     // Authenticate as the Tenant's Service Account to bypass RLS isolation
     const syncEmail = process.env.VITE_SYNC_EMAIL
     const syncPassword = process.env.VITE_SYNC_PASSWORD
@@ -155,6 +407,14 @@ export async function syncWithCloud() {
       })
       if (authError) {
         LoggerService.log('error', 'sync', 'Supabase Sync Auth Error', authError.message)
+        broadcastProgress({
+          phase: 'error',
+          current: 0,
+          total: 0,
+          percent: 0,
+          message: `Erreur d'authentification Supabase : ${authError.message}`
+        })
+        isSyncing = false
         return { success: false, error: authError.message }
       }
     }
@@ -163,15 +423,59 @@ export async function syncWithCloud() {
     await pushLocalChanges()
 
     // PULL: Get remote changes from cloud
-    await pullRemoteChanges()
+    await pullRemoteChanges(forceFullSync)
 
-    // Check if there are still pending items that failed
-    // console.log('Sync completed.');
+    // Flush any pending error/sync telemetry to Supabase audit_logs
+    await TelemetryService.flushPendingLogs().catch(() => {})
+
+    const finalStatus = getSyncQueueStatus()
+    const hasUnsyncedItems = finalStatus.pendingCount > 0 || finalStatus.errorCount > 0
+
+    if (hasUnsyncedItems) {
+      broadcastProgress({
+        phase: 'error',
+        current: 100,
+        total: 100,
+        percent: 100,
+        message: `Synchronisation partielle : ${finalStatus.pendingCount} en attente, ${finalStatus.errorCount} anomalie(s)`,
+        lastSync: finalStatus.lastSyncTime || new Date().toISOString(),
+        pendingCount: finalStatus.pendingCount,
+        errorCount: finalStatus.errorCount
+      })
+
+      return {
+        success: false,
+        partial: true,
+        pendingCount: finalStatus.pendingCount,
+        errorCount: finalStatus.errorCount,
+        error: `${finalStatus.pendingCount} modification(s) en attente, ${finalStatus.errorCount} anomalie(s) non synchronisée(s).`
+      }
+    }
+
+    broadcastProgress({
+      phase: 'success',
+      current: 100,
+      total: 100,
+      percent: 100,
+      message: 'Synchronisation terminée avec succès',
+      lastSync: finalStatus.lastSyncTime || new Date().toISOString(),
+      pendingCount: 0,
+      errorCount: 0
+    })
 
     return { success: true }
   } catch (error: any) {
     LoggerService.log('error', 'sync', 'Sync error', error.message)
+    broadcastProgress({
+      phase: 'error',
+      current: 0,
+      total: 0,
+      percent: 0,
+      message: `Erreur de synchronisation : ${error?.message || 'Inconnue'}`
+    })
     return { success: false, error: error.message }
+  } finally {
+    isSyncing = false
   }
 }
 
@@ -268,6 +572,7 @@ async function pushLocalChanges() {
           WHEN 'canteen_attendance' THEN 3
           WHEN 'student_payments' THEN 4
           WHEN 'cash_journal' THEN 4
+          WHEN 'cash_closures' THEN 4
           WHEN 'parent_events' THEN 4
           WHEN 'grades' THEN 5
           WHEN 'time_tracking' THEN 5
@@ -297,6 +602,7 @@ async function pushLocalChanges() {
           WHEN 'custom_deductions' THEN 4
           WHEN 'student_payments' THEN 5
           WHEN 'cash_journal' THEN 5
+          WHEN 'cash_closures' THEN 5
           WHEN 'parent_events' THEN 5
           WHEN 'event_payments' THEN 6
           WHEN 'bus_attendance' THEN 6
@@ -313,8 +619,20 @@ async function pushLocalChanges() {
     .all() as any[]
 
   const failedTables = new Set<string>()
+  const totalItemsCount = queue.length
+  let processedCount = 0
 
   for (const item of queue) {
+    processedCount++
+    const progressPercent = Math.round(10 + (processedCount / (totalItemsCount || 1)) * 40)
+    broadcastProgress({
+      phase: 'pushing',
+      current: processedCount,
+      total: totalItemsCount,
+      percent: progressPercent,
+      message: `Envoi au cloud : ${item.table_name} (${processedCount}/${totalItemsCount})`
+    })
+
     try {
       if (!SYNCABLE_TABLES.has(item.table_name)) {
         console.error(`Skipping unauthorized table in sync queue: ${item.table_name}`)
@@ -573,8 +891,10 @@ async function pushLocalChanges() {
         }
 
         // Inject ecole_id to satisfy Supabase Row Level Security (Multi-Tenant Isolation)
-        if (process.env.VITE_DEFAULT_TENANT_ID) {
-          supabasePayload.ecole_id = process.env.VITE_DEFAULT_TENANT_ID
+        const tenantId =
+          (SettingsRepository.get('ecole_id') as string) || process.env.VITE_DEFAULT_TENANT_ID
+        if (tenantId) {
+          supabasePayload.ecole_id = tenantId
         }
 
         // Handle tables with composite unique constraints that differ from PK
@@ -682,15 +1002,22 @@ async function pushLocalChanges() {
       db.prepare(
         `
         UPDATE sync_queue
-        SET status = ?, error_message = ?
+        SET status = ?, error_message = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `
       ).run(isUnrecoverable ? 'skipped' : 'error', error.message || 'Unknown error', item.id)
+
+      TelemetryService.reportSyncBlockage(
+        item.table_name,
+        item.record_id,
+        error?.message || 'Erreur push inconnue',
+        totalItemsCount
+      ).catch(() => {})
     }
   }
 }
 
-async function pullRemoteChanges() {
+async function pullRemoteChanges(forceFullSync: boolean = false) {
   let hasPullErrors = false
   const settingsRow = db
     .prepare(
@@ -700,18 +1027,16 @@ async function pullRemoteChanges() {
     )
     .get() as { value: string } | undefined
 
-  // JSON.parse because settings.value is stored as JSON string in the schema: value TEXT (JSON value)
-  let lastSync = '2020-01-01T00:00:00Z'
-  if (settingsRow && settingsRow.value) {
+  let lastSync = forceFullSync ? '2000-01-01T00:00:00Z' : '2020-01-01T00:00:00Z'
+  if (!forceFullSync && settingsRow && settingsRow.value) {
     try {
       lastSync = JSON.parse(settingsRow.value)
     } catch (e) {
-      lastSync = settingsRow.value // Fallback if not JSON
+      lastSync = settingsRow.value
     }
   }
 
   const tables = [
-    'users',
     'students',
     'student_fees',
     'student_payments',
@@ -729,192 +1054,274 @@ async function pullRemoteChanges() {
     'event_payments',
     'bus_attendance',
     'canteen_attendance',
-    'settings'
+    'assessments',
+    'cash_closures'
   ]
 
-  for (const table of tables) {
-    if (!SYNCABLE_TABLES.has(table)) {
-      console.error(`Skipping unauthorized table in pull: ${table}`)
-      continue
-    }
-    const { data, error } = await supabase.from(table).select('*').gt('updated_at', lastSync)
+  db.pragma('foreign_keys = OFF')
 
-    if (error) {
-      console.error(`Error pulling ${table}:`, error)
-      hasPullErrors = true
-      continue
-    }
-
-    // console.log(`Pulled ${data?.length} records from ${table}`);
-
-    for (const record of data || []) {
-      // Check if exists locally
-      const local = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(record.id) as any
-
-      // Remove Supabase-specific or computed columns before saving to SQLite
-      const { search_text, ecole_id, ...recordToSave } = record
-
-      // Sanitize object values for SQLite
-      for (const key in recordToSave) {
-        const val = recordToSave[key]
-        if (typeof val === 'boolean') {
-          recordToSave[key] = val ? 1 : 0
-        } else if (typeof val === 'object' && val !== null) {
-          recordToSave[key] = JSON.stringify(val)
-        }
-      }
-
-      // Handle deleted records coming from cloud
-      if (recordToSave.deleted) {
-        if (local) {
-          // Update local record to deleted
-          db.prepare(`UPDATE ${table} SET deleted = 1, updated_at = ? WHERE id = ?`).run(
-            recordToSave.updated_at,
-            record.id
-          )
-        } else {
-          // We must insert it as deleted, so foreign keys don't break!
-          // Especially for students/personnel that other tables reference.
-          const fields = Object.keys(recordToSave).join(', ')
-          const placeholders = Object.keys(recordToSave)
-            .map(() => '?')
-            .join(', ')
-          db.prepare(`INSERT INTO ${table} (${fields}) VALUES (${placeholders})`).run(
-            ...Object.values(recordToSave)
-          )
-        }
+  try {
+    for (let i = 0; i < tables.length; i++) {
+      const table = tables[i]
+      if (!SYNCABLE_TABLES.has(table)) {
         continue
       }
 
-      // Handle schema differences for cash_journal
-      if (table === 'cash_journal' && !recordToSave.department) {
-        recordToSave.department = 'ecole'
-      }
+      const tablePercent = Math.round(50 + ((i + 1) / tables.length) * 45)
+      broadcastProgress({
+        phase: 'pulling',
+        current: i + 1,
+        total: tables.length,
+        percent: tablePercent,
+        message: `Récupération depuis le cloud : ${table}...`
+      })
 
-      // CONFLICT RESOLUTION: Check for Unique Constraint on registration_number
-      // If we are about to insert/update a student, check if their registration_number is already taken by ANOTHER student locally.
-      if (table === 'students' && recordToSave.registration_number) {
-        const conflictingStudent = db
-          .prepare(
-            `
-              SELECT * FROM students 
-              WHERE registration_number = ? AND id != ?
-          `
-          )
-          .get(recordToSave.registration_number, record.id) as any
+      let remoteRecords: any[] = []
+      let page = 0
+      const pageSize = 1000
+      let fetchMore = true
 
-        if (conflictingStudent) {
-          console.warn(
-            `Conflict detected: Matricule ${recordToSave.registration_number} taken by ${conflictingStudent.id}. Renaming local conflict.`
-          )
+      while (fetchMore) {
+        const from = page * pageSize
+        const to = from + pageSize - 1
+        const { data, error } = await supabase
+          .from(table)
+          .select('*')
+          .gt('updated_at', lastSync)
+          .order('updated_at', { ascending: true })
+          .range(from, to)
 
-          // We rename the LOCAL conflicting student's matricule to allow the REMOTE one (Server Authority) to land.
-          // The local student will get a temporary matricule. When it tries to push later, we will handle the collision in pushLocalChanges.
-          const tempMatricule = `${recordToSave.registration_number}_CONFLICT_${Date.now()}`
+        if (error) {
+          console.error(`Error pulling ${table}:`, error)
+          hasPullErrors = true
+          fetchMore = false
+          break
+        }
 
-          db.prepare(`UPDATE students SET registration_number = ? WHERE id = ?`).run(
-            tempMatricule,
-            conflictingStudent.id
-          )
+        if (data && data.length > 0) {
+          remoteRecords.push(...data)
+          if (data.length < pageSize) {
+            fetchMore = false
+          } else {
+            page++
+          }
+        } else {
+          fetchMore = false
         }
       }
 
-      // CONFLICT RESOLUTION: Generic Unique Constraints
-      // If Supabase sends a record that conflicts with a local unique index (but has a different UUID),
-      // we delete the local conflicting record to let the Server Authority win.
-      const uniqueConstraints = {
-        users: ['username'],
-        student_fees: ['student_id', 'school_year'],
-        bus_attendance: ['student_id', 'attendance_date'],
-        canteen_attendance: ['student_id', 'attendance_date'],
-        salary_calculations: ['personnel_id', 'month'],
-        grades: ['student_id', 'subject_id', 'school_year', 'term'],
-        custom_deductions: ['personnel_id', 'month'],
-        daily_attendance: ['personnel_id', 'attendance_date'],
-        class_subjects: ['class_name', 'subject_id'],
-        assessments: ['school_year', 'class_name', 'term_value'],
-        time_tracking: ['personnel_id', 'month']
-      }
+      for (const record of remoteRecords) {
+        const local = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(record.id) as any
 
-      const constraintKeys = uniqueConstraints[table]
-      if (constraintKeys) {
-        // Check if all keys exist in recordToSave
-        const hasAllKeys = constraintKeys.every(
-          (k) => recordToSave[k] !== undefined && recordToSave[k] !== null
-        )
-        if (hasAllKeys) {
-          const whereClause = constraintKeys.map((k) => `${k} = ?`).join(' AND ')
-          const values = constraintKeys.map((k) => recordToSave[k])
+        // Remove computed or Supabase-only columns
+        const { search_text, ...recordToSave } = record
 
-          const conflict = db
-            .prepare(`SELECT id FROM ${table} WHERE ${whereClause} AND id != ?`)
-            .get(...values, record.id) as any
-          if (conflict) {
-            console.warn(
-              `Unique constraint conflict detected on ${table} for ${constraintKeys.join(',')}. Deleting local conflict ${conflict.id} to favor cloud record ${record.id}.`
-            )
-            db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(conflict.id)
+        // Sanitize object values & quotes
+        for (const key in recordToSave) {
+          const val = recordToSave[key]
+          if (typeof val === 'boolean') {
+            recordToSave[key] = val ? 1 : 0
+          } else if (typeof val === 'object' && val !== null) {
+            recordToSave[key] = JSON.stringify(val)
+          } else if (key === 'school_year' && typeof val === 'string') {
+            recordToSave[key] = val.replace(/['"]/g, '').trim()
           }
         }
-      }
 
-      try {
-        if (!local) {
-          // Insert new record
-          const fields = Object.keys(recordToSave).join(', ')
-          const placeholders = Object.keys(recordToSave)
-            .map(() => '?')
-            .join(', ')
-          db.prepare(`INSERT INTO ${table} (${fields}) VALUES (${placeholders})`).run(
-            ...Object.values(recordToSave)
-          )
-        } else {
-          // Conflict detection (Time-based)
-          if (new Date(local.updated_at) > new Date(record.updated_at)) {
-            // Local is newer
-            console.warn(
-              `Conflict detected for ${table} ${record.id} (Local is newer). Keeping local.`
-            )
-          } else {
-            // Cloud is newer - update local
-            const updates = Object.entries(recordToSave)
-              .map(([key]) => `${key} = ?`)
-              .join(', ')
-            db.prepare(`UPDATE ${table} SET ${updates} WHERE id = ?`).run(
-              ...Object.values(recordToSave),
+        // Handle deleted records
+        if (recordToSave.deleted) {
+          if (local) {
+            db.prepare(`UPDATE ${table} SET deleted = 1, updated_at = ? WHERE id = ?`).run(
+              recordToSave.updated_at,
               record.id
             )
+          } else {
+            const fields = Object.keys(recordToSave).join(', ')
+            const placeholders = Object.keys(recordToSave)
+              .map(() => '?')
+              .join(', ')
+            db.prepare(`INSERT INTO ${table} (${fields}) VALUES (${placeholders})`).run(
+              ...Object.values(recordToSave)
+            )
+          }
+          continue
+        }
+
+        // Handle schema differences for cash_journal
+        if (table === 'cash_journal' && !recordToSave.department) {
+          recordToSave.department = 'ecole'
+        }
+
+        // Conflict resolution on unique constraints
+        const uniqueConstraints = {
+          student_fees: ['student_id', 'school_year'],
+          bus_attendance: ['student_id', 'attendance_date'],
+          canteen_attendance: ['student_id', 'attendance_date'],
+          salary_calculations: ['personnel_id', 'month'],
+          grades: ['student_id', 'subject_id', 'school_year', 'term'],
+          custom_deductions: ['personnel_id', 'month'],
+          daily_attendance: ['personnel_id', 'attendance_date'],
+          class_subjects: ['class_name', 'subject_id'],
+          assessments: ['school_year', 'class_name', 'term_value'],
+          time_tracking: ['personnel_id', 'month'],
+          cash_closures: ['closure_date', 'cashier_alias', 'ecole_id']
+        }
+
+        const constraintKeys = uniqueConstraints[table]
+        if (constraintKeys) {
+          const hasAllKeys = constraintKeys.every(
+            (k) => recordToSave[k] !== undefined && recordToSave[k] !== null
+          )
+          if (hasAllKeys) {
+            const whereClause = constraintKeys.map((k) => `${k} = ?`).join(' AND ')
+            const values = constraintKeys.map((k) => recordToSave[k])
+
+            const conflict = db
+              .prepare(`SELECT id FROM ${table} WHERE ${whereClause} AND id != ?`)
+              .get(...values, record.id) as any
+            if (conflict) {
+              console.warn(
+                `Unique constraint conflict detected on ${table} for ${constraintKeys.join(',')}. Deleting local conflict ${conflict.id} to favor cloud record ${record.id}.`
+              )
+              db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(conflict.id)
+            }
           }
         }
-      } catch (err: any) {
-        LoggerService.log('error', 'sync', `Sync error on pull for ${table} ID ${record.id}`, err.message || err, null)
-        hasPullErrors = true
+
+        // Multi-station receipt & print count preservation
+        if (table === 'student_payments') {
+          if (!recordToSave.receipt_number && local?.receipt_number) {
+            recordToSave.receipt_number = local.receipt_number
+          }
+          recordToSave.print_count = Math.max(
+            Number(local?.print_count || 0),
+            Number(recordToSave.print_count || 0)
+          )
+          if (!recordToSave.last_printed_at && local?.last_printed_at) {
+            recordToSave.last_printed_at = local.last_printed_at
+          }
+          if (!recordToSave.last_printed_by && local?.last_printed_by) {
+            recordToSave.last_printed_by = local.last_printed_by
+          }
+
+          // If local workstation has a verified receipt number but remote cloud has NULL, schedule cloud healing
+          if (local?.receipt_number && !record.receipt_number) {
+            addToSyncQueue(table, local.id, 'update', {
+              id: local.id,
+              receipt_number: local.receipt_number,
+              print_count: recordToSave.print_count,
+              school_year: recordToSave.school_year
+            })
+          }
+        }
+
+        try {
+          if (!local) {
+            const fields = Object.keys(recordToSave).join(', ')
+            const placeholders = Object.keys(recordToSave)
+              .map(() => '?')
+              .join(', ')
+            db.prepare(`INSERT INTO ${table} (${fields}) VALUES (${placeholders})`).run(
+              ...Object.values(recordToSave)
+            )
+          } else {
+            const hasNewerPrint =
+              table === 'student_payments' &&
+              (recordToSave.print_count || 0) > (local.print_count || 0)
+
+            if (
+              new Date(local.updated_at) > new Date(record.updated_at) &&
+              !forceFullSync &&
+              !hasNewerPrint
+            ) {
+              console.warn(
+                `Conflict detected for ${table} ${record.id} (Local is newer). Keeping local.`
+              )
+            } else {
+              const updates = Object.entries(recordToSave)
+                .map(([key]) => `${key} = ?`)
+                .join(', ')
+              db.prepare(`UPDATE ${table} SET ${updates}, sync_status = 'synced' WHERE id = ?`).run(
+                ...Object.values(recordToSave),
+                record.id
+              )
+
+              if (table === 'student_payments') {
+                try {
+                  db.prepare(`
+                    UPDATE cash_journal 
+                    SET print_count = MAX(COALESCE(print_count, 0), ?),
+                        last_printed_at = COALESCE(?, last_printed_at),
+                        last_printed_by = COALESCE(?, last_printed_by),
+                        receipt_number = COALESCE(?, receipt_number)
+                    WHERE related_payment_id = ?
+                  `).run(
+                    recordToSave.print_count || 0,
+                    recordToSave.last_printed_at || null,
+                    recordToSave.last_printed_by || null,
+                    recordToSave.receipt_number || null,
+                    record.id
+                  )
+                } catch {
+                  // Ignore if cash_journal column not migrated yet
+                }
+              }
+            }
+          }
+        } catch (err: any) {
+          LoggerService.log('error', 'sync', `Sync error on pull for ${table} ID ${record.id}`, err.message || err, null)
+          hasPullErrors = true
+        }
       }
     }
-  }
 
-  // --------------------------------------------
-  // Pull users from cloud
-  // --------------------------------------------
-  try {
-    const { data: remoteUsers, error: usersError } = await supabase
-      .from('users')
-      .select('id, username, role, full_name, email, active, version, updated_at, password_hash')
-      .gt('updated_at', lastSync)
+    // --------------------------------------------
+    // Pull users from cloud (with pagination)
+    // --------------------------------------------
+    try {
+      let remoteUsers: any[] = []
+      let userPage = 0
+      const userPageSize = 1000
+      let fetchMoreUsers = true
 
-    if (!usersError && remoteUsers) {
+      while (fetchMoreUsers) {
+        const from = userPage * userPageSize
+        const to = from + userPageSize - 1
+        const { data, error: usersError } = await supabase
+          .from('users')
+          .select('id, username, role, full_name, email, active, version, updated_at, password_hash, ecole_id')
+          .gt('updated_at', lastSync)
+          .order('updated_at', { ascending: true })
+          .range(from, to)
+
+        if (usersError) {
+          console.error('Error pulling users:', usersError)
+          hasPullErrors = true
+          fetchMoreUsers = false
+          break
+        }
+
+        if (data && data.length > 0) {
+          remoteUsers.push(...data)
+          if (data.length < userPageSize) {
+            fetchMoreUsers = false
+          } else {
+            userPage++
+          }
+        } else {
+          fetchMoreUsers = false
+        }
+      }
+
       for (const remoteUser of remoteUsers) {
         const localUser = db.prepare('SELECT * FROM users WHERE id = ?').get(remoteUser.id) as any
-
         const { ...userData } = remoteUser
 
-        // Sanitize booleans for SQLite
         if (typeof userData.active === 'boolean') {
           userData.active = userData.active ? 1 : 0
         }
 
         if (!localUser) {
-          // New user from cloud
           const fields = Object.keys(userData).join(', ')
           const placeholders = Object.keys(userData)
             .map(() => '?')
@@ -923,13 +1330,11 @@ async function pullRemoteChanges() {
             `INSERT INTO users (${fields}, sync_status) VALUES (${placeholders}, 'synced')`
           ).run(...Object.values(userData))
         } else {
-          // Conflict detection (Time-based)
           if (new Date(localUser.updated_at) > new Date(remoteUser.updated_at)) {
             console.warn(
               `Conflict detected for users ${remoteUser.id} (Local is newer). Keeping local.`
             )
           } else {
-            // Cloud is newer - update local
             const updates = Object.entries(userData)
               .map(([key]) => `${key} = ?`)
               .join(', ')
@@ -940,14 +1345,66 @@ async function pullRemoteChanges() {
           }
         }
       }
-    }
-    if (usersError) {
-      console.error('Error pulling users:', usersError)
+    } catch (e) {
+      console.error('Error syncing users from cloud:', e)
       hasPullErrors = true
     }
-  } catch (e) {
-    console.error('Error syncing users from cloud:', e)
-    hasPullErrors = true
+
+    // --------------------------------------------
+    // Pull settings from cloud (school_year, school_name, finance_prices, etc.)
+    // --------------------------------------------
+    try {
+      const { data: remoteSettings, error: settingsError } = await supabase
+        .from('settings')
+        .select('*')
+        .neq('key', 'last_sync_time')
+
+      if (!settingsError && remoteSettings) {
+        broadcastProgress({
+          phase: 'pulling',
+          current: tables.length,
+          total: tables.length,
+          percent: 95,
+          message: 'Synchronisation des tarifs et paramètres...'
+        })
+
+        for (const remoteSetting of remoteSettings) {
+          if (LOCAL_ONLY_SETTINGS.has(remoteSetting.key)) {
+            continue
+          }
+
+          const localSetting = db
+            .prepare('SELECT value, updated_at FROM settings WHERE key = ?')
+            .get(remoteSetting.key) as { value: string; updated_at: string } | undefined
+
+          if (!localSetting) {
+            db.prepare(
+              'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)'
+            ).run(
+              remoteSetting.key,
+              remoteSetting.value,
+              remoteSetting.updated_at || new Date().toISOString()
+            )
+          } else {
+            const localDate = new Date(localSetting.updated_at || '2000-01-01')
+            const remoteDate = new Date(remoteSetting.updated_at || '2000-01-01')
+            if (remoteDate >= localDate) {
+              db.prepare(
+                'UPDATE settings SET value = ?, updated_at = ? WHERE key = ?'
+              ).run(
+                remoteSetting.value,
+                remoteSetting.updated_at || new Date().toISOString(),
+                remoteSetting.key
+              )
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error syncing settings from cloud:', e)
+    }
+  } finally {
+    db.pragma('foreign_keys = ON')
   }
 
   // Update last sync time ONLY if no errors occurred

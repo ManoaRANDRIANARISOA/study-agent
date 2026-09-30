@@ -1,12 +1,14 @@
 /**
  * FinanceJournal.tsx — Journal Financier Unifié
  *
- * Affiche toutes les transactions (cash_journal JOIN students) avec KPIs, filtres, reçus.
+ * Affiche toutes les transactions (cash_journal JOIN students) avec KPIs,
+ * filtres multi-critères (caissier, station, dates), pointage des encaissements,
+ * module de clôture / billetage (Ticket Z - Avenant N°3) et impression thermique groupée.
  *
  * @module pages/finance/FinanceJournal
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,15 +25,24 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  Printer,
   Percent,
-  Trash2
+  Trash2,
+  Printer,
+  Eye,
+  Lock,
+  UserCheck,
+  ShieldCheck,
+  AlertTriangle
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useAppStore } from '@/store/useAppStore'
 import type { CashJournalEntry } from '@shared/types'
+import DataExportModal, { ExportColumn } from '@/components/shared/DataExportModal'
+import ReceiptDetailModal from '@/components/finance/ReceiptDetailModal'
+import CashClosureModal from '@/components/finance/CashClosureModal'
 
 // --------------------------------------------
-// Detailed Continuous Timeline Chart
+// Helpers & Formatting
 // --------------------------------------------
 function formatMGA(amount: number): string {
   return new Intl.NumberFormat('fr-MG', {
@@ -44,7 +55,6 @@ function formatMGA(amount: number): string {
 function DetailedFinanceChart({ data }: { data: { date: string; total: number }[] }) {
   if (!data || data.length === 0) return null
 
-  // Remplir les jours vides pour avoir une chronologie stricte de 30 jours
   const filledData: { date: string; total: number }[] = []
   const today = new Date()
   for (let i = 29; i >= 0; i--) {
@@ -64,8 +74,8 @@ function DetailedFinanceChart({ data }: { data: { date: string; total: number }[
   const zeroPercent = (Math.abs(minVal) / range) * 100
 
   return (
-    <div className="bg-white rounded-xl border shadow-sm p-5 flex flex-col h-[340px]">
-      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 flex-shrink-0">
+    <div className="bg-card rounded-xl border border-border shadow-sm p-5 flex flex-col h-[340px]">
+      <h3 className="text-base font-semibold mb-4 flex items-center gap-2 flex-shrink-0 text-foreground">
         <TrendingUp className="w-5 h-5 text-primary" />
         Évolution Journalière (30 derniers jours)
       </h3>
@@ -154,7 +164,6 @@ const CATEGORIES_ECOLE = [
   { value: 'autres', label: 'Autres' }
 ]
 
-// Catégories provenant des paiements élèves (sync automatique)
 const STUDENT_CATEGORIES = [
   { value: 'écolage', label: 'Écolage' },
   { value: 'inscription', label: 'Inscription' },
@@ -166,24 +175,23 @@ const STUDENT_CATEGORIES = [
   { value: 'divers', label: 'Divers (élève)' }
 ]
 
-// Couleurs par catégorie
 const CATEGORY_COLORS: Record<string, string> = {
-  écolage: 'bg-blue-50 text-blue-700 border-blue-100',
-  inscription: 'bg-purple-50 text-purple-700 border-purple-100',
-  réinscription: 'bg-indigo-50 text-indigo-700 border-indigo-100',
-  transport: 'bg-yellow-50 text-yellow-700 border-yellow-100',
-  cantine: 'bg-orange-50 text-orange-700 border-orange-100',
-  uniforme: 'bg-pink-50 text-pink-700 border-pink-100',
-  événement: 'bg-red-50 text-red-700 border-red-100',
-  divers: 'bg-gray-50 text-gray-700 border-gray-200',
-  salaire: 'bg-cyan-50 text-cyan-700 border-cyan-100',
-  entretien: 'bg-lime-50 text-lime-700 border-lime-100',
-  fournitures: 'bg-teal-50 text-teal-700 border-teal-100',
-  carburant: 'bg-amber-50 text-amber-700 border-amber-100',
-  banque: 'bg-slate-50 text-slate-700 border-slate-200',
-  banques: 'bg-slate-50 text-slate-700 border-slate-200',
-  papier: 'bg-stone-50 text-stone-700 border-stone-200',
-  autres: 'bg-gray-50 text-gray-500 border-gray-100'
+  écolage: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20',
+  inscription: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20',
+  réinscription: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20',
+  transport: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
+  cantine: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20',
+  uniforme: 'bg-pink-500/10 text-pink-700 dark:text-pink-400 border-pink-500/20',
+  événement: 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20',
+  divers: 'bg-muted text-muted-foreground border-border',
+  salaire: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20',
+  entretien: 'bg-lime-500/10 text-lime-700 dark:text-lime-400 border-lime-500/20',
+  fournitures: 'bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20',
+  carburant: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
+  banque: 'bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-500/20',
+  banques: 'bg-slate-500/10 text-slate-700 dark:text-slate-400 border-slate-500/20',
+  papier: 'bg-stone-500/10 text-stone-700 dark:text-stone-400 border-stone-500/20',
+  autres: 'bg-muted text-muted-foreground border-border'
 }
 
 function translateCategory(cat: string, department?: string): string {
@@ -197,7 +205,6 @@ function translateDepartment(d: string): string {
   return d === 'bus' ? 'Transport' : d === 'eleve' ? 'Élève' : 'École'
 }
 
-// Filtres rapides
 const FILTER_PRESETS = [
   { label: 'Tous', filter: {} },
   { label: 'Élèves', filter: { department: 'eleve' } },
@@ -217,28 +224,36 @@ interface EnrichedEntry extends CashJournalEntry {
   first_name?: string
   last_name?: string
   student_class?: string
+  registration_number?: string
 }
 
 export default function FinanceJournal() {
   const {
     entries,
-    dailyBalance,
     monthlyBalance,
     totalBalance,
     loading,
+    cashiers,
+    currentClosure,
     fetchEntries,
     createEntry,
     deleteEntry,
     fetchDailyBalance,
     fetchMonthlyBalance,
-    fetchTotalBalance
+    fetchTotalBalance,
+    fetchCashiers,
+    fetchCashierDailySummary,
+    fetchClosure
   } = useCashJournalStore()
   const { canWrite } = usePermissions()
-  const { currentYear } = useAppStore()
-  const thermalPrinterEnabled = useAppStore((s) => s.schoolConfig?.thermal_printer_enabled)
+  const { currentYear, stationCode, schoolConfig } = useAppStore()
+  const activeStation = stationCode || 'C1'
+  const isClosureEnabled = schoolConfig?.module_cash_closure !== false
 
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+  const [isClosureModalOpen, setIsClosureModalOpen] = useState(false)
   const [presetFilter, setPresetFilter] = useState('Tous')
   const [activeDatePreset, setActiveDatePreset] = useState<string | null>(null)
   const [trendData, setTrendData] = useState<{ date: string; total: number }[]>([])
@@ -246,6 +261,15 @@ export default function FinanceJournal() {
 
   const today = new Date().toISOString().split('T')[0]
   const now = new Date()
+
+  const [selectedJournalPayment, setSelectedJournalPayment] = useState<{
+    payment: any
+    studentName: string
+    studentNumber?: string
+    className?: string
+  } | null>(null)
+
+  const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([])
 
   const [form, setForm] = useState({
     transaction_date: today,
@@ -263,12 +287,35 @@ export default function FinanceJournal() {
     type: 'all',
     category: 'all',
     department: 'all',
-    search: ''
+    search: '',
+    createdBy: 'all',
+    stationCode: 'all'
   })
 
-  // ── Data ──
   useEffect(() => {
-    fetchEntries({ ...filters, schoolYear: currentYear })
+    fetchCashiers()
+  }, [])
+
+  useEffect(() => {
+    const activeFilters = {
+      ...filters,
+      schoolYear: currentYear,
+      createdBy: filters.createdBy !== 'all' ? filters.createdBy : undefined,
+      stationCode: filters.stationCode !== 'all' ? filters.stationCode : undefined
+    }
+    fetchEntries(activeFilters)
+
+    const isSingleDay = filters.startDate && filters.endDate && filters.startDate === filters.endDate
+    const targetDate = isSingleDay ? filters.startDate : today
+    fetchCashierDailySummary(
+      targetDate,
+      filters.createdBy !== 'all' ? filters.createdBy : undefined,
+      filters.stationCode !== 'all' ? filters.stationCode : undefined
+    )
+    fetchClosure(
+      targetDate,
+      filters.createdBy !== 'all' ? filters.createdBy : undefined
+    )
   }, [filters, currentYear])
 
   useEffect(() => {
@@ -289,14 +336,14 @@ export default function FinanceJournal() {
 
     const fetchRecoveryRate = async () => {
       try {
-        const schoolYear = await window.api.settings.get('school_year')
-        const yearStr = (schoolYear as string) || useAppStore.getState().currentYear
-        const result = await window.api.report.tuition(yearStr)
-        if (result.success && result.data) {
-          const data = result.data as { by_class?: Record<string, { total: number }> }
+        const yearStr = currentYear || `${now.getFullYear()}-${now.getFullYear() + 1}`
+        const payments = await window.api.payment.getBySchoolYear(yearStr)
+        if (Array.isArray(payments)) {
           let totalPaid = 0
-          if (data.by_class) {
-            totalPaid = Object.values(data.by_class).reduce((s, c) => s + (c.total || 0), 0)
+          for (const p of payments) {
+            if (p.payment_type === 'tuition') {
+              totalPaid += Number(p.amount) || 0
+            }
           }
           const expectedResult = await window.api.payment.getExpectedRevenue(yearStr)
           const baseExpected = (expectedResult.success ? expectedResult.expected : 0) || 0
@@ -323,7 +370,7 @@ export default function FinanceJournal() {
 
     fetchDashboardStats()
     fetchRecoveryRate()
-  }, [entries])
+  }, [currentYear])
 
   const categories =
     form.department === 'bus'
@@ -347,10 +394,12 @@ export default function FinanceJournal() {
       payment_method: form.payment_method
     })
     if (result.success) {
-      setMessage({ text: 'Entrée créée', type: 'success' })
+      setMessage({ text: 'Entrée créée avec succès', type: 'success' })
       resetForm()
       fetchEntries(filters)
-    } else setMessage({ text: result.error || 'Erreur', type: 'error' })
+    } else {
+      setMessage({ text: result.error || 'Erreur', type: 'error' })
+    }
     setTimeout(() => setMessage(null), 3000)
   }
 
@@ -389,52 +438,278 @@ export default function FinanceJournal() {
     setShowForm(false)
   }
 
-  // ── KPIs ──
   const income = monthlyBalance?.total_income || 0
   const expense = monthlyBalance?.total_expense || 0
 
-  // ── Summary ──
   const enriched = entries as EnrichedEntry[]
   const summary = {
     totalIncome: enriched.filter((e) => e.type === 'income').reduce((s, e) => s + e.amount, 0),
     totalExpense: enriched.filter((e) => e.type === 'expense').reduce((s, e) => s + e.amount, 0)
   }
 
-  // ── Render ──
+  const incomeEntries = enriched.filter((e) => e.type === 'income')
+
+  const journalMetrics = useMemo(() => {
+    let cash = 0
+    let check = 0
+    let mobile = 0
+    let transfer = 0
+    let total = 0
+
+    for (const e of incomeEntries) {
+      const amt = Number(e.amount) || 0
+      total += amt
+      const m = (e.payment_method || 'cash').toLowerCase()
+      if (m === 'check' || m === 'cheque') {
+        check += amt
+      } else if (
+        m === 'mobile_money' ||
+        m === 'mvola' ||
+        m === 'orange_money' ||
+        m === 'airtel_money'
+      ) {
+        mobile += amt
+      } else if (m === 'transfer' || m === 'virement') {
+        transfer += amt
+      } else {
+        cash += amt
+      }
+    }
+
+    return {
+      totalTickets: incomeEntries.length,
+      cash,
+      check,
+      mobile,
+      transfer,
+      total
+    }
+  }, [incomeEntries])
+
+  const toggleSelectEntry = (id: string) => {
+    setSelectedEntryIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    )
+  }
+
+  const toggleSelectAllEntries = () => {
+    if (selectedEntryIds.length === incomeEntries.length) {
+      setSelectedEntryIds([])
+    } else {
+      setSelectedEntryIds(incomeEntries.map((e) => e.id))
+    }
+  }
+
+  const handlePrintGroupedFromJournal = async () => {
+    const selected = enriched.filter((e) => selectedEntryIds.includes(e.id))
+    if (selected.length === 0) return
+
+    if (!window.api?.printer?.printReceipt) {
+      toast.error('Service impression non disponible')
+      return
+    }
+
+    const items = selected.map((e) => {
+      const monthMatch = e.description?.match(/\(([^)]+)\)/)
+      const extractedMonth = monthMatch ? monthMatch[1] : undefined
+      const isItemDup = ((e as any).print_count || 0) >= 1
+      return {
+        label: e.description || e.category,
+        amount: Number(e.amount) || 0,
+        detail: e.description,
+        payment_type: e.category,
+        month: extractedMonth,
+        receipt_number: (e as any).receipt_number
+          ? (e as any).receipt_number.replace(/^REC-(\d{4})-(\d{5})$/, `REC-$1-${activeStation}-$2`)
+          : undefined,
+        is_duplicate: isItemDup,
+        duplicate_count: isItemDup ? ((e as any).print_count || 1) : 1
+      }
+    })
+
+    const totalAmt = items.reduce((sum, it) => sum + it.amount, 0)
+    const primaryMethod = selected[0]?.payment_method || 'cash'
+    const latestDate = selected[0]?.transaction_date || new Date().toISOString().split('T')[0]
+    const firstStudent = selected.find((e) => e.first_name || e.last_name)
+    const studentName = firstStudent
+      ? `${firstStudent.last_name || ''} ${firstStudent.first_name || ''}`.trim()
+      : selected[0]?.description?.replace('Paiement ', '') || '—'
+    const studentClass = selected[0]?.student_class || '-'
+    const studentNumber = (selected[0] as any)?.registration_number || ''
+
+    const validNums = selected
+      .map((e) =>
+        (e as any).receipt_number
+          ? (e as any).receipt_number.replace(/^REC-(\d{4})-(\d{5})$/, `REC-$1-${activeStation}-$2`)
+          : ''
+      )
+      .filter(Boolean)
+
+    let groupedNum = `REC-${new Date().getFullYear()}-${activeStation}-${Date.now().toString().slice(-5)}`
+    if (validNums.length === 1) {
+      groupedNum = validNums[0]
+    } else if (validNums.length > 1) {
+      const first = validNums[0]
+      const last = validNums[validNums.length - 1]
+      if (first === last) {
+        groupedNum = first
+      } else {
+        const lastSeq = last.slice(-5)
+        const prefix = first.slice(0, -5)
+        if (last.startsWith(prefix)) {
+          groupedNum = `${first} — ${lastSeq}`
+        } else {
+          groupedNum = `${first} — ${last}`
+        }
+      }
+    }
+
+    const paymentIds = selected
+      .map((e) => (e as any).related_payment_id || e.id)
+      .filter(Boolean)
+    const allDup = selected.every((e) => ((e as any).print_count || 0) >= 1)
+    const anyDup = selected.some((e) => ((e as any).print_count || 0) >= 1)
+    const maxCount = Math.max(0, ...selected.map((e) => (e as any).print_count || 0))
+
+    const toastId = toast.loading(`Impression du reçu groupé (${selected.length} paiements)...`)
+    try {
+      const res = await window.api.printer.printReceipt(
+        {
+          payment_ids: paymentIds,
+          student_name: studentName,
+          student_number: studentNumber,
+          class_name: studentClass,
+          amount: totalAmt,
+          payment_date: latestDate,
+          payment_method: primaryMethod,
+          receipt_number: groupedNum,
+          is_duplicate: allDup,
+          duplicate_count: allDup ? maxCount : 1,
+          items
+        },
+        2
+      )
+
+      if (res.success) {
+        toast.success(
+          allDup
+            ? `Reçu groupé (Duplicata N°${maxCount}) imprimé en 2 exemplaires`
+            : anyDup
+              ? 'Reçu groupé imprimé (avec mentions duplicatas sur articles réimprimés)'
+              : 'Reçu groupé imprimé en 2 exemplaires (Parent + Caisse)',
+          { id: toastId }
+        )
+        setSelectedEntryIds([])
+        fetchEntries({
+          ...filters,
+          schoolYear: currentYear,
+          createdBy: filters.createdBy !== 'all' ? filters.createdBy : undefined,
+          stationCode: filters.stationCode !== 'all' ? filters.stationCode : undefined
+        })
+      } else {
+        toast.error(res.error || "Échec de l'impression", { id: toastId })
+      }
+    } catch (err: unknown) {
+      toast.error('Erreur: ' + (err instanceof Error ? err.message : String(err)), { id: toastId })
+    }
+  }
+
+  const exportColumns: ExportColumn[] = [
+    { key: 'transaction_date', label: 'Date', width: 14, defaultSelected: true },
+    { key: 'type', label: 'Type', width: 12, defaultSelected: true },
+    { key: 'department', label: 'Département', width: 14, defaultSelected: true },
+    { key: 'student_name', label: 'Élève / Bénéficiaire', width: 24, defaultSelected: true },
+    { key: 'student_class', label: 'Classe', width: 12, defaultSelected: true },
+    { key: 'category', label: 'Catégorie', width: 16, defaultSelected: true },
+    { key: 'description', label: 'Description', width: 28, defaultSelected: true },
+    { key: 'amount', label: 'Montant (Ar)', width: 16, defaultSelected: true },
+    { key: 'payment_method', label: 'Mode', width: 14, defaultSelected: true },
+    { key: 'receipt_number', label: 'N° Reçu', width: 18, defaultSelected: true },
+    { key: 'created_by', label: 'Caissier', width: 16, defaultSelected: true }
+  ]
+
+  const exportData = enriched.map((e) => ({
+    ...e,
+    student_name: e.first_name ? `${e.last_name || ''} ${e.first_name || ''}`.trim() : '—',
+    department: translateDepartment(e.department),
+    category: translateCategory(e.category, e.department),
+    type: e.type === 'income' ? 'Recette (+)' : 'Dépense (-)'
+  }))
+
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       <ReadOnlyBanner resource="cash_journal" />
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Journal Financier</h1>
-        <div className="flex gap-2">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Journal Financier</h1>
+          <p className="text-xs text-muted-foreground">
+            Grand livre des encaissements, décaissements, pointage caissier & clôture Ticket Z
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
           {canWrite('cash_journal') && !showForm && (
             <Button onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nouvelle entrée
             </Button>
           )}
+          {isClosureEnabled && (
+            <Button
+              variant="outline"
+              className="border-amber-600/60 text-amber-900 bg-amber-50/50 hover:bg-amber-100 hover:text-amber-950 font-medium shadow-sm flex items-center gap-1.5 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-800"
+              onClick={() => setIsClosureModalOpen(true)}
+              title="Clôture journalière de caisse, récolement physique du billetage et impression Ticket Z 80mm"
+            >
+              <Lock className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+              <span>Clôture de Caisse (Ticket Z)</span>
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => setIsExportModalOpen(true)}>
+            <Download className="w-4 h-4 mr-2" />
+            Exporter
+          </Button>
           <Button
             variant="outline"
             onClick={async () => {
-              const bal = dailyBalance || { total_income: 0, total_expense: 0, balance: 0 }
+              const totalIncome =
+                summary?.totalIncome ??
+                enriched.filter((e) => e.type === 'income').reduce((s, e) => s + (Number(e.amount) || 0), 0)
+              const totalExpense =
+                summary?.totalExpense ??
+                enriched.filter((e) => e.type === 'expense').reduce((s, e) => s + (Number(e.amount) || 0), 0)
+              const netBalance = totalIncome - totalExpense
+              const targetDate = filters.startDate || today
               const r = await window.api.pdf.generateDailyReport({
-                date: today,
-                total_income: bal.total_income,
-                total_expense: bal.total_expense,
-                balance: bal.balance,
+                date: targetDate,
+                total_income: totalIncome,
+                total_expense: totalExpense,
+                balance: netBalance,
+                station_code: filters.stationCode !== 'all' ? filters.stationCode : 'all',
+                cashier: filters.createdBy !== 'all' ? filters.createdBy : undefined,
                 entries: enriched.map((e) => ({
                   type: e.type,
                   department: e.department,
                   category: e.category,
                   amount: e.amount,
-                  description: e.description
+                  description: e.description,
+                  receipt_number: (e as any).receipt_number,
+                  beneficiary: e.last_name ? `${e.last_name} ${e.first_name || ''}`.trim() : undefined,
+                  payment_method: e.payment_method,
+                  created_by: (e as any).created_by,
+                  time: e.created_at
+                    ? new Date(e.created_at).toLocaleTimeString('fr-FR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : undefined
                 }))
               })
               if (r.success && r.filePath) await window.api.pdf.openFile(r.filePath)
             }}
           >
-            <Download className="w-4 h-4 mr-2" />
+            <FileText className="w-4 h-4 mr-2" />
             Bilan PDF
           </Button>
         </div>
@@ -443,19 +718,21 @@ export default function FinanceJournal() {
       {message && (
         <div
           className={cn(
-            'p-4 mb-6 rounded-md',
-            message.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            'p-4 rounded-xl text-sm font-medium',
+            message.type === 'success'
+              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+              : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
           )}
         >
           {message.text}
         </div>
       )}
 
-      {/* ── New entry form ── */}
+      {/* New entry form */}
       {showForm && (
-        <div className="mb-6 p-4 bg-white rounded-lg border shadow-sm">
+        <div className="p-5 bg-card rounded-xl border border-border shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Nouvelle entrée</h3>
+            <h3 className="text-base font-semibold text-foreground">Nouvelle entrée financière</h3>
             <Button variant="ghost" size="sm" onClick={resetForm}>
               <X className="w-4 h-4" />
             </Button>
@@ -473,7 +750,7 @@ export default function FinanceJournal() {
             <div>
               <Label>Type</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1 text-foreground"
                 value={form.type}
                 onChange={(e) => {
                   const t = e.target.value as 'income' | 'expense'
@@ -484,14 +761,14 @@ export default function FinanceJournal() {
                   }))
                 }}
               >
-                <option value="expense">Dépense</option>
-                <option value="income">Recette</option>
+                <option value="expense">Dépense (-)</option>
+                <option value="income">Recette (+)</option>
               </select>
             </div>
             <div>
               <Label>Département</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1 text-foreground"
                 value={form.department}
                 onChange={(e) => {
                   const d = e.target.value as 'bus' | 'ecole' | 'eleve'
@@ -510,7 +787,7 @@ export default function FinanceJournal() {
             <div>
               <Label>Catégorie</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1 text-foreground"
                 value={form.category}
                 onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
               >
@@ -532,9 +809,9 @@ export default function FinanceJournal() {
               />
             </div>
             <div>
-              <Label>Paiement</Label>
+              <Label>Mode</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1 text-foreground"
                 value={form.payment_method}
                 onChange={(e) => setForm((p) => ({ ...p, payment_method: e.target.value }))}
               >
@@ -545,126 +822,204 @@ export default function FinanceJournal() {
               </select>
             </div>
           </div>
-          <div className="mt-4">
-            <Label>Description</Label>
-            <Input
-              value={form.description}
-              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-              placeholder="Description..."
-              className="mt-1"
-            />
-          </div>
-          <div className="mt-4 flex gap-2">
-            <Button
-              onClick={handleSubmit}
-              disabled={!canWrite('cash_journal')}
-              title={!canWrite('cash_journal') ? 'Accès refusé' : undefined}
-            >
+          <div className="mt-4 flex gap-4 items-end">
+            <div className="flex-1">
+              <Label>Description / Bénéficiaire</Label>
+              <Input
+                value={form.description}
+                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                placeholder="Facultatif..."
+                className="mt-1"
+              />
+            </div>
+            <Button onClick={handleSubmit}>
               <Check className="w-4 h-4 mr-2" />
-              Enregistrer
-            </Button>
-            <Button variant="outline" onClick={resetForm}>
-              Annuler
+              Valider
             </Button>
           </div>
         </div>
       )}
 
-      {/* ── KPIs ── */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
-        <div className="p-4 bg-white rounded-lg border shadow-sm">
-          <div className="flex justify-between items-start mb-1">
-            <p className="text-sm text-gray-500">Solde Total</p>
-            <Wallet className="w-4 h-4 text-blue-500" />
-          </div>
-          <p
-            className={cn(
-              'text-2xl font-bold',
-              totalBalance.balance >= 0 ? 'text-blue-700' : 'text-red-700'
+      {/* Caisse Status & Pointage Strip (Avenant N°3) */}
+      {isClosureEnabled && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 rounded-xl p-4 shadow-sm space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-foreground">
+                  État Journalier de la Caisse & Pointage
+                </h2>
+                <p className="text-[11px] text-muted-foreground">
+                  Date cible : {filters.startDate || today} • Station : {filters.stationCode !== 'all' ? filters.stationCode : activeStation}
+                </p>
+              </div>
+            </div>
+
+            {currentClosure ? (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-semibold rounded-lg border border-emerald-500/30">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  Caisse Clôturée ({currentClosure.closure_number || 'Ticket Z'})
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs border-emerald-600 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 flex items-center gap-1"
+                  onClick={() => setIsClosureModalOpen(true)}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Détails Clôture / Réimprimer</span>
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-lg border border-amber-500/30">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  Caisse Ouverte (Non clôturée)
+                </span>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-1.5 shadow-sm"
+                  onClick={() => setIsClosureModalOpen(true)}
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Billetage & Ticket Z</span>
+                </Button>
+              </div>
             )}
-          >
-            {totalBalance.balance.toLocaleString()} Ar
-          </p>
+          </div>
+
+          {/* Grille des 6 indicateurs de pointage */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1">
+            <div className="bg-card p-3 rounded-lg border border-border shadow-xs">
+              <span className="text-[11px] font-medium text-muted-foreground block">Tickets Traités</span>
+              <span className="text-xl font-bold text-foreground mt-0.5 block">
+                {journalMetrics.totalTickets}
+              </span>
+            </div>
+
+            <div className="bg-card p-3 rounded-lg border border-border shadow-xs">
+              <span className="text-[11px] font-medium text-muted-foreground block">Espèces (Cash)</span>
+              <span className="text-sm sm:text-base font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block truncate" title={formatMGA(journalMetrics.cash)}>
+                {formatMGA(journalMetrics.cash)}
+              </span>
+            </div>
+
+            <div className="bg-card p-3 rounded-lg border border-border shadow-xs">
+              <span className="text-[11px] font-medium text-muted-foreground block">Chèques</span>
+              <span className="text-sm sm:text-base font-bold text-blue-600 dark:text-blue-400 mt-0.5 block truncate" title={formatMGA(journalMetrics.check)}>
+                {formatMGA(journalMetrics.check)}
+              </span>
+            </div>
+
+            <div className="bg-card p-3 rounded-lg border border-border shadow-xs">
+              <span className="text-[11px] font-medium text-muted-foreground block">MVola / Mobile</span>
+              <span className="text-sm sm:text-base font-bold text-amber-600 dark:text-amber-400 mt-0.5 block truncate" title={formatMGA(journalMetrics.mobile)}>
+                {formatMGA(journalMetrics.mobile)}
+              </span>
+            </div>
+
+            <div className="bg-card p-3 rounded-lg border border-border shadow-xs">
+              <span className="text-[11px] font-medium text-muted-foreground block">Virements</span>
+              <span className="text-sm sm:text-base font-bold text-indigo-600 dark:text-indigo-400 mt-0.5 block truncate" title={formatMGA(journalMetrics.transfer)}>
+                {formatMGA(journalMetrics.transfer)}
+              </span>
+            </div>
+
+            <div className="bg-primary/10 p-3 rounded-lg border border-primary/20 shadow-xs">
+              <span className="text-[11px] font-semibold text-primary block">Total Encaissé</span>
+              <span className="text-sm sm:text-base font-bold text-primary mt-0.5 block truncate" title={formatMGA(journalMetrics.total)}>
+                {formatMGA(journalMetrics.total)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-card p-5 rounded-xl border border-border shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Recettes du mois</p>
+              <h4 className="text-xl font-bold text-foreground">{income.toLocaleString()} Ar</h4>
+            </div>
+          </div>
         </div>
 
-        <div className="p-4 bg-white rounded-lg border shadow-sm">
-          <div className="flex justify-between items-start mb-1">
-            <p className="text-sm text-gray-500">Recettes (Mois)</p>
-            <TrendingUp className="w-4 h-4 text-green-500" />
+        <div className="bg-card p-5 rounded-xl border border-border shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl">
+              <TrendingDown className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Dépenses du mois</p>
+              <h4 className="text-xl font-bold text-foreground">{expense.toLocaleString()} Ar</h4>
+            </div>
           </div>
-          <p className="text-2xl font-bold text-green-700">{income.toLocaleString()} Ar</p>
         </div>
 
-        <div className="p-4 bg-white rounded-lg border shadow-sm">
-          <div className="flex justify-between items-start mb-1">
-            <p className="text-sm text-gray-500">Dépenses (Mois)</p>
-            <TrendingDown className="w-4 h-4 text-red-500" />
+        <div className="bg-card p-5 rounded-xl border border-border shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 bg-primary/10 text-primary rounded-xl">
+              <Wallet className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Solde Global</p>
+              <h4 className="text-xl font-bold text-foreground">
+                {(totalBalance?.balance || 0).toLocaleString()} Ar
+              </h4>
+            </div>
           </div>
-          <p className="text-2xl font-bold text-red-700">{expense.toLocaleString()} Ar</p>
         </div>
 
-        <div className="p-4 bg-white rounded-lg border shadow-sm">
-          <div className="flex justify-between items-start mb-1">
-            <p className="text-sm text-gray-500">Taux Recouvrement</p>
-            <Percent className="w-4 h-4 text-purple-500" />
+        <div className="bg-card p-5 rounded-xl border border-border shadow-sm">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl">
+              <Percent className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Taux de Recouvrement</p>
+              <h4 className="text-xl font-bold text-foreground">
+                {recoveryRate !== null ? `${recoveryRate}%` : '—'}
+              </h4>
+            </div>
           </div>
-          <p className="text-2xl font-bold text-purple-700">
-            {recoveryRate !== null ? `${recoveryRate}%` : '—'}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">Scolarité attendue vs perçue</p>
         </div>
       </div>
 
-      {/* ── Chart ── */}
-      <div className="mb-6">
-        <DetailedFinanceChart data={trendData} />
-      </div>
+      {/* Chart */}
+      <DetailedFinanceChart data={trendData} />
 
-      {/* ── Quick filters ── */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {FILTER_PRESETS.map((p) => (
-          <Button
-            key={p.label}
-            size="sm"
-            variant={presetFilter === p.label ? 'default' : 'outline'}
-            title={(p as { tooltip?: string }).tooltip}
-            onClick={() => {
-              setPresetFilter(p.label)
-              const cat = String((p.filter as Record<string, string>).category || 'all')
-              const dep = String((p.filter as Record<string, string>).department || 'all')
-              setFilters((prev) => ({ ...prev, category: cat, department: dep }))
-            }}
-          >
-            {p.label}
-          </Button>
-        ))}
-      </div>
-
-      {/* ── Filters ── */}
-      <div className="bg-white p-5 rounded-xl shadow-sm border mb-4 flex flex-col gap-4">
-        {/* Ligne 1 : Recherche et Dates */}
+      {/* Filters & Multi-Selection Panel */}
+      <div className="bg-card rounded-xl border border-border shadow-sm p-4 space-y-4">
+        {/* Row 1: Search & Date Presets */}
         <div className="flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[200px]">
-            <Label className="text-xs text-gray-500">Recherche</Label>
+            <Label className="text-xs text-muted-foreground">Recherche</Label>
             <Input
-              placeholder="Rechercher (nom, description)..."
-              value={filters.search || ''}
+              placeholder="Rechercher par élève, desc, n° reçu..."
+              value={filters.search}
               onChange={(e) => setFilters((p) => ({ ...p, search: e.target.value }))}
-              className="mt-1 h-9"
+              className="mt-1 h-9 text-xs"
             />
           </div>
 
           <div>
-            <Label className="text-xs text-gray-500 mb-1 block">Période rapide</Label>
-            <div className="flex bg-gray-100 p-1 rounded-md">
+            <Label className="text-xs text-muted-foreground mb-1 block">Période rapide</Label>
+            <div className="flex bg-muted p-1 rounded-md">
               <Button
                 variant={activeDatePreset === 'today' ? 'default' : 'ghost'}
                 size="sm"
                 className="h-7 text-xs px-3"
                 onClick={() => {
-                  const d = new Date()
-                  const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-                  setFilters((p) => ({ ...p, startDate: todayStr, endDate: todayStr }))
+                  setFilters((p) => ({ ...p, startDate: today, endDate: today }))
                   setActiveDatePreset('today')
                 }}
               >
@@ -675,10 +1030,10 @@ export default function FinanceJournal() {
                 size="sm"
                 className="h-7 text-xs px-3"
                 onClick={() => {
-                  const d = new Date()
-                  const day = d.getDay()
-                  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-                  const start = new Date(d.setDate(diff))
+                  const day = now.getDay()
+                  const diffToMonday = day === 0 ? -6 : 1 - day
+                  const start = new Date(now)
+                  start.setDate(now.getDate() + diffToMonday)
                   const end = new Date(start)
                   end.setDate(start.getDate() + 6)
                   const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`
@@ -694,9 +1049,8 @@ export default function FinanceJournal() {
                 size="sm"
                 className="h-7 text-xs px-3"
                 onClick={() => {
-                  const d = new Date()
-                  const startStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-                  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+                  const startStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+                  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
                   const endStr = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`
                   setFilters((p) => ({ ...p, startDate: startStr, endDate: endStr }))
                   setActiveDatePreset('month')
@@ -709,7 +1063,7 @@ export default function FinanceJournal() {
 
           <div className="flex gap-2 items-center">
             <div>
-              <Label className="text-xs text-gray-500">Du</Label>
+              <Label className="text-xs text-muted-foreground">Du</Label>
               <Input
                 type="date"
                 value={filters.startDate || ''}
@@ -717,11 +1071,11 @@ export default function FinanceJournal() {
                   setActiveDatePreset(null)
                   setFilters((p) => ({ ...p, startDate: e.target.value }))
                 }}
-                className="mt-1 h-9"
+                className="mt-1 h-9 text-xs"
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Au</Label>
+              <Label className="text-xs text-muted-foreground">Au</Label>
               <Input
                 type="date"
                 value={filters.endDate || ''}
@@ -729,30 +1083,31 @@ export default function FinanceJournal() {
                   setActiveDatePreset(null)
                   setFilters((p) => ({ ...p, endDate: e.target.value }))
                 }}
-                className="mt-1 h-9"
+                className="mt-1 h-9 text-xs"
               />
             </div>
           </div>
         </div>
 
-        {/* Ligne 2 : Type, Catégorie, Reset */}
-        <div className="flex flex-wrap gap-4 items-end pt-2 border-t border-gray-100">
-          <div className="flex-1 min-w-[150px]">
-            <Label className="text-xs text-gray-500">Type</Label>
+        {/* Row 2: Type, Category, Cashier, Station */}
+        <div className="flex flex-wrap gap-4 items-end pt-3 border-t border-border">
+          <div className="flex-1 min-w-[130px]">
+            <Label className="text-xs text-muted-foreground">Type</Label>
             <select
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm mt-1"
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs mt-1 text-foreground"
               value={filters.type || 'all'}
               onChange={(e) => setFilters((p) => ({ ...p, type: e.target.value }))}
             >
               <option value="all">Tous</option>
-              <option value="income">Recettes</option>
-              <option value="expense">Dépenses</option>
+              <option value="income">Recettes (+)</option>
+              <option value="expense">Dépenses (-)</option>
             </select>
           </div>
-          <div className="flex-1 min-w-[200px]">
-            <Label className="text-xs text-gray-500">Catégorie</Label>
+
+          <div className="flex-1 min-w-[180px]">
+            <Label className="text-xs text-muted-foreground">Catégorie</Label>
             <select
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm mt-1"
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs mt-1 text-foreground"
               value={
                 filters.category === 'all' ? 'all' : `${filters.department}:${filters.category}`
               }
@@ -766,7 +1121,7 @@ export default function FinanceJournal() {
                 }
               }}
             >
-              <option value="all">Toutes</option>
+              <option value="all">Toutes les catégories</option>
               <optgroup label="── Élèves ──">
                 {STUDENT_CATEGORIES.map((c) => (
                   <option key={`eleve:${c.value}`} value={`eleve:${c.value}`}>
@@ -781,7 +1136,7 @@ export default function FinanceJournal() {
                   </option>
                 ))}
               </optgroup>
-              <optgroup label="── Transport (Bus) ──">
+              <optgroup label="── Transport ──">
                 {CATEGORIES_BUS.map((c) => (
                   <option key={`bus:${c.value}`} value={`bus:${c.value}`}>
                     {c.label}
@@ -790,148 +1145,393 @@ export default function FinanceJournal() {
               </optgroup>
             </select>
           </div>
-          <Button
-            variant="outline"
-            className="h-9 whitespace-nowrap"
-            onClick={() => {
-              setFilters({
-                startDate: '',
-                endDate: '',
-                type: 'all',
-                category: 'all',
-                department: 'all',
-                search: ''
-              })
-              setPresetFilter('Tous')
-              setActiveDatePreset(null)
-            }}
-          >
-            Réinitialiser
-          </Button>
+
+          {/* Cashier Filter */}
+          <div className="flex-1 min-w-[180px]">
+            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+              <UserCheck className="w-3.5 h-3.5 text-primary" />
+              <span>Opérateur / Caissier</span>
+            </Label>
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs mt-1 text-foreground"
+              value={filters.createdBy || 'all'}
+              onChange={(e) => setFilters((p) => ({ ...p, createdBy: e.target.value }))}
+            >
+              <option value="all">Tous les caissiers</option>
+              {cashiers.map((c) => (
+                <option key={c.username} value={c.username}>
+                  {c.full_name || c.username} ({c.station_code || 'C1'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Station Filter */}
+          <div className="w-32">
+            <Label className="text-xs text-muted-foreground">Poste / Station</Label>
+            <select
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs mt-1 text-foreground"
+              value={filters.stationCode || 'all'}
+              onChange={(e) => setFilters((p) => ({ ...p, stationCode: e.target.value }))}
+            >
+              <option value="all">Toutes</option>
+              <option value="C1">Station C1</option>
+              <option value="C2">Station C2</option>
+              <option value="C3">Station C3</option>
+              <option value="C4">Station C4</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Quick Presets */}
+        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border">
+          {FILTER_PRESETS.map((p) => (
+            <button
+              key={p.label}
+              onClick={() => {
+                setPresetFilter(p.label)
+                setFilters((prev) => ({
+                  ...prev,
+                  ...p.filter,
+                  category: (p.filter as any).category || 'all',
+                  department: (p.filter as any).department || 'all'
+                }))
+              }}
+              className={cn(
+                'px-3 py-1 rounded-lg text-xs font-medium transition-colors',
+                presetFilter === p.label
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ── Table ── */}
-      <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+      {/* Multi-Selection Toolbar */}
+      {selectedEntryIds.length > 0 && (
+        <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 flex items-center justify-between flex-wrap gap-2 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-foreground bg-card px-2.5 py-1 rounded border border-primary/20 shadow-xs">
+              {selectedEntryIds.length} paiement{selectedEntryIds.length > 1 ? 's' : ''} sélectionné{selectedEntryIds.length > 1 ? 's' : ''} • Total:{' '}
+              {enriched
+                .filter((e) => selectedEntryIds.includes(e.id))
+                .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+                .toLocaleString()}{' '}
+              Ar
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={handlePrintGroupedFromJournal}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8 flex items-center gap-1.5 shadow-sm"
+              title="Imprimer un seul reçu thermique 80mm regroupant les encaissements cochés"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Imprimer Reçu Groupé ({selectedEntryIds.length})</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setSelectedEntryIds([])}
+              className="text-xs h-8 text-muted-foreground hover:text-foreground"
+            >
+              Désélectionner
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Transactions Table */}
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-700 uppercase font-medium border-b">
+            <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
               <tr>
-                <th className="px-6 py-3">Date</th>
-                <th className="px-6 py-3">Département</th>
-                <th className="px-6 py-3">Nom</th>
-                <th className="px-6 py-3">Classe</th>
-                <th className="px-6 py-3">Catégorie</th>
-                <th className="px-6 py-3">Description</th>
-                <th className="px-6 py-3 text-right">Montant</th>
-                <th className="px-6 py-3 text-center">Actions</th>
+                <th className="px-3 py-3 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      incomeEntries.length > 0 && selectedEntryIds.length === incomeEntries.length
+                    }
+                    onChange={toggleSelectAllEntries}
+                    className="rounded border-input text-primary focus:ring-primary cursor-pointer w-3.5 h-3.5"
+                    title="Tout sélectionner (recettes)"
+                  />
+                </th>
+                <th className="px-4 py-3">Date / Dép.</th>
+                <th className="px-4 py-3">Bénéficiaire / Élève</th>
+                <th className="px-4 py-3">Classe</th>
+                <th className="px-4 py-3">Catégorie & Détails</th>
+                <th className="px-4 py-3 text-right">Montant / Reçu</th>
+                <th className="px-4 py-3 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">
                     Chargement...
                   </td>
                 </tr>
               ) : enriched.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">
                     Aucune entrée trouvée.
                   </td>
                 </tr>
               ) : (
                 enriched.map((entry) => {
                   const studentName = entry.first_name
-                    ? `${entry.last_name} ${entry.first_name}`
+                    ? `${entry.last_name || ''} ${entry.first_name || ''}`.trim()
                     : ''
+                  const pCount = (entry as any).print_count || 0
+                  const isChecked = selectedEntryIds.includes(entry.id)
+
                   return (
-                    <tr key={entry.id} className="hover:bg-gray-50/50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {new Date(entry.transaction_date).toLocaleDateString()}
+                    <tr
+                      key={entry.id}
+                      className={cn(
+                        'hover:bg-muted/40 transition-colors',
+                        isChecked && 'bg-primary/5 hover:bg-primary/10'
+                      )}
+                    >
+                      <td className="px-3 py-3 text-center">
+                        {entry.type === 'income' ? (
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleSelectEntry(entry.id)}
+                            className="rounded border-input text-primary focus:ring-primary cursor-pointer w-3.5 h-3.5"
+                          />
+                        ) : (
+                          <span className="text-muted-foreground/40 text-xs">—</span>
+                        )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="font-medium text-foreground">
+                          {new Date(entry.transaction_date).toLocaleDateString('fr-FR')}
+                        </div>
                         <span
                           className={cn(
-                            'px-2 py-1 rounded text-xs',
+                            'inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-semibold uppercase',
                             entry.department === 'bus'
-                              ? 'bg-amber-100 text-amber-800'
+                              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
                               : entry.department === 'ecole'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-blue-100 text-blue-800'
+                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                                : 'bg-primary/10 text-primary'
                           )}
                         >
                           {translateDepartment(entry.department)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-medium text-gray-900">{studentName || '—'}</td>
-                      <td className="px-6 py-4">
-                        {entry.student_class ? (
-                          entry.student_class.startsWith('Ancien') ? (
-                            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
-                              {entry.student_class}
-                            </span>
-                          ) : entry.student_class.startsWith('Pré-inscrit') ? (
-                            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                              {entry.student_class}
-                            </span>
-                          ) : entry.student_class.startsWith('Quitté') ? (
-                            <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">
-                              {entry.student_class}
-                            </span>
-                          ) : entry.student_class === 'Non inscrit' ? (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                              {entry.student_class}
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                              {entry.student_class}
-                            </span>
-                          )
-                        ) : (
-                          '—'
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        <div>{studentName || '—'}</div>
+                        {(entry as any).created_by && (
+                          <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <UserCheck className="w-3 h-3 text-muted-foreground/70" />
+                            <span>{(entry as any).created_by}</span>
+                          </div>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <span
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {entry.student_class || '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span
+                            className={cn(
+                              'px-2 py-0.5 rounded-md text-xs font-medium border',
+                              CATEGORY_COLORS[entry.category] || 'bg-muted text-muted-foreground border-border'
+                            )}
+                          >
+                            {translateCategory(entry.category, entry.department)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground uppercase px-1 rounded bg-muted">
+                            {entry.payment_method || 'cash'}
+                          </span>
+                        </div>
+                        {entry.description && (
+                          <div
+                            className="text-xs text-muted-foreground mt-1 max-w-xs truncate"
+                            title={entry.description}
+                          >
+                            {entry.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div
                           className={cn(
-                            'px-2 py-1 rounded text-xs font-medium border',
-                            CATEGORY_COLORS[entry.category] ||
-                              'bg-gray-50 text-gray-700 border-gray-200'
+                            'font-bold text-sm',
+                            entry.type === 'income'
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-rose-600 dark:text-rose-400'
                           )}
                         >
-                          {translateCategory(entry.category, entry.department)}
-                        </span>
+                          {entry.type === 'income' ? '+' : '-'}
+                          {entry.amount?.toLocaleString()} Ar
+                        </div>
+                        {/* Receipt badge & Duplicate tracking */}
+                        <div className="mt-0.5 flex items-center justify-end gap-1">
+                          {entry.type === 'income' ? (
+                            pCount === 0 ? (
+                              <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">
+                                Non imprimé
+                              </span>
+                            ) : pCount === 1 ? (
+                              <span className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium">
+                                Original émis
+                              </span>
+                            ) : (
+                              <span className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded font-medium">
+                                Duplicata ({pCount - 1})
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/60 italic">Décaissement</span>
+                          )}
+                        </div>
                       </td>
-                      <td
-                        className="px-6 py-4 text-gray-600 max-w-xs truncate"
-                        title={entry.description}
-                      >
-                        {entry.description || '-'}
-                      </td>
-                      <td
-                        className={cn(
-                          'px-6 py-4 text-right font-bold',
-                          entry.type === 'income' ? 'text-green-700' : 'text-red-700'
-                        )}
-                      >
-                        {entry.type === 'income' ? '+' : '-'}
-                        {entry.amount?.toLocaleString()} Ar
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex justify-center">
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {entry.type === 'income' && (
+                            <>
+                              {/* View Receipt Audit & Detail */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-accent/20"
+                                title="Voir les détails et duplicata du reçu"
+                                onClick={() => {
+                                  const monthMatch = entry.description?.match(/\(([^)]+)\)/)
+                                  const extractedMonth = monthMatch ? monthMatch[1] : undefined
+                                  const rNum = (entry as any).receipt_number
+                                    ? (entry as any).receipt_number.replace(
+                                        /^REC-(\d{4})-(\d{5})$/,
+                                        `REC-$1-${activeStation}-$2`
+                                      )
+                                    : `REC-${currentYear ? currentYear.slice(0, 4) : new Date().getFullYear()}-${activeStation}-${(entry.id || Date.now().toString()).slice(-5).toUpperCase()}`
+
+                                  const pData = {
+                                    id: (entry as any).related_payment_id || entry.id,
+                                    student_id: entry.related_student_id || '',
+                                    payment_date: entry.transaction_date,
+                                    amount: entry.amount,
+                                    payment_type: (entry.category as any) || 'other',
+                                    month: extractedMonth,
+                                    description: entry.description,
+                                    payment_method: (entry.payment_method as any) || 'cash',
+                                    receipt_number: rNum,
+                                    school_year: currentYear || '2026-2027',
+                                    print_count: pCount,
+                                    created_by: (entry as any).created_by || 'Administrateur',
+                                    last_printed_at: (entry as any).last_printed_at,
+                                    last_printed_by: (entry as any).last_printed_by
+                                  }
+                                  setSelectedJournalPayment({
+                                    payment: pData,
+                                    studentName:
+                                      entry.first_name && entry.last_name
+                                        ? `${entry.last_name} ${entry.first_name}`
+                                        : entry.description || '—',
+                                    studentNumber: (entry as any).registration_number || '',
+                                    className: entry.student_class || ''
+                                  })
+                                }}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+
+                              {/* Direct ESC/POS Thermal Receipt */}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-accent/20"
+                                title="Imprimer le ticket thermique"
+                                onClick={async () => {
+                                  if (!window.api?.printer?.printReceipt) {
+                                    toast.error('Service impression non disponible')
+                                    return
+                                  }
+                                  const monthMatch = entry.description?.match(/\(([^)]+)\)/)
+                                  const extractedMonth = monthMatch ? monthMatch[1] : undefined
+                                  const rNum = (entry as any).receipt_number
+                                    ? (entry as any).receipt_number.replace(
+                                        /^REC-(\d{4})-(\d{5})$/,
+                                        `REC-$1-${activeStation}-$2`
+                                      )
+                                    : `REC-${currentYear ? currentYear.slice(0, 4) : new Date().getFullYear()}-${activeStation}-${(entry.id || Date.now().toString()).slice(-5).toUpperCase()}`
+                                  const isDup = pCount >= 1
+                                  const paymentId = (entry as any).related_payment_id || entry.id
+
+                                  const toastId = toast.loading('Impression du ticket...')
+                                  try {
+                                    const r = await window.api.printer.printReceipt(
+                                      {
+                                        payment_ids: paymentId ? [paymentId] : undefined,
+                                        student_name:
+                                          studentName ||
+                                          entry.description
+                                            ?.replace('Paiement ', '')
+                                            ?.replace(/ — .*/, '') ||
+                                          '—',
+                                        student_number: (entry as any).registration_number || '',
+                                        class_name: entry.student_class || '-',
+                                        amount: entry.amount,
+                                        payment_type: entry.category || 'other',
+                                        payment_date: entry.transaction_date,
+                                        month: extractedMonth,
+                                        payment_method: entry.payment_method || 'cash',
+                                        description: entry.description,
+                                        receipt_number: rNum,
+                                        cashier_name: (entry as any).created_by || 'Administrateur',
+                                        is_duplicate: isDup,
+                                        duplicate_count: isDup ? pCount : 1,
+                                        school_year: currentYear
+                                      },
+                                      2
+                                    )
+
+                                    if (r.success) {
+                                      toast.success(
+                                        isDup
+                                          ? `Ticket Duplicata N°${pCount} imprimé en double exemplaire`
+                                          : 'Ticket original imprimé en double exemplaire',
+                                        { id: toastId }
+                                      )
+                                      fetchEntries({
+                                        ...filters,
+                                        schoolYear: currentYear,
+                                        createdBy: filters.createdBy !== 'all' ? filters.createdBy : undefined,
+                                        stationCode: filters.stationCode !== 'all' ? filters.stationCode : undefined
+                                      })
+                                    } else {
+                                      toast.error(r.error || "Échec d'impression", { id: toastId })
+                                    }
+                                  } catch (e: unknown) {
+                                    toast.error(
+                                      'Erreur: ' + (e instanceof Error ? e.message : String(e)),
+                                      { id: toastId }
+                                    )
+                                  }
+                                }}
+                              >
+                                <Printer className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+
+                          {/* PDF Receipt */}
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0"
-                            title="Télécharger le reçu"
+                            title="Télécharger le reçu PDF (A5)"
                             onClick={async () => {
-                              let studentName = ''
-                              if (entry.first_name && entry.last_name) {
-                                studentName = `${entry.last_name} ${entry.first_name}`
-                              }
-
-                              // Extraction du mois depuis la description "Paiement écolage (Mars) — Doe John"
                               const monthMatch = entry.description?.match(/\(([^)]+)\)/)
                               const extractedMonth = monthMatch ? monthMatch[1] : undefined
 
@@ -953,46 +1553,14 @@ export default function FinanceJournal() {
                               else alert(r.error || 'Erreur PDF')
                             }}
                           >
-                            <FileText className="w-4 h-4 text-gray-400 hover:text-blue-600" />
+                            <FileText className="w-4 h-4 text-muted-foreground hover:text-primary" />
                           </Button>
-                          {thermalPrinterEnabled && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 ml-1"
-                              title="Imprimer (Thermique)"
-                              onClick={async () => {
-                                let studentName = ''
-                                if (entry.first_name && entry.last_name) {
-                                  studentName = `${entry.last_name} ${entry.first_name}`
-                                }
-                                const monthMatch = entry.description?.match(/\(([^)]+)\)/)
-                                const extractedMonth = monthMatch ? monthMatch[1] : undefined
 
-                                const r = await window.api.printer.printReceipt({
-                                  studentName: studentName || entry.description?.replace('Paiement ', '')?.replace(/ — .*/, '') || '—',
-                                  className: entry.student_class || '-',
-                                  amount: entry.amount,
-                                  paymentTypeLabel: entry.category || 'Paiement',
-                                  date: new Date(entry.transaction_date).toLocaleDateString('fr-FR'),
-                                  month: extractedMonth,
-                                  receiptNumber: entry.id.slice(0,8),
-                                  paymentMethod: entry.payment_method || 'Espèces',
-                                  cashier: (entry as any).cashier_name || 'Admin'
-                                })
-                                if (!r.success) {
-                                  alert('Erreur impression thermique: ' + r.error)
-                                }
-                              }}
-                            >
-                              <Printer className="w-4 h-4 text-gray-400 hover:text-green-600" />
-                            </Button>
-                          )}
                           {canWrite('cash_journal') && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 ml-1"
+                              className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-500/10"
                               onClick={() => handleDelete(entry)}
                               title="Annuler cette entrée"
                             >
@@ -1006,53 +1574,24 @@ export default function FinanceJournal() {
                 })
               )}
 
-              {/* ── Summary footer ── */}
-              {summary && enriched.length > 0 && (
-                <tr className="bg-gray-50 border-t-2 font-semibold">
-                  <td className="px-6 py-4" colSpan={5}>
-                    <div className="flex items-center text-gray-700">
-                      <span className="uppercase text-xs tracking-wider">
-                        Total sur la sélection
-                      </span>
-                      {filters.startDate && (
-                        <span className="text-xs text-gray-500 ml-2 font-normal">
-                          du {new Date(filters.startDate).toLocaleDateString('fr-FR')}
-                        </span>
-                      )}
-                      {filters.endDate && (
-                        <span className="text-xs text-gray-500 ml-1 font-normal">
-                          au {new Date(filters.endDate).toLocaleDateString('fr-FR')}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex flex-col text-xs font-normal text-gray-500 gap-1">
-                      <div className="flex justify-between w-32 ml-auto">
-                        <span>Entrées :</span>
-                        <span className="text-green-600 font-medium">
-                          {summary.totalIncome.toLocaleString()} Ar
-                        </span>
-                      </div>
-                      <div className="flex justify-between w-32 ml-auto">
-                        <span>Sorties :</span>
-                        <span className="text-red-600 font-medium">
-                          {summary.totalExpense.toLocaleString()} Ar
-                        </span>
-                      </div>
+              {/* Total Footer */}
+              {enriched.length > 0 && (
+                <tr className="bg-muted/30 font-semibold border-t-2 border-border">
+                  <td className="px-4 py-3" colSpan={5}>
+                    <div className="flex items-center text-muted-foreground text-xs uppercase tracking-wider">
+                      Total sélection ({enriched.length} transactions)
                     </div>
                   </td>
                   <td
                     className={cn(
-                      'px-6 py-4 text-right align-bottom text-lg',
+                      'px-4 py-3 text-right font-bold text-sm whitespace-nowrap',
                       summary.totalIncome - summary.totalExpense >= 0
-                        ? 'text-blue-700'
-                        : 'text-red-700'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-600 dark:text-rose-400'
                     )}
                   >
-                    <div className="font-bold">
-                      {(summary.totalIncome - summary.totalExpense).toLocaleString()} Ar
-                    </div>
+                    {(summary.totalIncome - summary.totalExpense >= 0 ? '+' : '') +
+                      (summary.totalIncome - summary.totalExpense).toLocaleString()} Ar
                   </td>
                   <td></td>
                 </tr>
@@ -1061,6 +1600,60 @@ export default function FinanceJournal() {
           </table>
         </div>
       </div>
+
+      {/* Modals */}
+      <ReceiptDetailModal
+        isOpen={Boolean(selectedJournalPayment)}
+        onClose={() => setSelectedJournalPayment(null)}
+        payment={selectedJournalPayment ? selectedJournalPayment.payment : null}
+        studentName={selectedJournalPayment ? selectedJournalPayment.studentName : '—'}
+        studentNumber={selectedJournalPayment ? selectedJournalPayment.studentNumber : ''}
+        className={selectedJournalPayment ? selectedJournalPayment.className : ''}
+        onPrintSuccess={() => {
+          fetchEntries({
+            ...filters,
+            schoolYear: currentYear,
+            createdBy: filters.createdBy !== 'all' ? filters.createdBy : undefined,
+            stationCode: filters.stationCode !== 'all' ? filters.stationCode : undefined
+          })
+        }}
+      />
+
+      <CashClosureModal
+        isOpen={isClosureModalOpen}
+        onClose={() => setIsClosureModalOpen(false)}
+        selectedDate={filters.startDate || today}
+        selectedCashier={filters.createdBy !== 'all' ? filters.createdBy : undefined}
+        stationCode={filters.stationCode !== 'all' ? filters.stationCode : undefined}
+        onClosureSuccess={() => {
+          const activeFilters = {
+            ...filters,
+            schoolYear: currentYear,
+            createdBy: filters.createdBy !== 'all' ? filters.createdBy : undefined,
+            stationCode: filters.stationCode !== 'all' ? filters.stationCode : undefined
+          }
+          fetchEntries(activeFilters)
+          const targetDate = filters.startDate || today
+          fetchCashierDailySummary(
+            targetDate,
+            filters.createdBy !== 'all' ? filters.createdBy : undefined,
+            filters.stationCode !== 'all' ? filters.stationCode : undefined
+          )
+          fetchClosure(
+            targetDate,
+            filters.createdBy !== 'all' ? filters.createdBy : undefined
+          )
+        }}
+      />
+
+      <DataExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Exporter les transactions financières"
+        defaultFilename={`journal_financier_${today}`}
+        columns={exportColumns}
+        data={exportData}
+      />
     </div>
   )
 }

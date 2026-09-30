@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -16,9 +16,12 @@ import {
   GraduationCap,
   FileText,
   MoreHorizontal,
-  Lock,
   Calendar,
-  Users
+  Users,
+  Printer,
+  CheckSquare,
+  Square,
+  Loader2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -129,6 +132,132 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
     isPaid: false
   })
 
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<Set<string>>(new Set())
+  const [autoPrintReceipt, setAutoPrintReceipt] = useState<boolean>(() => {
+    return localStorage.getItem('auto_print_thermal') !== 'false'
+  })
+  const [printing, setPrinting] = useState<boolean>(false)
+
+  const getPaymentLabel = (p: Payment) => {
+    switch (p.payment_type) {
+      case 'tuition':
+        return `Écolage ${p.month || ''}`.trim()
+      case 'enrollment':
+        return "Droits d'inscription"
+      case 'reenrollment':
+        return 'Droits de réinscription'
+      case 'fram':
+        return 'Cotisation FRAM'
+      case 'bus':
+        return `Transport ${p.month || ''}`.trim()
+      case 'canteen':
+        return `Cantine ${p.month || ''}`.trim()
+      case 'uniform':
+        return p.description || 'Uniforme'
+      case 'event':
+        return p.description || 'Événement'
+      default:
+        return p.description || p.payment_type
+    }
+  }
+
+  const handlePrintReceipt = async (payment: Payment) => {
+    setPrinting(true)
+    try {
+      const studentName = `${studentInfo?.last_name || ''} ${studentInfo?.first_name || ''}`.trim()
+      const itemLabel = getPaymentLabel(payment)
+      const res = await window.api.printer.printReceipt({
+        student_name: studentName,
+        registration_number: studentInfo?.registration_number,
+        student_number: studentInfo?.registration_number,
+        class_name: studentInfo?.class || '',
+        school_year: schoolYear,
+        payment_date: payment.payment_date,
+        receipt_number: payment.receipt_number || payment.id?.slice(0, 8),
+        payment_id: payment.id,
+        payment_method: payment.payment_method,
+        items: [
+          {
+            label: itemLabel,
+            amount: Number(payment.amount),
+            period: payment.month
+          }
+        ],
+        total_amount: Number(payment.amount)
+      })
+
+      if (res.success) {
+        // Refresh payments to update print_count badge
+        loadData()
+      } else {
+        alert("Erreur d'impression : " + (res.error || "Vérifiez la connexion de l'imprimante"))
+      }
+    } catch (err: unknown) {
+      alert("Erreur d'impression : " + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setPrinting(false)
+    }
+  }
+
+  const handlePrintGroupedReceipt = async () => {
+    const selectedList = payments.filter((p) => selectedPaymentIds.has(p.id))
+    if (selectedList.length === 0) return
+
+    setPrinting(true)
+    try {
+      const studentName = `${studentInfo?.last_name || ''} ${studentInfo?.first_name || ''}`.trim()
+      const items = selectedList.map((p) => ({
+        label: `${getPaymentLabel(p)}${p.receipt_number ? ` (Réf: ${p.receipt_number})` : ''}`,
+        amount: Number(p.amount),
+        period: p.month
+      }))
+      const total = items.reduce((sum, item) => sum + item.amount, 0)
+      const newestDate = selectedList[0].payment_date
+
+      const res = await window.api.printer.printReceipt({
+        student_name: studentName,
+        registration_number: studentInfo?.registration_number,
+        student_number: studentInfo?.registration_number,
+        class_name: studentInfo?.class || '',
+        school_year: schoolYear,
+        payment_date: newestDate,
+        receipt_number: `REC-GRP-${schoolYear.split('-')[0]}-${Date.now().toString().slice(-5)}`,
+        payment_ids: selectedList.map((p) => p.id),
+        payment_method: selectedList[0].payment_method,
+        items,
+        total_amount: total
+      })
+
+      if (res.success) {
+        setSelectedPaymentIds(new Set())
+        loadData()
+      } else {
+        alert("Erreur d'impression du reçu groupé : " + (res.error || "Vérifiez l'imprimante"))
+      }
+    } catch (err: unknown) {
+      alert("Erreur d'impression : " + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setPrinting(false)
+    }
+  }
+
+  const toggleSelectPayment = (id: string) => {
+    setSelectedPaymentIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAllPayments = () => {
+    if (selectedPaymentIds.size === payments.length) {
+      setSelectedPaymentIds(new Set())
+    } else {
+      setSelectedPaymentIds(new Set(payments.map((p) => p.id)))
+    }
+  }
+
   // Listen for custom event from StudentDetail to open the payment modal (e.g. from Dossier tab)
   useEffect(() => {
     const handler = (e: CustomEvent) => {
@@ -153,18 +282,13 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
   const loadData = async () => {
     setLoading(true)
     try {
-      // Fetch status
       const statusRes = await window.api.payment.getTuitionStatus(studentId, schoolYear)
-      // Fetch payments
       const paymentsRes = await window.api.payment.getByStudent(studentId, schoolYear)
-      // Fetch configuration
       fetchPrices()
 
-      // Fetch student info
       const studentRes = await window.api.student.get(studentId)
       if (studentRes.success) setStudentInfo(studentRes.student)
 
-      // Fetch Fram fratrie
       const framRes = await window.api.payment.checkFramFratrie(studentId, schoolYear)
       if (framRes.success) setFramFratrieStatus({ isPaid: framRes.isPaid, by: framRes.by })
 
@@ -183,7 +307,7 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
     loadData()
   }, [studentId, schoolYear])
 
-  // Auto-fill amount based on type and configuration
+  // Set suggested amounts based on selection
   useEffect(() => {
     if (!configPrices) return
 
@@ -202,7 +326,6 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
       if (cost > 0) {
         suggestedAmount = cost.toString()
       } else if (configPrices.canteen?.monthly) {
-        // Fallback to standard monthly if not subscribed
         suggestedAmount = configPrices.canteen.monthly.toString()
       }
     } else if (formData.payment_type === 'bus') {
@@ -215,20 +338,14 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
     } else if (formData.payment_type === 'fram') {
       if (configPrices.fram) suggestedAmount = configPrices.fram.toString()
     } else if (formData.payment_type === 'uniform') {
-      // Handle uniform item selection
       const items = Object.keys(configPrices.uniforms || {})
       if (items.length > 0) {
         let targetItem = formData.item
-
-        // If no item selected, default to 'Tablier' or first item
         if (!targetItem) {
           targetItem = items.includes('Tablier') ? 'Tablier' : items[0]
-          // Update state to select this item (will trigger effect again)
           setFormData((prev) => ({ ...prev, item: targetItem }))
           return
         }
-
-        // If item is selected, use its price
         if (targetItem && configPrices.uniforms?.[targetItem]) {
           suggestedAmount = configPrices.uniforms[targetItem].toString()
         }
@@ -283,7 +400,6 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
             expectedOverride < actualBalance &&
             expectedOverride >= 0
           ) {
-            // The user lowered the expected amount, meaning the difference is a discount
             discount = actualBalance - expectedOverride
           }
 
@@ -299,6 +415,23 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
       }
 
       let result: any
+      const paymentDate = new Date().toISOString().split('T')[0]
+      const paymentData = {
+        student_id: studentId,
+        payment_date: paymentDate,
+        amount: amount,
+        payment_type: formData.payment_type as Payment['payment_type'],
+        month: ['tuition', 'canteen', 'bus'].includes(formData.payment_type)
+          ? formData.month
+          : undefined,
+        description:
+          formData.payment_type === 'uniform'
+            ? `${formData.item}${formData.description ? ' - ' + formData.description : ''}`
+            : formData.description,
+        payment_method: formData.payment_method as Payment['payment_method'],
+        school_year: schoolYear
+      }
+
       if (formData.payment_type === 'event' && formData.item) {
         result = await window.api.event.recordPayment(
           formData.item,
@@ -307,22 +440,6 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
           formData.payment_method
         )
       } else {
-        const paymentData = {
-          student_id: studentId,
-          payment_date: new Date().toISOString().split('T')[0],
-          amount: amount,
-          payment_type: formData.payment_type as Payment['payment_type'],
-          month: ['tuition', 'canteen', 'bus'].includes(formData.payment_type)
-            ? formData.month
-            : undefined,
-          description:
-            formData.payment_type === 'uniform'
-              ? `${formData.item}${formData.description ? ' - ' + formData.description : ''}`
-              : formData.description,
-          payment_method: formData.payment_method as Payment['payment_method'],
-          school_year: schoolYear
-        }
-
         result = await window.api.payment.create(paymentData)
 
         // Handle discount if provided
@@ -338,6 +455,15 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
       }
 
       if (result.success) {
+        // Auto-print receipt if enabled
+        if (autoPrintReceipt) {
+          handlePrintReceipt({
+            ...paymentData,
+            id: result.id || `PAY-${Date.now().toString().slice(-6)}`,
+            receipt_number: (result as any).receipt_number
+          } as Payment)
+        }
+
         setIsAddPaymentOpen(false)
         setFormData({
           amount: '',
@@ -348,7 +474,7 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
           item: ''
         })
         setExpectedAmountOverride('')
-        loadData() // Reload data
+        loadData()
       } else {
         alert('Erreur lors du paiement: ' + result.error)
       }
@@ -362,7 +488,6 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
   }
 
   const totalPaid = payments.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0)
-
   const busFeeRecord = status?.feeRecord || feeRecord
 
   // Determine if student is new or returning
@@ -487,11 +612,11 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
     }
   ]
 
-  const services = allServices.filter(s => {
-    if (s.id === 'bus' && schoolConfig.module_bus === false) return false;
-    if (s.id === 'canteen' && schoolConfig.module_cantine === false) return false;
-    if (s.id === 'uniform' && schoolConfig.module_uniforms === false) return false;
-    return true;
+  const services = allServices.filter((s) => {
+    if (s.id === 'bus' && schoolConfig.module_bus === false) return false
+    if (s.id === 'canteen' && schoolConfig.module_cantine === false) return false
+    if (s.id === 'uniform' && schoolConfig.module_uniforms === false) return false
+    return true
   })
 
   const handleCardClick = (service: ServiceCard) => {
@@ -561,14 +686,13 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
     }
   }
 
-  // Helper to calculate monthly status for other services
   const getServiceMonthlyStatus = (type: 'bus' | 'canteen', monthlyCost: number) => {
     if (!status?.status || !monthlyCost) return []
 
     return status.status.map((month: MonthStatus) => {
-      // Find payments for this service and month
-      const monthPayments = payments.filter((p) => p.payment_type === type && p.month === month.key)
-
+      const monthPayments = payments.filter(
+        (p) => p.payment_type === type && p.month === month.key
+      )
       const paidAmount = monthPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
       const balance = monthlyCost - paidAmount
 
@@ -577,7 +701,7 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
       else if (paidAmount > 0) statusStr = 'partial'
 
       return {
-        ...month, // key, month (label)
+        ...month,
         status: statusStr,
         paid: paidAmount,
         balance: balance > 0 ? balance : 0,
@@ -587,27 +711,25 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
   }
 
   const busCost = getBusCost(status?.feeRecord, configPrices)
-
   const canteenCost = getCanteenCost(feeRecord || status?.feeRecord, configPrices)
 
   const busStatus = getServiceMonthlyStatus('bus', busCost)
   const canteenStatus = getServiceMonthlyStatus('canteen', canteenCost)
 
-  // Get relevant months based on selected payment type
   const getMonthsForPaymentType = () => {
     if (formData.payment_type === 'bus') return busStatus
     if (formData.payment_type === 'canteen') return canteenStatus
-    return status?.status || [] // Default to tuition/global status
+    return status?.status || []
   }
 
   const renderMonthGrid = (title: string, type: string, data: MonthStatus[]) => {
     if (!data || data.length === 0) return null
     return (
-      <div className="bg-white p-6 rounded-lg shadow border border-gray-100 mt-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-800">
-          {type === 'tuition' && <GraduationCap className="w-5 h-5 mr-2 text-blue-600" />}
-          {type === 'bus' && <Bus className="w-5 h-5 mr-2 text-yellow-600" />}
-          {type === 'canteen' && <Utensils className="w-5 h-5 mr-2 text-orange-600" />}
+      <div className="bg-card p-6 rounded-xl shadow-sm border border-border mt-6">
+        <h3 className="text-base font-semibold mb-4 flex items-center text-foreground">
+          {type === 'tuition' && <GraduationCap className="w-5 h-5 mr-2 text-primary" />}
+          {type === 'bus' && <Bus className="w-5 h-5 mr-2 text-amber-500" />}
+          {type === 'canteen' && <Utensils className="w-5 h-5 mr-2 text-orange-500" />}
           {title}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
@@ -616,31 +738,37 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
               key={month.key}
               onClick={() => handleMonthClick(type, month)}
               className={`
-                              relative p-4 rounded-lg border-2 flex flex-col items-center justify-center text-center min-h-[110px] cursor-pointer transition-all hover:shadow-md
-                              ${
-                                month.status === 'paid'
-                                  ? 'border-green-100 bg-green-50'
-                                  : month.status === 'partial'
-                                    ? 'border-yellow-100 bg-yellow-50'
-                                    : 'border-red-100 bg-red-50 hover:border-red-200'
-                              }
-                          `}
+                relative p-4 rounded-xl border-2 flex flex-col items-center justify-center text-center min-h-[110px] cursor-pointer transition-all hover:shadow-md
+                ${
+                  month.status === 'paid'
+                    ? 'border-emerald-500/30 bg-emerald-500/10'
+                    : month.status === 'partial'
+                      ? 'border-amber-500/30 bg-amber-500/10'
+                      : 'border-rose-500/30 bg-rose-500/10 hover:border-rose-500/50'
+                }
+              `}
             >
-              <span className="text-sm font-medium text-gray-700 mb-2">{month.month}</span>
+              <span className="text-xs font-semibold text-foreground mb-2">{month.month}</span>
               <div className="mb-2">
-                {month.status === 'paid' && <CheckCircle2 className="w-8 h-8 text-green-500" />}
-                {month.status === 'partial' && <AlertCircle className="w-8 h-8 text-yellow-500" />}
-                {month.status === 'unpaid' && <XCircle className="w-8 h-8 text-red-400" />}
+                {month.status === 'paid' && (
+                  <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+                )}
+                {month.status === 'partial' && (
+                  <AlertCircle className="w-7 h-7 text-amber-600 dark:text-amber-400" />
+                )}
+                {month.status === 'unpaid' && (
+                  <XCircle className="w-7 h-7 text-rose-500 dark:text-rose-400" />
+                )}
               </div>
               <span
                 className={`text-xs font-bold ${
                   month.expected === 0 && type === 'tuition'
-                    ? 'text-purple-700'
+                    ? 'text-purple-600 dark:text-purple-400'
                     : month.status === 'paid'
-                      ? 'text-green-700'
+                      ? 'text-emerald-600 dark:text-emerald-400'
                       : month.status === 'partial'
-                        ? 'text-yellow-700'
-                        : 'text-red-700'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-rose-600 dark:text-rose-400'
                 }`}
               >
                 {month.expected === 0 && type === 'tuition'
@@ -660,178 +788,166 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
     )
   }
 
-  if (loading) return <div className="p-4 text-center">Chargement des données financières...</div>
+  if (loading) return <div className="p-8 text-center text-muted-foreground">Chargement des données financières...</div>
 
   return (
     <div className="space-y-6">
       {/* Header Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow border border-gray-100 flex flex-col justify-center min-h-[100px] overflow-hidden">
-          <div className="flex items-center text-gray-500 mb-2">
-            <DollarSign className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span className="text-sm font-medium truncate">Écolage Mensuel</span>
+        <div className="bg-card p-5 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[100px]">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <DollarSign className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Total Encaissé</p>
+              <h3 className="text-2xl font-bold text-foreground">
+                {totalPaid.toLocaleString()} Ar
+              </h3>
+            </div>
           </div>
-          <p
-            className={`text-2xl font-bold truncate ${studentInfo?.is_personnel_child && studentInfo?.student_status !== 'Non inscrit' && status?.feeRecord ? 'text-purple-600 text-lg' : 'text-gray-900'}`}
-            title={`${(studentInfo?.is_personnel_child && studentInfo?.student_status !== 'Non inscrit' && status?.feeRecord ? 0 : configPrices?.tuition?.[status?.feeRecord?.tuition_level ?? ''] || status?.feeRecord?.monthly_tuition || 0).toLocaleString()} Ar`}
-          >
-            {studentInfo?.is_personnel_child &&
-            studentInfo?.student_status !== 'Non inscrit' &&
-            status?.feeRecord
-              ? 'EXONÉRÉ (Enfant Personnel)'
-              : studentInfo?.student_status === 'Non inscrit' || !status?.feeRecord
-                ? 'NON INSCRIT'
-                : `${(configPrices?.tuition?.[status?.feeRecord?.tuition_level ?? ''] || status?.feeRecord?.monthly_tuition || 0).toLocaleString()} Ar`}
-          </p>
-          <p className="text-xs text-gray-500 truncate">
-            Niveau: {status?.feeRecord?.tuition_level || '-'}
-          </p>
         </div>
 
-        <div className="bg-white p-4 rounded-lg shadow border border-gray-100 flex flex-col justify-center min-h-[100px] overflow-hidden">
-          <div className="flex items-center text-gray-500 mb-2">
-            <Wallet className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span className="text-sm font-medium truncate">Total Payé (Global)</span>
+        <div className="bg-card p-5 rounded-xl shadow-sm border border-border flex flex-col justify-center min-h-[100px]">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-primary/10 text-primary rounded-xl">
+              <Wallet className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Tarif Mensuel</p>
+              <h3 className="text-2xl font-bold text-foreground">
+                {Boolean(studentInfo?.is_personnel_child)
+                  ? 'Exonéré (Enfant du personnel)'
+                  : `${getTuitionCost(status?.feeRecord || feeRecord, configPrices).toLocaleString()} Ar/mois`}
+              </h3>
+            </div>
           </div>
-          <p
-            className="text-2xl font-bold text-green-600 truncate"
-            title={`${totalPaid.toLocaleString()} Ar`}
-          >
-            {totalPaid.toLocaleString()} Ar
-          </p>
         </div>
       </div>
 
-      {/* Services Dashboard (Payment Types) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {services.map((service) => (
-          <div
-            key={service.id}
-            onClick={() => handleCardClick(service)}
-            className={`
-                      relative p-4 rounded-lg border-2 flex flex-col items-center justify-center text-center min-h-[100px] transition-all
-                      ${
-                        !service.enabled
-                          ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-100'
-                          : service.status === 'paid' || service.status === 'paid_fratrie'
-                            ? 'cursor-default bg-green-50 border-green-100'
-                            : service.status === 'partial'
-                              ? 'cursor-pointer hover:shadow-md hover:border-yellow-300 bg-yellow-50 border-yellow-100'
-                              : 'cursor-pointer hover:shadow-md hover:border-gray-300 bg-white border-gray-100'
-                      }
-                  `}
-          >
-            {!service.enabled && (
-              <div className="absolute top-2 right-2">
-                <Lock className="w-3 h-3 text-gray-400" />
-              </div>
-            )}
-            {(service.status === 'paid' || service.status === 'paid_fratrie') && (
-              <div className="absolute top-2 right-2">
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
-              </div>
-            )}
+      {/* Services Grid */}
+      <div>
+        <h3 className="text-base font-semibold mb-4 text-foreground">Services & Cotisations</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {services.map((service) => {
+            const Icon = service.icon
+            return (
+              <div
+                key={service.id}
+                onClick={() => handleCardClick(service)}
+                className={`
+                  p-5 rounded-xl border flex flex-col justify-between h-40 transition-all cursor-pointer shadow-sm hover:shadow-md
+                  ${
+                    !service.enabled
+                      ? 'opacity-50 bg-muted/40 border-border cursor-not-allowed'
+                      : 'bg-card border-border hover:border-primary/50'
+                  }
+                `}
+              >
+                <div className="flex items-start justify-between">
+                  <div className={`p-2.5 rounded-xl ${service.bg} ${service.color}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  {service.status === 'paid' && (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  )}
+                  {service.status === 'paid_fratrie' && (
+                    <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  )}
+                  {service.status === 'partial' && (
+                    <AlertCircle className="w-5 h-5 text-amber-500" />
+                  )}
+                  {service.status === 'pending' && <XCircle className="w-5 h-5 text-rose-500" />}
+                </div>
 
-            <div className={`p-2 rounded-full mb-2 ${service.bg}`}>
-              <service.icon className={`w-5 h-5 ${service.color}`} />
-            </div>
-            <span className="text-sm font-medium text-gray-900">{service.label}</span>
-
-            {service.status === 'paid' && (
-              <span className="text-xs text-green-600 font-bold mt-1">PAYÉ</span>
-            )}
-            {service.status === 'paid_fratrie' && (
-              <span className="text-[10px] text-green-600 font-bold mt-1">PAYÉ (FRATRIE)</span>
-            )}
-            {service.status === 'partial' && (
-              <span className="text-[10px] text-yellow-600 font-bold mt-1">
-                RESTE: {service.balance?.toLocaleString() || 0} Ar
-              </span>
-            )}
-            {service.status === 'pending' && service.isOneTime && (
-              <span className="text-[10px] text-red-600 font-bold mt-1">
-                À PAYER: {service.balance?.toLocaleString() || 0} Ar
-              </span>
-            )}
-            {!service.enabled && (
-              <span className="text-[10px] text-gray-400 mt-1">Non souscrit</span>
-            )}
-          </div>
-        ))}
+                <div>
+                  <h4 className="font-semibold text-sm text-foreground mb-1">{service.label}</h4>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {service.isOneTime
+                        ? service.status === 'paid_fratrie'
+                          ? 'Payé (Fratrie)'
+                          : service.status === 'paid'
+                            ? 'Réglé'
+                            : service.balance && service.balance > 0
+                              ? `Reste: ${service.balance.toLocaleString()} Ar`
+                              : 'À régler'
+                        : 'Suivi mensuel'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Events Section */}
-      {events && events.length > 0 && (
-        <div className="bg-white p-6 rounded-lg shadow border border-gray-100 mt-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-800">
-            <PartyPopper className="w-5 h-5 mr-2 text-indigo-600" />
-            Événements & Sorties
-            <span className="ml-3 text-xs font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full flex items-center">
-              <Users className="w-3 h-3 mr-1" />
-              Paiement unique par famille
-            </span>
+      {events.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-base font-semibold mb-4 text-foreground flex items-center">
+            <PartyPopper className="w-5 h-5 mr-2 text-rose-500" />
+            Événements & Sorties ({events.length})
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {events.map((event) => {
               const isPaid = event.family_payment_status?.is_paid
-              const balance = Math.max(
-                0,
-                event.amount_per_parent - (event.family_payment_status?.total_paid || 0)
-              )
-
+              const balance = event.amount_per_parent - (event.family_payment_status?.total_paid || 0)
               return (
                 <div
                   key={event.id}
-                  className={`
-                    relative p-5 rounded-xl border-2 flex flex-col justify-between min-h-[140px] transition-all
-                    ${
-                      isPaid
-                        ? 'border-indigo-100 bg-gradient-to-br from-indigo-50 to-white'
-                        : balance < event.amount_per_parent
-                          ? 'border-yellow-100 bg-gradient-to-br from-yellow-50 to-white hover:shadow-md hover:border-yellow-300'
-                          : 'border-rose-100 bg-gradient-to-br from-rose-50 to-white hover:shadow-md hover:border-rose-300'
+                  onClick={() => {
+                    if (isPaid) {
+                      alert('Cet événement a déjà été réglé.')
+                      return
                     }
-                  `}
+                    setFormData((prev) => ({
+                      ...prev,
+                      payment_type: 'event',
+                      item: event.id,
+                      amount: balance.toString(),
+                      description: `Paiement ${event.event_name}`
+                    }))
+                    setIsAddPaymentOpen(true)
+                  }}
+                  className={`p-4 rounded-xl border flex flex-col justify-between transition-all cursor-pointer shadow-sm hover:shadow-md ${
+                    isPaid
+                      ? 'bg-indigo-500/10 border-indigo-500/30'
+                      : balance < event.amount_per_parent
+                        ? 'bg-amber-500/10 border-amber-500/30'
+                        : 'bg-card border-border hover:border-rose-500/50'
+                  }`}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <h4
-                      className="font-semibold text-gray-800 leading-tight"
-                      title={event.event_name}
-                    >
-                      {event.event_name}
-                    </h4>
+                  <div className="flex items-start justify-between">
+                    <h4 className="font-semibold text-sm text-foreground">{event.event_name}</h4>
                     {isPaid ? (
-                      <CheckCircle2 className="w-6 h-6 text-indigo-500 flex-shrink-0 ml-2" />
+                      <CheckCircle2 className="w-5 h-5 text-indigo-500 shrink-0 ml-2" />
                     ) : balance < event.amount_per_parent ? (
-                      <AlertCircle className="w-6 h-6 text-yellow-500 flex-shrink-0 ml-2" />
+                      <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 ml-2" />
                     ) : (
-                      <XCircle className="w-6 h-6 text-rose-400 flex-shrink-0 ml-2" />
+                      <XCircle className="w-5 h-5 text-rose-500 shrink-0 ml-2" />
                     )}
                   </div>
-
-                  <div className="mt-auto pt-4 flex flex-col">
-                    <div className="text-xs text-gray-500 mb-1 flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
+                  <div className="mt-4 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground flex items-center">
+                      <Calendar className="w-3.5 h-3.5 mr-1" />
                       {format(new Date(event.event_date), 'dd MMM yyyy', { locale: fr })}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-sm font-bold ${
-                          isPaid
-                            ? 'text-indigo-700'
-                            : balance < event.amount_per_parent
-                              ? 'text-yellow-700'
-                              : 'text-rose-700'
-                        }`}
-                      >
-                        {isPaid
-                          ? 'RÉGLÉ (FRATRIE)'
+                    </span>
+                    <span
+                      className={`font-bold ${
+                        isPaid
+                          ? 'text-indigo-600 dark:text-indigo-400'
                           : balance < event.amount_per_parent
-                            ? `RESTE: ${balance.toLocaleString()} Ar`
-                            : `${event.amount_per_parent.toLocaleString()} Ar`}
-                      </span>
-                    </div>
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-rose-600 dark:text-rose-400'
+                      }`}
+                    >
+                      {isPaid
+                        ? 'RÉGLÉ'
+                        : balance < event.amount_per_parent
+                          ? `Reste: ${balance.toLocaleString()} Ar`
+                          : `${event.amount_per_parent.toLocaleString()} Ar`}
+                    </span>
                   </div>
                 </div>
               )
@@ -844,7 +960,7 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
       <Dialog
         isOpen={isAddPaymentOpen}
         onClose={() => setIsAddPaymentOpen(false)}
-        title="Enregistrer un paiement"
+        title="Enregistrer un encaissement"
         footer={
           <Button
             type="submit"
@@ -861,10 +977,10 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
             <Label htmlFor="type">Type de paiement</Label>
             <select
               id="type"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               value={formData.payment_type}
               onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })}
-              disabled // Lock the type since we clicked a specific card
+              disabled
             >
               <option value="tuition">Écolage Mensuel</option>
               <option value="enrollment">Droit d'inscription</option>
@@ -873,7 +989,7 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
               <option value="bus">Transport (Bus)</option>
               <option value="canteen">Cantine</option>
               <option value="uniform">Uniforme</option>
-              <option value="event">Événement</option>
+              {events && events.length > 0 && <option value="event">Événement</option>}
               <option value="other">Autre</option>
             </select>
           </div>
@@ -883,12 +999,10 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
               <Label htmlFor="month">Mois concerné</Label>
               <select
                 id="month"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 value={formData.month}
                 onChange={(e) => {
                   setFormData({ ...formData, month: e.target.value })
-
-                  // Auto-fill the expectedAmountOverride when a month is selected
                   if (e.target.value) {
                     const selectedMonthData = getMonthsForPaymentType().find(
                       (m) => m.key === e.target.value
@@ -909,65 +1023,29 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
                   .filter((m: MonthStatus) => m.status !== 'paid')
                   .map((m: MonthStatus) => (
                     <option key={m.key} value={m.key}>
-                      {m.month} (
-                      {m.status === 'partial'
-                        ? `Reste: ${m.balance?.toLocaleString()} Ar`
-                        : 'Non payé'}
-                      )
+                      {m.month} ({m.status === 'partial' ? `Reste: ${m.balance?.toLocaleString()} Ar` : 'Non payé'})
                     </option>
                   ))}
               </select>
             </div>
           )}
 
-          {formData.payment_type === 'uniform' &&
-            configPrices?.uniforms &&
-            Object.keys(configPrices.uniforms).length > 0 && (
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="item">Article</Label>
-                  <select
-                    id="item"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    value={formData.item}
-                    onChange={(e) => setFormData({ ...formData, item: e.target.value })}
-                  >
-                    {Object.keys(configPrices.uniforms).map((item) => (
-                      <option key={item} value={item}>
-                        {item} ({configPrices.uniforms[item].toLocaleString()} Ar)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {payments.filter((p) => p.payment_type === 'uniform').length > 0 && (
-                  <div className="text-sm border p-3 rounded-md bg-gray-50">
-                    <p className="font-semibold text-gray-700 mb-1">Articles déjà achetés :</p>
-                    <ul className="list-disc pl-5 text-gray-600 space-y-1">
-                      {payments
-                        .filter((p) => p.payment_type === 'uniform')
-                        .map((p) => (
-                          <li key={p.id}>
-                            <span className="font-medium">{p.description || 'Uniforme'}</span> -{' '}
-                            {Number(p.amount).toLocaleString()} Ar{' '}
-                            <span className="text-gray-400 text-xs">
-                              ({new Date(p.payment_date).toLocaleDateString('fr-FR')})
-                            </span>
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
           {formData.payment_type === 'event' && events && events.length > 0 && (
             <div className="grid gap-2">
               <Label htmlFor="event_item">Sélectionner l'événement</Label>
               <select
                 id="event_item"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                 value={formData.item}
-                onChange={(e) => setFormData({ ...formData, item: e.target.value })}
+                onChange={(e) => {
+                  const selectedId = e.target.value
+                  const evt = events.find((ev) => ev.id === selectedId)
+                  setFormData({
+                    ...formData,
+                    item: selectedId,
+                    amount: evt ? String(evt.amount_per_parent) : formData.amount
+                  })
+                }}
                 required
               >
                 <option value="">Sélectionner un événement</option>
@@ -980,62 +1058,28 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
             </div>
           )}
 
-          {/* Expected amount override if partial payment on a monthly fee */}
-          {(() => {
-            if (!['tuition', 'canteen', 'bus'].includes(formData.payment_type) || !formData.month)
-              return null
-            let monthlyCost = 0
-            const currentFeeRecord = status?.feeRecord || feeRecord
-            if (formData.payment_type === 'tuition') {
-              monthlyCost = getTuitionCost(
-                currentFeeRecord,
-                configPrices,
-                Boolean(studentInfo?.is_personnel_child)
-              )
-            } else if (formData.payment_type === 'bus') {
-              monthlyCost = getBusCost(currentFeeRecord, configPrices)
-            } else if (formData.payment_type === 'canteen') {
-              monthlyCost = getCanteenCost(currentFeeRecord, configPrices)
-            }
-            const existingPayments = payments.filter(
-              (p) => p.payment_type === formData.payment_type && p.month === formData.month
-            )
-            const paidAmount = existingPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0)
-            const actualBalance = monthlyCost - paidAmount
-            const expectedOverride = parseFloat(expectedAmountOverride)
-            const discountCalculated =
-              !isNaN(expectedOverride) && expectedOverride < actualBalance && expectedOverride >= 0
-                ? actualBalance - expectedOverride
-                : 0
-
-            return (
-              <div className="grid gap-2 mb-4 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                <Label htmlFor="expected" className="text-gray-700 font-medium">
-                  Reste à payer convenu pour ce mois (Ar)
-                </Label>
-                <Input
-                  id="expected"
-                  type="number"
-                  className="bg-white border-gray-300"
-                  value={expectedAmountOverride}
-                  onChange={(e) => setExpectedAmountOverride(e.target.value)}
-                />
-                <p className="text-xs text-gray-500">
-                  Par défaut, le système attend {actualBalance.toLocaleString()} Ar. Modifiez cette
-                  valeur si un tarif réduit a été convenu pour ce mois spécifiquement.
-                </p>
-                {discountCalculated > 0 && (
-                  <p className="text-xs text-orange-600 font-medium">
-                    Une remise de {discountCalculated.toLocaleString()} Ar sera automatiquement
-                    appliquée pour ajuster le solde.
-                  </p>
-                )}
+          {formData.payment_type === 'uniform' &&
+            configPrices?.uniforms &&
+            Object.keys(configPrices.uniforms).length > 0 && (
+              <div className="grid gap-2">
+                <Label htmlFor="item">Article</Label>
+                <select
+                  id="item"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  value={formData.item}
+                  onChange={(e) => setFormData({ ...formData, item: e.target.value })}
+                >
+                  {Object.keys(configPrices.uniforms).map((item) => (
+                    <option key={item} value={item}>
+                      {item} ({configPrices.uniforms[item].toLocaleString()} Ar)
+                    </option>
+                  ))}
+                </select>
               </div>
-            )
-          })()}
+            )}
 
           <div className="grid gap-2">
-            <Label htmlFor="amount">Montant encaissé aujourd'hui (Ar)</Label>
+            <Label htmlFor="amount">Montant à encaisser (Ar)</Label>
             <Input
               id="amount"
               type="number"
@@ -1046,27 +1090,45 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="method">Mode de paiement</Label>
+            <Label htmlFor="method">Mode de règlement</Label>
             <select
               id="method"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               value={formData.payment_method}
               onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
             >
               <option value="cash">Espèces</option>
               <option value="check">Chèque</option>
               <option value="transfer">Virement</option>
-              <option value="mobile_money">Mobile Money</option>
+              <option value="mobile_money">Mobile Money (Mvola/Orange/Airtel)</option>
             </select>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="desc">Description / Note</Label>
+            <Label htmlFor="desc">Description / Référence</Label>
             <Input
               id="desc"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Facultatif..."
             />
+          </div>
+
+          {/* Auto-print thermal receipt option */}
+          <div className="flex items-center gap-2 pt-2 border-t border-border">
+            <input
+              type="checkbox"
+              id="auto-print-receipt"
+              checked={autoPrintReceipt}
+              onChange={(e) => {
+                setAutoPrintReceipt(e.target.checked)
+                localStorage.setItem('auto_print_thermal', String(e.target.checked))
+              }}
+              className="w-4 h-4 rounded border-border text-primary focus:ring-primary/30 cursor-pointer"
+            />
+            <Label htmlFor="auto-print-receipt" className="text-xs cursor-pointer text-muted-foreground font-normal">
+              Imprimer automatiquement le ticket thermique après validation
+            </Label>
           </div>
         </form>
       </Dialog>
@@ -1074,50 +1136,124 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
       <Dialog
         isOpen={isViewPaymentOpen}
         onClose={() => setIsViewPaymentOpen(false)}
-        title="Détails du paiement"
+        title="Détails de l'encaissement"
       >
         {selectedPayment && (
-          <div className="space-y-4">
+          <div className="space-y-4 pt-2">
+            {/* Header N° Reçu */}
+            <div className="p-3 bg-muted/40 rounded-lg border border-border flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                  N° de Reçu Officiel
+                </span>
+                <span className="text-sm font-mono font-bold text-foreground">
+                  {selectedPayment.receipt_number || selectedPayment.id.slice(0, 8)}
+                </span>
+              </div>
+              <div>
+                {(selectedPayment.print_count || 0) === 0 ? (
+                  <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    ⚪ Original non imprimé
+                  </span>
+                ) : (selectedPayment.print_count || 0) === 1 ? (
+                  <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    🟢 Reçu Original délivré
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    🟠 Duplicata émis ({selectedPayment.print_count} tirages)
+                  </span>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Date</Label>
-                <p className="text-sm font-medium">
-                  {new Date(selectedPayment.payment_date).toLocaleDateString('fr-FR')}
+                <Label className="text-xs text-muted-foreground">Date d'encaissement</Label>
+                <p className="text-sm font-medium text-foreground">
+                  {format(new Date(selectedPayment.payment_date), 'dd MMMM yyyy', { locale: fr })}
                 </p>
               </div>
               <div>
-                <Label>Montant</Label>
-                <p className="text-sm font-medium">
+                <Label className="text-xs text-muted-foreground">Montant encaissé</Label>
+                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                   {Number(selectedPayment.amount).toLocaleString()} Ar
                 </p>
               </div>
               <div>
-                <Label>Mode de paiement</Label>
-                <p className="text-sm font-medium capitalize">
+                <Label className="text-xs text-muted-foreground">Mode de règlement</Label>
+                <p className="text-sm font-medium capitalize text-foreground">
                   {selectedPayment.payment_method === 'discount'
                     ? 'Remise'
-                    : selectedPayment.payment_method}
+                    : selectedPayment.payment_method === 'mobile_money'
+                      ? 'Mobile Money'
+                      : selectedPayment.payment_method === 'transfer'
+                        ? 'Virement'
+                        : selectedPayment.payment_method === 'check'
+                          ? 'Chèque'
+                          : 'Espèces'}
                 </p>
               </div>
               <div>
-                <Label>Type</Label>
-                <p className="text-sm font-medium capitalize">
+                <Label className="text-xs text-muted-foreground">Type de paiement</Label>
+                <p className="text-sm font-medium capitalize text-foreground">
                   {selectedPayment.payment_type === 'enrollment'
-                    ? "Frais d'inscription"
+                    ? "Droit d'inscription"
                     : selectedPayment.payment_type === 'reenrollment'
-                      ? 'Frais de réinscription'
-                      : selectedPayment.payment_type}
+                      ? 'Droit de réinscription'
+                      : selectedPayment.payment_type === 'tuition'
+                        ? `Écolage ${selectedPayment.month ? `(${selectedPayment.month})` : ''}`
+                        : selectedPayment.payment_type === 'bus'
+                          ? 'Transport Bus'
+                          : selectedPayment.payment_type === 'canteen'
+                            ? 'Cantine'
+                            : selectedPayment.payment_type}
                 </p>
               </div>
             </div>
+
             {selectedPayment.description && (
               <div>
-                <Label>Description</Label>
-                <p className="text-sm text-gray-600">{selectedPayment.description}</p>
+                <Label className="text-xs text-muted-foreground">Description / Référence</Label>
+                <p className="text-sm text-foreground bg-muted/20 p-2 rounded border border-border">
+                  {selectedPayment.description}
+                </p>
               </div>
             )}
-            <div className="pt-4 flex justify-end">
-              <Button variant="outline" onClick={() => setIsViewPaymentOpen(false)}>
+
+            {/* Audit & Traçabilité des tirages */}
+            {(selectedPayment.print_count || 0) > 0 && (
+              <div className="p-3 bg-amber-500/5 rounded-lg border border-amber-500/20 text-xs space-y-1">
+                <div className="font-semibold text-amber-700 dark:text-amber-400 flex items-center justify-between">
+                  <span>Historique des impressions</span>
+                  <span>{selectedPayment.print_count} fois au total</span>
+                </div>
+                {selectedPayment.last_printed_at && (
+                  <p className="text-muted-foreground">
+                    Dernière impression le {new Date(selectedPayment.last_printed_at).toLocaleDateString('fr-FR')} à {new Date(selectedPayment.last_printed_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    {selectedPayment.last_printed_by ? ` par ${selectedPayment.last_printed_by}` : ''}
+                  </p>
+                )}
+                <p className="text-[11px] text-amber-600 dark:text-amber-500 italic">
+                  Note : Toute nouvelle réimpression portera obligatoirement la mention légale <b>DUPLICATA N° {(selectedPayment.print_count || 0) + 1}</b>.
+                </p>
+              </div>
+            )}
+
+            <div className="pt-4 flex justify-between items-center border-t border-border">
+              <Button
+                variant={selectedPayment.print_count && selectedPayment.print_count > 0 ? "outline" : "default"}
+                size="sm"
+                onClick={() => {
+                  handlePrintReceipt(selectedPayment)
+                }}
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                {(selectedPayment.print_count || 0) === 0
+                  ? "Imprimer le reçu original"
+                  : `Réimprimer Duplicata (N° ${(selectedPayment.print_count || 0) + 1})`}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setIsViewPaymentOpen(false)}>
                 Fermer
               </Button>
             </div>
@@ -1125,21 +1261,20 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
         )}
       </Dialog>
 
-      {/* Monthly Tracking Grid (Tuition) */}
+      {/* Monthly Grids */}
       {!status?.feeRecord ? (
-        <div className="bg-amber-50 p-6 rounded-lg shadow border border-amber-200 mt-6 text-center">
-          <h3 className="text-lg font-semibold text-amber-800 mb-2">Élève non inscrit</h3>
-          <p className="text-amber-700">
-            Cet élève n'est pas encore inscrit dans une classe pour l'année scolaire {schoolYear}.
-            Veuillez l'inscrire via le bouton "Inscrire" en haut de la page pour activer le suivi
-            des paiements.
+        <div className="bg-amber-500/10 p-6 rounded-xl border border-amber-500/30 text-center">
+          <h3 className="text-base font-semibold text-amber-700 dark:text-amber-400 mb-1">
+            Élève non inscrit pour l'année {schoolYear}
+          </h3>
+          <p className="text-xs text-amber-600 dark:text-amber-500">
+            Veuillez l'inscrire via le bouton "Inscrire" pour activer le suivi financier.
           </p>
         </div>
       ) : (
         renderMonthGrid(`Suivi des Écolages (${schoolYear})`, 'tuition', status?.status ?? [])
       )}
 
-      {/* Monthly Tracking Grid (Bus) */}
       {!!status?.feeRecord?.bus_subscribed &&
         renderMonthGrid(
           `Suivi du Transport (${status.feeRecord.bus_route} - ${busCost.toLocaleString()} Ar/mois)`,
@@ -1147,7 +1282,6 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
           busStatus
         )}
 
-      {/* Monthly Tracking Grid (Canteen) */}
       {!!status?.feeRecord?.canteen_subscribed &&
         renderMonthGrid(
           `Suivi de la Cantine (${canteenCost.toLocaleString()} Ar/mois)`,
@@ -1156,69 +1290,157 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
         )}
 
       {/* Payment History List */}
-      <div className="bg-white rounded-lg shadow border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b">
-          <h3 className="text-lg font-semibold">Historique des Paiements</h3>
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Historique des Paiements</h3>
+            <p className="text-xs text-muted-foreground">{payments.length} transaction(s) enregistrée(s)</p>
+          </div>
+
+          {selectedPaymentIds.size > 0 && (
+            <Button
+              size="sm"
+              onClick={handlePrintGroupedReceipt}
+              disabled={printing}
+              className="bg-primary text-primary-foreground shadow-sm animate-in fade-in"
+            >
+              {printing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Printer className="w-4 h-4 mr-2" />
+              )}
+              Imprimer le ticket groupé ({selectedPaymentIds.size})
+            </Button>
+          )}
         </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+            <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
               <tr>
-                <th className="px-6 py-3">Date</th>
-                <th className="px-6 py-3">Type</th>
-                <th className="px-6 py-3">Mois / Détail</th>
-                <th className="px-6 py-3 text-right">Montant</th>
-                <th className="px-6 py-3">Mode</th>
+                <th className="w-10 px-4 py-3 text-center">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAllPayments}
+                    className="text-muted-foreground hover:text-foreground"
+                    title={
+                      selectedPaymentIds.size === payments.length
+                        ? 'Tout désélectionner'
+                        : 'Tout sélectionner'
+                    }
+                  >
+                    {selectedPaymentIds.size > 0 && selectedPaymentIds.size === payments.length ? (
+                      <CheckSquare className="w-4 h-4 text-primary" />
+                    ) : (
+                      <Square className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
+                 <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">N° Reçu</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Mois / Détail</th>
+                <th className="px-4 py-3 text-right">Montant</th>
+                <th className="px-4 py-3">Mode</th>
+                <th className="px-4 py-3 text-center">Ticket</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-border">
               {payments.length > 0 ? (
-                payments.map((payment) => (
-                  <tr key={payment.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {format(new Date(payment.payment_date), 'dd MMM yyyy', { locale: fr })}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded capitalize">
-                        {payment.payment_type === 'tuition'
-                          ? 'Écolage'
-                          : payment.payment_type === 'enrollment'
-                            ? 'Inscription'
-                            : payment.payment_type === 'reenrollment'
-                              ? 'Réinscription'
-                              : payment.payment_type === 'bus'
-                                ? 'Transport'
-                                : payment.payment_type === 'canteen'
-                                  ? 'Cantine'
-                                  : payment.payment_type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">
-                      {payment.month ? (
-                        <span className="font-medium text-gray-900">{payment.month}</span>
-                      ) : (
-                        payment.description || '-'
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right font-bold text-gray-900">
-                      {payment.amount.toLocaleString()} Ar
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 capitalize">
-                      {payment.payment_method === 'discount'
-                        ? 'Remise'
-                        : payment.payment_method === 'mobile_money'
-                          ? 'Mobile Money'
-                          : payment.payment_method === 'transfer'
-                            ? 'Virement'
-                            : payment.payment_method === 'check'
-                              ? 'Chèque'
-                              : 'Espèces'}
-                    </td>
-                  </tr>
-                ))
+                payments.map((payment) => {
+                  const isSelected = selectedPaymentIds.has(payment.id)
+                  const printCount = payment.print_count || 0
+                  return (
+                    <tr
+                      key={payment.id}
+                      className={`hover:bg-muted/40 transition-colors ${
+                        isSelected ? 'bg-primary/5' : ''
+                      }`}
+                    >
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelectPayment(payment.id)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-primary" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
+                        {format(new Date(payment.payment_date), 'dd MMM yyyy', { locale: fr })}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-foreground">
+                            {payment.receipt_number || payment.id.slice(0, 8)}
+                          </span>
+                          {printCount > 0 && (
+                            <span
+                              className="px-1.5 py-0.5 text-[10px] font-sans font-semibold rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              title={`Reçu imprimé ${printCount} fois. Toute réimpression générera un duplicata horodaté.`}
+                            >
+                              Duplicata (x{printCount})
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="bg-muted text-foreground text-xs font-medium px-2.5 py-0.5 rounded-full capitalize">
+                          {payment.payment_type === 'tuition'
+                            ? 'Écolage'
+                            : payment.payment_type === 'enrollment'
+                              ? 'Inscription'
+                              : payment.payment_type === 'reenrollment'
+                                ? 'Réinscription'
+                                : payment.payment_type === 'bus'
+                                  ? 'Transport'
+                                  : payment.payment_type === 'canteen'
+                                    ? 'Cantine'
+                                    : payment.payment_type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {payment.month ? (
+                          <span className="font-medium text-foreground">{payment.month}</span>
+                        ) : (
+                          payment.description || '-'
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-foreground">
+                        {Number(payment.amount).toLocaleString()} Ar
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground capitalize">
+                        {payment.payment_method === 'discount'
+                          ? 'Remise'
+                          : payment.payment_method === 'mobile_money'
+                            ? 'Mobile Money'
+                            : payment.payment_method === 'transfer'
+                              ? 'Virement'
+                              : payment.payment_method === 'check'
+                                ? 'Chèque'
+                                : 'Espèces'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handlePrintReceipt(payment)}
+                          disabled={printing}
+                          className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title={printCount > 0 ? `Réimprimer Duplicata (déjà imprimé ${printCount} fois)` : "Imprimer reçu original"}
+                        >
+                          <Printer className={`w-4 h-4 ${printCount > 0 ? 'text-amber-500' : ''}`} />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
                     Aucun paiement enregistré pour le moment.
                   </td>
                 </tr>
@@ -1230,3 +1452,4 @@ export function FinanceTab({ studentId, schoolYear, feeRecord, events = [] }: Fi
     </div>
   )
 }
+export default FinanceTab

@@ -32,12 +32,26 @@ export function registerEmailHandlers(): void {
     return result
   })
 
-  ipcMain.handle('email:testConnection', async () => {
-    if (!canRead('settings')) {
-      return { success: false, error: 'Accès refusé' }
+  ipcMain.handle(
+    'email:testConnection',
+    async (
+      _,
+      credentials?: {
+        provider?: 'brevo' | 'gmail'
+        smtp_host?: string
+        smtp_port?: number
+        smtp_user?: string
+        smtp_key?: string
+        gmail_address?: string
+        gmail_app_password?: string
+      }
+    ) => {
+      if (!canRead('settings')) {
+        return { success: false, error: 'Accès refusé' }
+      }
+      return EmailService.testConnection(credentials)
     }
-    return EmailService.testConnection()
-  })
+  )
 
   ipcMain.handle('email:sendNow', async (_, to, subject, body) => {
     if (!canWrite('reports')) {
@@ -65,10 +79,29 @@ export function registerEmailHandlers(): void {
     return { success: true, logs: EmailService.getLogs() }
   })
 
-  ipcMain.handle('email:sendDailyReport', async () => {
-    if (!canWrite('reports')) {
+  ipcMain.handle('email:clearLogs', async () => {
+    if (!canWrite('settings')) {
       return { success: false, error: 'Accès refusé' }
     }
-    return EmailService.sendDailyReport()
+    return EmailService.clearLogs()
+  })
+
+  ipcMain.handle('email:sendDailyReport', async (_, targetDate?: string) => {
+    if (!canWrite('reports') && !canWrite('settings')) {
+      return { success: false, error: 'Accès refusé' }
+    }
+    const result = await EmailService.sendDailyReport(targetDate)
+    if (result.success) {
+      const user = getCurrentUser()
+      logAction(
+        user?.id || null,
+        'create',
+        'reports',
+        null,
+        null,
+        `Bilan journalier envoyé par email (${targetDate || 'aujourd\'hui'})`
+      )
+    }
+    return result
   })
 }

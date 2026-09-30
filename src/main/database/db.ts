@@ -35,6 +35,9 @@ if (fs.existsSync(legacyDbPath) && !fs.existsSync(dbPath)) {
 // Explicitly type db to avoid export errors
 const db: Database.Database = new Database(dbPath, { verbose: undefined })
 db.pragma('journal_mode = WAL')
+db.pragma('synchronous = NORMAL')
+db.pragma('cache_size = -64000') // 64 MB in-memory cache
+db.pragma('temp_store = MEMORY')
 
 // Migration runner
 const runMigrations = () => {
@@ -139,7 +142,11 @@ const runMigrations = () => {
     '033_add_ecole_id_to_all.sql',
     '034_add_school_config_settings.sql',
     '035_add_thermal_printer_settings.sql',
-    '036_add_app_logs.sql'
+    '036_add_app_logs.sql',
+    '037_fix_payments_school_year_quotes.sql',
+    '038_auto_provision_student_fees.sql',
+    '039_receipt_sequences_and_duplicate_tracking.sql',
+    '040_add_cash_closures_and_perf_indexes.sql'
   ]
   migrations.forEach(applyMigration)
 }
@@ -201,7 +208,30 @@ ensureTableColumns('student_fees', [
   'uniform_apron_purchased',
   'uniform_shorts_purchased',
   'uniform_badge_purchased',
-  'fram_paid_by_parent'
+  'fram_paid_by_parent',
+  'bus_monthly_fee'
+])
+
+ensureTableColumns('student_payments', [
+  'print_count',
+  'last_printed_at',
+  'last_printed_by',
+  'created_by',
+  'ecole_id'
+])
+
+ensureTableColumns('cash_journal', [
+  'receipt_number',
+  'print_count',
+  'last_printed_at',
+  'last_printed_by',
+  'related_payment_id',
+  'created_by',
+  'ecole_id'
+])
+
+ensureTableColumns('sync_queue', [
+  'updated_at'
 ])
 
 ensureTableColumns('parent_events', ['school_year'])
@@ -266,3 +296,14 @@ try {
     );
   `);
 } catch(e) {}
+
+// Auto-backfill non-normalized receipt numbers
+setTimeout(() => {
+  try {
+    import('./repositories/payment.repository').then(({ PaymentRepository }) => {
+      PaymentRepository.backfillMissingReceiptNumbers()
+    })
+  } catch (e) {
+    console.error('Failed to run receipt normalization backfill:', e)
+  }
+}, 100)

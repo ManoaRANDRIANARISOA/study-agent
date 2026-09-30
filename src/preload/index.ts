@@ -48,7 +48,12 @@ const api = {
     repair: (targetYear: string) => ipcRenderer.invoke('student:repair', targetYear),
 
     repairSync: () => ipcRenderer.invoke('student:repairSync'),
-    resetDatabase: (includeRemote: boolean) => ipcRenderer.invoke('db:reset', includeRemote)
+    resetDatabase: (includeRemote: boolean) => ipcRenderer.invoke('db:reset', includeRemote),
+    rectifyEnrollmentType: (
+      studentId: string,
+      schoolYear: string,
+      newType: 'enrollment' | 'reenrollment'
+    ) => ipcRenderer.invoke('student:rectifyEnrollmentType', studentId, schoolYear, newType)
   },
 
   // --------------------------------------------
@@ -58,6 +63,8 @@ const api = {
     create: (data: Record<string, unknown>) => ipcRenderer.invoke('payment:create', data),
     getByStudent: (studentId: string, schoolYear?: string) =>
       ipcRenderer.invoke('payment:getByStudent', studentId, schoolYear),
+    getBySchoolYear: (schoolYear: string) =>
+      ipcRenderer.invoke('payment:getBySchoolYear', schoolYear),
     getAll: (filters?: Record<string, unknown>) => ipcRenderer.invoke('payment:getAll', filters),
     getTuitionStatus: (studentId: string, schoolYear: string) =>
       ipcRenderer.invoke('payment:getTuitionStatus', studentId, schoolYear),
@@ -114,8 +121,10 @@ const api = {
 
   printer: {
     getPrinters: () => ipcRenderer.invoke('printer:getPrinters'),
-    printReceipt: (data) => ipcRenderer.invoke('printer:printReceipt', data),
-    testPrint: (size) => ipcRenderer.invoke('printer:testPrint', size)
+    printReceipt: (data: Record<string, unknown>, copies?: number) =>
+      ipcRenderer.invoke('printer:printReceipt', data, copies),
+    testPrint: (sizeOrPrinterName?: string) =>
+      ipcRenderer.invoke('printer:testPrint', sizeOrPrinterName)
   },
   tenant: {
     check: () => ipcRenderer.invoke('tenant:check'),
@@ -288,7 +297,17 @@ const api = {
       ipcRenderer.invoke('cashjournal:getMonthlyBalance', year, month),
     getBalanceSummary: (startDate: string, endDate: string) =>
       ipcRenderer.invoke('cashjournal:getBalanceSummary', startDate, endDate),
-    getTotalBalance: () => ipcRenderer.invoke('cashjournal:getTotalBalance')
+    getTotalBalance: () => ipcRenderer.invoke('cashjournal:getTotalBalance'),
+    getDistinctCashiers: () => ipcRenderer.invoke('cashjournal:getDistinctCashiers'),
+    getCashierDailySummary: (date: string, cashier?: string, stationCode?: string) =>
+      ipcRenderer.invoke('cashjournal:getCashierDailySummary', date, cashier, stationCode),
+    createClosure: (input: any) => ipcRenderer.invoke('cashjournal:createClosure', input),
+    getClosure: (date: string, cashier?: string) =>
+      ipcRenderer.invoke('cashjournal:getClosure', date, cashier),
+    listClosures: (schoolYear?: string) =>
+      ipcRenderer.invoke('cashjournal:listClosures', schoolYear),
+    printTicketZ: (data: any, copies?: number) =>
+      ipcRenderer.invoke('cashjournal:printTicketZ', data, copies)
   },
 
   // --------------------------------------------
@@ -320,7 +339,18 @@ const api = {
       data: Record<string, unknown>[],
       columns: Array<{ key: string; label: string }>,
       filename: string
-    ) => ipcRenderer.invoke('export:csv', data, columns, filename)
+    ) => ipcRenderer.invoke('export:csv', data, columns, filename),
+    file: (options: {
+      format: 'xlsx' | 'xls' | 'csv' | 'json' | 'pdf'
+      data: Record<string, unknown>[]
+      columns: Array<{ key: string; label: string; width?: number }>
+      defaultFilename?: string
+      title?: string
+      subtitle?: string
+      schoolName?: string
+      schoolYear?: string
+      csvDelimiter?: ';' | ','
+    }) => ipcRenderer.invoke('export:file', options)
   },
 
   // --------------------------------------------
@@ -328,12 +358,15 @@ const api = {
   // --------------------------------------------
   email: {
     configure: (config: Record<string, unknown>) => ipcRenderer.invoke('email:configure', config),
-    testConnection: () => ipcRenderer.invoke('email:testConnection'),
+    testConnection: (credentials?: Record<string, unknown>) =>
+      ipcRenderer.invoke('email:testConnection', credentials),
     sendNow: (to: string, subject: string, body: string) =>
       ipcRenderer.invoke('email:sendNow', to, subject, body),
     getStatus: () => ipcRenderer.invoke('email:getStatus'),
     getLogs: () => ipcRenderer.invoke('email:getLogs'),
-    sendDailyReport: () => ipcRenderer.invoke('email:sendDailyReport')
+    clearLogs: () => ipcRenderer.invoke('email:clearLogs'),
+    sendDailyReport: (targetDate?: string) =>
+      ipcRenderer.invoke('email:sendDailyReport', targetDate)
   },
 
   // --------------------------------------------
@@ -373,6 +406,59 @@ const api = {
     get: (params?: { startDate?: string; endDate?: string; level?: string; limit?: number; offset?: number }) =>
       ipcRenderer.invoke('logs:get', params),
     clear: () => ipcRenderer.invoke('logs:clear')
+  },
+
+  // --------------------------------------------
+  // Duplicates & Data Health
+  // --------------------------------------------
+  duplicates: {
+    scan: () => ipcRenderer.invoke('duplicates:scan'),
+    merge: (keepId: string, removeId: string) =>
+      ipcRenderer.invoke('duplicates:merge', { keepId, removeId }),
+    scanPayments: () => ipcRenderer.invoke('duplicates:scanPayments'),
+    resolvePayment: (keepPaymentId: string, removePaymentId: string, reason?: string) =>
+      ipcRenderer.invoke('duplicates:resolvePayment', { keepPaymentId, removePaymentId, reason }),
+    autoResolveCollisions: () => ipcRenderer.invoke('duplicates:autoResolveCollisions')
+  },
+
+  // --------------------------------------------
+  // App Version & Info
+  // --------------------------------------------
+  app: {
+    getVersion: () => ipcRenderer.invoke('app:getVersion')
+  },
+
+  // --------------------------------------------
+  // Cloud Sync
+  // --------------------------------------------
+  sync: {
+    getStatus: () => ipcRenderer.invoke('sync:getStatus'),
+    start: (forceFullSync?: boolean) => ipcRenderer.invoke('sync:start', forceFullSync),
+    getErrors: () => ipcRenderer.invoke('sync:getErrors'),
+    retryErrors: () => ipcRenderer.invoke('sync:retryErrors'),
+    quarantineAndUnblock: () => ipcRenderer.invoke('sync:quarantineAndUnblock'),
+    onProgress: (callback: (data: any) => void) => {
+      const listener = (_: any, data: any) => callback(data)
+      ipcRenderer.on('sync:progress', listener)
+      return () => {
+        ipcRenderer.removeListener('sync:progress', listener)
+      }
+    }
+  },
+
+  // --------------------------------------------
+  // Telemetry & Error Logging
+  // --------------------------------------------
+  telemetry: {
+    fetchStationErrors: (hours?: number) => ipcRenderer.invoke('telemetry:fetchStationErrors', hours),
+    clearStationErrors: () => ipcRenderer.invoke('telemetry:clearStationErrors'),
+    reportError: (context: string, error: unknown, metadata?: Record<string, unknown>) =>
+      ipcRenderer.invoke(
+        'telemetry:reportError',
+        context,
+        typeof error === 'string' ? error : (error as Error)?.message || String(error),
+        metadata
+      )
   }
 }
 

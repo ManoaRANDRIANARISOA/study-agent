@@ -9,6 +9,7 @@ import StudentDetail from './StudentDetail'
 import ReadOnlyBanner from '@/components/shared/ReadOnlyBanner'
 import { usePermissions } from '@/lib/usePermissions'
 import { useClasses } from '@/lib/useClasses'
+import StudentExportModal from '@/components/students/StudentExportModal'
 
 export default function StudentList() {
   const { students, currentStudent, currentFees, loading, fetchStudents } = useStudentStore()
@@ -23,6 +24,7 @@ export default function StudentList() {
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'detail'>('list')
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
 
   useEffect(() => {
     fetchStudents()
@@ -127,27 +129,10 @@ export default function StudentList() {
           <Button
             variant="outline"
             size="sm"
-            onClick={async () => {
-              const result = await window.api.student.list({
-                limit: 10000,
-                schoolYear: currentYear
-              })
-              const students = result?.students || []
-              await window.api.export.csv(
-                students as unknown as Record<string, unknown>[],
-                [
-                  { key: 'registration_number', label: 'Matricule' },
-                  { key: 'last_name', label: 'Nom' },
-                  { key: 'first_name', label: 'Prénom' },
-                  { key: 'class', label: 'Classe' },
-                  { key: 'enrollment_date', label: "Date d'inscription" }
-                ],
-                'eleves_export.csv'
-              )
-            }}
+            onClick={() => setIsExportModalOpen(true)}
           >
             <Download className="w-4 h-4 mr-2" />
-            CSV
+            Exporter
           </Button>
           {canWrite('students') && (
             <Button onClick={() => setView('create')}>
@@ -316,6 +301,13 @@ export default function StudentList() {
           </table>
         </div>
       )}
+
+      <StudentExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        students={students}
+        schoolYear={currentYear}
+      />
     </div>
   )
 }

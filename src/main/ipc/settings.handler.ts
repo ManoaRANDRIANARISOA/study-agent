@@ -22,35 +22,45 @@ import { getCurrentUser } from '../auth/rbac.service'
 import { uploadToStorage } from '../services/storage.service'
 
 export function registerSettingsHandlers(): void {
+  const PUBLIC_SETTINGS = [
+    'school_year',
+    'school_name',
+    'school_logo',
+    'school_address',
+    'school_city',
+    'school_phone',
+    'school_email',
+    'school_type',
+    'director_name',
+    'director_title',
+    'receipt_prefix',
+    'primary_color',
+    'currency',
+    'ecole_id',
+    'module_cantine',
+    'module_bus',
+    'module_uniforms',
+    'module_evaluations',
+    'exonerate_personnel_children',
+    'auth_require_password_change',
+    'finance_prices',
+    'classes',
+    'tuition_preschool',
+    'tuition_primary',
+    'tuition_middle',
+    'tuition_high',
+    'thermal_printer_enabled',
+    'thermal_printer_name',
+    'thermal_printer_size',
+    'printer_name',
+    'printer_copies',
+    'printer_size'
+  ]
+
   // --------------------------------------------
   // GET SINGLE SETTING
   // --------------------------------------------
   ipcMain.handle('settings:get', (_, key: string) => {
-    // Les paramètres de base sont publics pour tous les utilisateurs connectés
-    const PUBLIC_SETTINGS = [
-      'school_year',
-      'school_name',
-      'school_logo',
-      'school_address',
-      'school_city',
-      'school_phone',
-      'school_email',
-      'school_type',
-      'director_name',
-      'director_title',
-      'receipt_prefix',
-      'primary_color',
-      'module_cantine',
-      'module_bus',
-      'module_uniforms',
-      'module_evaluations',
-      'exonerate_personnel_children',
-      'auth_require_password_change',
-      'thermal_printer_enabled',
-      'thermal_printer_name',
-      'thermal_printer_size'
-    ]
-
     if (!PUBLIC_SETTINGS.includes(key) && !canRead('settings')) {
       return null
     }
@@ -63,27 +73,6 @@ export function registerSettingsHandlers(): void {
   ipcMain.handle('settings:getAll', () => {
     const all = SettingsRepository.getAll()
     if (!canRead('settings')) {
-      const PUBLIC_SETTINGS = [
-        'school_year',
-        'school_name',
-        'school_logo',
-        'school_address',
-        'school_city',
-        'school_phone',
-        'school_email',
-        'school_type',
-        'director_name',
-        'director_title',
-        'receipt_prefix',
-        'primary_color',
-        'module_cantine',
-        'module_bus',
-        'module_uniforms',
-        'module_evaluations',
-        'exonerate_personnel_children',
-        'auth_require_password_change',
-        'thermal_printer_enabled'
-      ]
       const filtered: Record<string, unknown> = {}
       for (const key of PUBLIC_SETTINGS) {
         if (key in all) filtered[key] = all[key]

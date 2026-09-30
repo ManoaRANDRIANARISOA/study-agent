@@ -62,6 +62,9 @@ export interface AuthState {
 export interface AuditLog {
   id: number
   user_id: string | null
+  username?: string | null
+  user_full_name?: string | null
+  user_role?: string | null
   action: string
   table_name: string | null
   record_id: string | null
@@ -176,6 +179,10 @@ export interface Payment {
   description?: string
   payment_method?: 'cash' | 'check' | 'transfer' | 'mobile_money' | 'discount'
   receipt_number?: string
+  school_year?: string
+  print_count?: number
+  last_printed_at?: string
+  last_printed_by?: string
   created_at?: string
   updated_at?: string
 }
@@ -192,7 +199,14 @@ export interface CashJournalEntry {
   description?: string
   payment_method?: string
   related_student_id?: string
+  related_payment_id?: string
   related_personnel_id?: string
+  receipt_number?: string
+  print_count?: number
+  last_printed_at?: string
+  last_printed_by?: string
+  created_by?: string
+  registration_number?: string
   created_at?: string
   updated_at?: string
 }
@@ -205,6 +219,8 @@ export interface CashJournalFilters {
   category?: string
   search?: string
   schoolYear?: string
+  createdBy?: string
+  stationCode?: string
 }
 
 export interface FeeRecord {
@@ -220,6 +236,7 @@ export interface FeeRecord {
 
   bus_subscribed: boolean
   bus_route?: string
+  bus_monthly_fee?: number
 
   canteen_subscribed: boolean
   canteen_days_per_week: number
@@ -239,6 +256,13 @@ export interface SchoolConfig {
   school_name: string
   current_year: string
   school_logo?: string
+  receipt_prefix?: string
+  module_cash_closure?: boolean
+  school_address?: string
+  school_city?: string
+  school_phone?: string
+  school_email?: string
+  currency?: string
 }
 
 // --------------------------------------------
@@ -474,4 +498,113 @@ export interface ClassSubjectInput {
   ecole_id?: string
   coefficient?: number
   position?: number
+}
+
+// --------------------------------------------
+// Avenant N°3 — Rapprochement & Z de Caisse
+// --------------------------------------------
+
+export interface CashBilletageBreakdown {
+  b20000: number
+  b10000: number
+  b5000: number
+  b2000: number
+  b1000: number
+  b500?: number
+  b200?: number
+  b100?: number
+  checks_total?: number
+}
+
+export interface CashierOption {
+  username: string
+  fullName: string
+  full_name?: string
+  displayName: string
+  role?: string
+  station_code?: string
+}
+
+export interface CashierDailySummary {
+  date: string
+  cashier: string
+  station_code: string
+  total_tickets: number
+  expected_cash: number
+  expected_check: number
+  expected_mobile: number
+  expected_transfer: number
+  expected_total: number
+  average_basket: number
+  first_receipt?: string
+  last_receipt?: string
+  checks: Array<{
+    amount: number
+    description?: string
+    student_name?: string
+    receipt_number?: string
+  }>
+}
+
+export interface CashClosure {
+  id: string
+  closure_number?: string
+  ecole_id?: string
+  closure_date: string
+  closure_datetime: string
+  cashier_username: string
+  station_code: string
+  total_tickets: number
+  expected_cash: number
+  expected_check: number
+  expected_mobile: number
+  expected_transfer: number
+  expected_total: number
+  counted_cash: number
+  counted_breakdown: string
+  cash_difference: number
+  status: 'closed' | 'locked' | 'discrepancy'
+  notes?: string
+  is_locked: number
+  sync_status?: string
+  version?: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface CashClosureInput {
+  ecole_id?: string
+  closure_date: string
+  cashier_username: string
+  station_code: string
+  total_tickets: number
+  expected_cash: number
+  expected_check: number
+  expected_mobile: number
+  expected_transfer: number
+  expected_total: number
+  counted_cash: number
+  counted_breakdown: CashBilletageBreakdown
+  cash_difference: number
+  notes?: string
+}
+
+export interface TicketZData {
+  ecole_id?: string
+  closure_date: string
+  closure_datetime?: string
+  cashier: string
+  station_code: string
+  total_tickets: number
+  first_receipt?: string
+  last_receipt?: string
+  expected_cash: number
+  expected_check: number
+  expected_mobile: number
+  expected_transfer: number
+  expected_total: number
+  counted_cash: number
+  breakdown: CashBilletageBreakdown
+  cash_difference: number
+  notes?: string
 }

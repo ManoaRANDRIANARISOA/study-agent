@@ -1,25 +1,36 @@
 /**
  * email.service.ts — Email Automation Service
  *
- * Sends emails via Gmail SMTP (App Password).
- * Stores config in the 'settings' table (keys: 'email_config').
- * Schedules daily reports at 18:00.
+ * Supports Brevo SMTP Relay (STARTTLS on port 587) and Gmail SMTP (App Password).
+ * Stores configuration in SQLite settings table (scoped per tenant).
+ * Multi-tenant safe: dynamic school name, dynamic sender, dynamic recipient, and zero hardcoding.
+ * Automatically generates executive daily financial report with PDF attachment and sends at 18:00 on working days.
  *
  * @module EmailService
  */
 
 import nodemailer from 'nodemailer'
 import db from '../database/db'
+import { CashJournalRepository } from '../database/repositories/cashjournal.repository'
+import { SettingsRepository } from '../database/repositories/settings.repository'
+import { PdfService } from './pdf.service'
 
-interface EmailConfig {
+export interface EmailConfig {
   enabled: boolean
-  gmail_address: string
-  gmail_app_password: string
-  recipient_email: string
+  provider?: 'brevo' | 'gmail'
+  smtp_host?: string
+  smtp_port?: number
+  smtp_user?: string
+  smtp_key?: string
+  sender_name?: string
+  sender_email?: string
+  gmail_address?: string
+  gmail_app_password?: string
+  recipient_email?: string
   auto_send_daily: boolean
 }
 
-interface EmailLog {
+export interface EmailLog {
   sent_at: string
   recipient: string
   subject: string
@@ -43,26 +54,62 @@ function getConfig(): EmailConfig | null {
 }
 
 function saveConfig(config: EmailConfig): void {
+  const schoolName = (SettingsRepository.get('school_name') as string) || 'Study Agent'
+  const schoolEmail = (SettingsRepository.get('school_email') as string) || ''
+
+  const cleaned: EmailConfig = {
+    ...config,
+    provider: config.provider || 'brevo',
+    smtp_host: config.smtp_host ? config.smtp_host.trim() : 'smtp-relay.brevo.com',
+    smtp_port: Number(config.smtp_port) || 587,
+    smtp_user: config.smtp_user ? config.smtp_user.trim() : '',
+    smtp_key: config.smtp_key ? config.smtp_key.trim() : '',
+    sender_name: config.sender_name ? config.sender_name.trim() : schoolName,
+    sender_email: config.sender_email ? config.sender_email.trim() : schoolEmail,
+    gmail_address: config.gmail_address ? config.gmail_address.trim() : '',
+    gmail_app_password: config.gmail_app_password ? config.gmail_app_password.replace(/\s+/g, '') : '',
+    recipient_email: config.recipient_email ? config.recipient_email.trim() : schoolEmail,
+    auto_send_daily: Boolean(config.auto_send_daily)
+  }
+
   const existing = db.prepare("SELECT key FROM settings WHERE key = 'email_config'").get()
   if (existing) {
     db.prepare(
       "UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP, sync_status = 'pending' WHERE key = 'email_config'"
-    ).run(JSON.stringify(config))
+    ).run(JSON.stringify(cleaned))
   } else {
     db.prepare("INSERT INTO settings (key, value, sync_status) VALUES (?, ?, 'pending')").run(
       'email_config',
-      JSON.stringify(config)
+      JSON.stringify(cleaned)
     )
   }
 }
 
 function initTransporter(config: EmailConfig): boolean {
-  if (!config.gmail_address || !config.gmail_app_password) return false
+  if (config.provider === 'brevo') {
+    const user = config.smtp_user?.trim() || config.sender_email?.trim() || config.gmail_address?.trim()
+    const pass = config.smtp_key?.trim() || config.gmail_app_password?.replace(/\s+/g, '')
+    if (!user || !pass) return false
+    transporter = nodemailer.createTransport({
+      host: config.smtp_host?.trim() || 'smtp-relay.brevo.com',
+      port: Number(config.smtp_port) || 587,
+      secure: false, // TLS via STARTTLS on 587
+      auth: {
+        user,
+        pass
+      }
+    })
+    return true
+  }
+
+  const user = config.gmail_address?.trim()
+  const pass = config.gmail_app_password?.replace(/\s+/g, '')
+  if (!user || !pass) return false
   transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: config.gmail_address,
-      pass: config.gmail_app_password
+      user,
+      pass
     }
   })
   return true
@@ -76,6 +123,7 @@ function addEmailLog(log: EmailLog): void {
     const logs: EmailLog[] = existing ? JSON.parse(existing.value) : []
     logs.unshift(log)
     if (logs.length > 50) logs.length = 50
+
     const row = db.prepare("SELECT key FROM settings WHERE key = 'email_logs'").get()
     if (row) {
       db.prepare(
@@ -92,11 +140,29 @@ function addEmailLog(log: EmailLog): void {
   }
 }
 
+export function translateEmailError(raw: string): string {
+  if (
+    raw.includes('535') ||
+    raw.includes('BadCredentials') ||
+    raw.includes('Username and Password not accepted') ||
+    raw.includes('Authentication failed')
+  ) {
+    return "Identifiants SMTP non reconnus (Erreur 535) : Vérifiez votre identifiant de connexion et votre mot de passe d'application Gmail ou clé SMTP Brevo."
+  }
+  if (raw.includes('ENOTFOUND') || raw.includes('EAI_AGAIN')) {
+    return 'Serveurs SMTP inaccessibles (ENOTFOUND) : Vérifiez la connexion Internet du poste ou vos paramètres DNS.'
+  }
+  if (raw.includes('ETIMEDOUT') || raw.includes('ECONNREFUSED')) {
+    return 'Délai de connexion dépassé vers le serveur SMTP (Port 587/465 bloqué par votre réseau ou connexion trop lente).'
+  }
+  return raw
+}
+
 export class EmailService {
   static configure(config: EmailConfig): { success: boolean; error?: string } {
     try {
       saveConfig(config)
-      if (config.enabled && config.gmail_address && config.gmail_app_password) {
+      if (config.enabled) {
         initTransporter(config)
       } else {
         transporter = null
@@ -108,12 +174,17 @@ export class EmailService {
     }
   }
 
-  static getStatus(): { configured: boolean; enabled: boolean; auto_send: boolean } {
+  static getStatus(): { configured: boolean; enabled: boolean; auto_send: boolean; provider?: string } {
     const config = getConfig()
+    const isConfigured =
+      config?.provider === 'gmail'
+        ? !!(config?.gmail_address && config?.gmail_app_password)
+        : !!((config?.smtp_user || config?.gmail_address) && (config?.smtp_key || config?.gmail_app_password))
     return {
-      configured: !!(config?.gmail_address && config?.gmail_app_password),
+      configured: isConfigured,
       enabled: config?.enabled || false,
-      auto_send: config?.auto_send_daily || false
+      auto_send: config?.auto_send_daily || false,
+      provider: config?.provider || 'brevo'
     }
   }
 
@@ -128,20 +199,98 @@ export class EmailService {
     }
   }
 
-  static async testConnection(): Promise<{ success: boolean; error?: string }> {
+  static clearLogs(): { success: boolean } {
+    try {
+      db.prepare("UPDATE settings SET value = '[]', updated_at = CURRENT_TIMESTAMP WHERE key = 'email_logs'").run()
+      return { success: true }
+    } catch {
+      return { success: false }
+    }
+  }
+
+  static async testConnection(credentials?: {
+    provider?: 'brevo' | 'gmail'
+    smtp_host?: string
+    smtp_port?: number
+    smtp_user?: string
+    smtp_key?: string
+    gmail_address?: string
+    gmail_app_password?: string
+  }): Promise<{ success: boolean; error?: string }> {
     const config = getConfig()
-    if (!config?.gmail_address || !config?.gmail_app_password) {
-      return { success: false, error: 'Configuration email manquante' }
+    const provider = credentials?.provider || config?.provider || 'brevo'
+
+    if (provider === 'brevo') {
+      const user =
+        credentials?.smtp_user?.trim() ||
+        config?.smtp_user?.trim() ||
+        credentials?.gmail_address?.trim() ||
+        config?.gmail_address?.trim()
+      const pass =
+        credentials?.smtp_key?.trim() ||
+        config?.smtp_key?.trim() ||
+        credentials?.gmail_app_password?.replace(/\s+/g, '') ||
+        config?.gmail_app_password?.replace(/\s+/g, '')
+      const host = credentials?.smtp_host?.trim() || config?.smtp_host?.trim() || 'smtp-relay.brevo.com'
+      const port = Number(credentials?.smtp_port || config?.smtp_port || 587)
+
+      if (!user || !pass) {
+        return {
+          success: false,
+          error: 'Configuration Brevo incomplète : identifiant de connexion (Login) ou clé SMTP manquante.'
+        }
+      }
+
+      try {
+        const testTransporter = nodemailer.createTransport({
+          host,
+          port,
+          secure: false,
+          auth: { user, pass }
+        })
+        await testTransporter.verify()
+        return { success: true }
+      } catch (error: unknown) {
+        const raw = error instanceof Error ? error.message : String(error)
+        const message = translateEmailError(raw)
+        addEmailLog({
+          sent_at: new Date().toISOString(),
+          recipient: user,
+          subject: 'Test de connexion Brevo SMTP',
+          success: false,
+          error: message
+        })
+        return { success: false, error: message }
+      }
+    }
+
+    const user = credentials?.gmail_address?.trim() || config?.gmail_address?.trim()
+    const pass =
+      credentials?.gmail_app_password?.replace(/\s+/g, '') ||
+      config?.gmail_app_password?.replace(/\s+/g, '')
+    if (!user || !pass) {
+      return {
+        success: false,
+        error: "Configuration email incomplète : adresse Gmail ou mot de passe d'application manquant."
+      }
     }
     try {
       const testTransporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { user: config.gmail_address, pass: config.gmail_app_password }
+        auth: { user, pass }
       })
       await testTransporter.verify()
       return { success: true }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Connexion échouée'
+      const raw = error instanceof Error ? error.message : String(error)
+      const message = translateEmailError(raw)
+      addEmailLog({
+        sent_at: new Date().toISOString(),
+        recipient: user,
+        subject: 'Test de connexion Gmail SMTP',
+        success: false,
+        error: message
+      })
       return { success: false, error: message }
     }
   }
@@ -162,8 +311,15 @@ export class EmailService {
       }
     }
     try {
+      const schoolName = (SettingsRepository.get('school_name') as string) || 'Study Agent'
+      const senderName = config!.sender_name || schoolName
+      const senderAddress =
+        config!.provider === 'brevo'
+          ? config!.sender_email || config!.smtp_user || config!.gmail_address
+          : config!.gmail_address
+
       const mailOptions: nodemailer.SendMailOptions = {
-        from: config!.gmail_address,
+        from: `"${senderName}" <${senderAddress}>`,
         to,
         subject,
         html: body
@@ -175,7 +331,8 @@ export class EmailService {
       addEmailLog({ sent_at: new Date().toISOString(), recipient: to, subject, success: true })
       return { success: true }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Envoi échoué'
+      const raw = error instanceof Error ? error.message : String(error)
+      const message = translateEmailError(raw)
       addEmailLog({
         sent_at: new Date().toISOString(),
         recipient: to,
@@ -187,18 +344,292 @@ export class EmailService {
     }
   }
 
-  static async sendDailyReport(pdfPath?: string): Promise<{ success: boolean; error?: string }> {
+  static async sendDailyReport(
+    targetDate?: string,
+    customPdfPath?: string
+  ): Promise<{ success: boolean; error?: string; message?: string }> {
     const config = getConfig()
-    const recipient = config?.recipient_email || config?.gmail_address
-    
+    const schoolEmail = (SettingsRepository.get('school_email') as string) || ''
+    const recipient = config?.recipient_email || schoolEmail
+
     if (!recipient) {
       return { success: false, error: 'Email destinataire non configuré' }
     }
-    const today = new Date().toLocaleDateString('fr-FR')
-    const subject = `Bilan journalier — ${today}`
-    const body = `<h2>Bilan journalier du ${today}</h2><p>Veuillez trouver ci-joint le bilan journalier de caisse.</p>`
-    const attachments = pdfPath ? [pdfPath] : undefined
-    return EmailService.sendEmail(recipient, subject, body, attachments)
+
+    const dateStr = targetDate || new Date().toISOString().split('T')[0]
+    const dateObj = new Date(dateStr)
+    const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+
+    const dailyBalance = CashJournalRepository.getDailyBalance(dateStr) || {
+      total_income: 0,
+      total_expense: 0,
+      balance: 0
+    }
+
+    const tenantId = (SettingsRepository.get('ecole_id') as string) || ''
+    const initialRow = db
+      .prepare(
+        `SELECT COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END), 0) as initial_balance
+         FROM cash_journal
+         WHERE ecole_id = ? AND transaction_date < ? AND deleted = 0`
+      )
+      .get(tenantId, dateStr) as { initial_balance: number } | undefined
+    const openingBalance = initialRow?.initial_balance || 0
+    const closingBalance = openingBalance + dailyBalance.balance
+
+    const entries = CashJournalRepository.list({
+      startDate: dateStr,
+      endDate: dateStr
+    }) as any[]
+
+    const incomeByCategory: Record<string, number> = {}
+    const expenseByCategory: Record<string, number> = {}
+
+    for (const e of entries) {
+      const cat = e.category || 'divers'
+      const amt = Number(e.amount) || 0
+      if (e.type === 'income') {
+        incomeByCategory[cat] = (incomeByCategory[cat] || 0) + amt
+      } else {
+        expenseByCategory[cat] = (expenseByCategory[cat] || 0) + amt
+      }
+    }
+
+    let pdfFilePath = customPdfPath
+    if (!pdfFilePath) {
+      try {
+        const pdfRes = PdfService.generateDailyReport({
+          date: dateStr,
+          total_income: dailyBalance.total_income,
+          total_expense: dailyBalance.total_expense,
+          balance: dailyBalance.balance,
+          opening_balance: openingBalance,
+          closing_balance: closingBalance,
+          entries: entries.map((e) => ({
+            type: e.type,
+            department: e.department,
+            category: e.category,
+            amount: e.amount,
+            description: e.description,
+            receipt_number: (e as any).receipt_number,
+            beneficiary: e.last_name ? `${e.last_name} ${e.first_name || ''}`.trim() : undefined,
+            payment_method: e.payment_method,
+            created_by: (e as any).created_by,
+            time: e.created_at
+              ? new Date(e.created_at).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              : undefined
+          }))
+        })
+        if (pdfRes.success && pdfRes.filePath) {
+          pdfFilePath = pdfRes.filePath
+        }
+      } catch (pdfErr) {
+        console.warn('PDF daily report generation warning:', pdfErr)
+      }
+    }
+
+    const formatAr = (val: number) => Math.round(val).toLocaleString('fr-FR') + ' Ar'
+    const schoolName = (SettingsRepository.get('school_name') as string) || 'Study Agent'
+    const schoolAddress = (SettingsRepository.get('school_address') as string) || ''
+    const schoolCity = (SettingsRepository.get('school_city') as string) || ''
+
+    const incomeCatKeys = Object.keys(incomeByCategory)
+    const expenseCatKeys = Object.keys(expenseByCategory)
+
+    let categoriesHtml = ''
+    if (incomeCatKeys.length > 0 || expenseCatKeys.length > 0) {
+      categoriesHtml = `
+        <div style="margin-top: 20px; padding: 16px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <h3 style="margin: 0 0 12px 0; font-size: 13px; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">
+            Ventilation par Catégorie
+          </h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            ${
+              incomeCatKeys.length > 0
+                ? `
+              <tr style="background: #f1f5f9;"><td colspan="2" style="padding: 5px 8px; font-weight: bold; color: #166534;">Recettes (+)</td></tr>
+              ${incomeCatKeys
+                .map(
+                  (k) => `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 5px 8px; color: #334155;">${k.charAt(0).toUpperCase() + k.slice(1)}</td>
+                  <td style="padding: 5px 8px; text-align: right; font-weight: bold; color: #15803d;">+ ${formatAr(incomeByCategory[k])}</td>
+                </tr>
+              `
+                )
+                .join('')}
+            `
+                : ''
+            }
+            ${
+              expenseCatKeys.length > 0
+                ? `
+              <tr style="background: #f1f5f9;"><td colspan="2" style="padding: 5px 8px; font-weight: bold; color: #991b1b; margin-top: 6px;">Dépenses (-)</td></tr>
+              ${expenseCatKeys
+                .map(
+                  (k) => `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 5px 8px; color: #334155;">${k.charAt(0).toUpperCase() + k.slice(1)}</td>
+                  <td style="padding: 5px 8px; text-align: right; font-weight: bold; color: #b91c1c;">- ${formatAr(expenseByCategory[k])}</td>
+                </tr>
+              `
+                )
+                .join('')}
+            `
+                : ''
+            }
+          </table>
+        </div>
+      `
+    }
+
+    let movementsHtml = ''
+    if (entries.length === 0) {
+      movementsHtml = `
+        <tr>
+          <td colspan="5" style="padding: 16px; text-align: center; color: #64748b; font-style: italic; font-size: 12px;">
+            Aucun mouvement de caisse enregistré pour cette journée.
+          </td>
+        </tr>
+      `
+    } else {
+      movementsHtml = entries
+        .slice(0, 50)
+        .map((e, idx) => {
+          const isInc = e.type === 'income'
+          const ref =
+            (e as any).receipt_number ||
+            (e.created_at
+              ? new Date(e.created_at).toLocaleTimeString('fr-FR', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              : `OP-${idx + 1}`)
+          const ben = e.last_name
+            ? `${e.last_name} ${e.first_name || ''}`.trim()
+            : e.description || e.category
+          const cat = e.category || 'divers'
+          const meth = e.payment_method === 'cash' ? 'Espèces' : e.payment_method || 'Espèces'
+          const amt = Number(e.amount) || 0
+          const bgColor = idx % 2 === 1 ? '#f8fafc' : '#ffffff'
+
+          return `
+          <tr style="background-color: ${bgColor}; border-bottom: 1px solid #f1f5f9; font-size: 11px;">
+            <td style="padding: 7px 8px; font-family: monospace; color: #475569;">${ref}</td>
+            <td style="padding: 7px 8px; color: #0f172a; font-weight: 500;">${ben}</td>
+            <td style="padding: 7px 8px; color: #475569;">${cat}</td>
+            <td style="padding: 7px 8px; color: #64748b;">${meth}</td>
+            <td style="padding: 7px 8px; text-align: right; font-weight: bold; color: ${isInc ? '#166534' : '#b91c1c'};">
+              ${isInc ? '+' : '-'} ${formatAr(amt)}
+            </td>
+          </tr>
+        `
+        })
+        .join('')
+
+      if (entries.length > 50) {
+        movementsHtml += `
+          <tr>
+            <td colspan="5" style="padding: 10px; text-align: center; background-color: #f1f5f9; font-size: 11px; color: #475569;">
+              ... et ${entries.length - 50} autre(s) mouvement(s) détaillé(s) dans le rapport PDF joint.
+            </td>
+          </tr>
+        `
+      }
+    }
+
+    const htmlBody = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px 10px; background-color: #f1f5f9;">
+        <div style="max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+          
+          <div style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff; padding: 22px; text-align: center;">
+            <h1 style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: 0.5px;">${schoolName.toUpperCase()}</h1>
+            <p style="margin: 4px 0 12px 0; font-size: 12px; opacity: 0.85;">${[schoolAddress, schoolCity].filter(Boolean).join(', ')} — Rapport Financier Quotidien</p>
+            <div style="display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+              RAPPORT DE CAISSE DU ${formattedDate.toUpperCase()}
+            </div>
+          </div>
+
+          <div style="padding: 16px 16px 8px 16px;">
+            <table style="width: 100%; border-collapse: separate; border-spacing: 6px 0;">
+              <tr>
+                <td style="width: 25%; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 6px; text-align: center;">
+                  <div style="font-size: 9px; font-weight: bold; color: #166534; text-transform: uppercase;">Recettes</div>
+                  <div style="font-size: 13px; font-weight: bold; color: #15803d; margin-top: 3px;">+ ${formatAr(dailyBalance.total_income)}</div>
+                </td>
+                <td style="width: 25%; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 6px; text-align: center;">
+                  <div style="font-size: 9px; font-weight: bold; color: #991b1b; text-transform: uppercase;">Dépenses</div>
+                  <div style="font-size: 13px; font-weight: bold; color: #b91c1c; margin-top: 3px;">- ${formatAr(dailyBalance.total_expense)}</div>
+                </td>
+                <td style="width: 25%; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 6px; text-align: center;">
+                  <div style="font-size: 9px; font-weight: bold; color: #1e40af; text-transform: uppercase;">Solde Net Jour</div>
+                  <div style="font-size: 13px; font-weight: bold; color: #1d4ed8; margin-top: 3px;">${dailyBalance.balance >= 0 ? '+' : ''} ${formatAr(dailyBalance.balance)}</div>
+                </td>
+                <td style="width: 25%; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 6px; text-align: center;">
+                  <div style="font-size: 9px; font-weight: bold; color: #334155; text-transform: uppercase;">Solde Caisse</div>
+                  <div style="font-size: 13px; font-weight: bold; color: #0f172a; margin-top: 3px;">${formatAr(closingBalance)}</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="padding: 10px 16px 20px 16px;">
+            ${categoriesHtml}
+
+            <div style="margin-top: 20px;">
+              <h3 style="margin: 0 0 8px 0; font-size: 13px; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">
+                Mouvements de Caisse (${entries.length} opération${entries.length > 1 ? 's' : ''})
+              </h3>
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;">
+                <thead>
+                  <tr style="background: #f1f5f9; text-align: left; font-size: 10px; color: #475569; text-transform: uppercase;">
+                    <th style="padding: 7px 8px;">Réf / Heure</th>
+                    <th style="padding: 7px 8px;">Élève / Bénéficiaire</th>
+                    <th style="padding: 7px 8px;">Nature</th>
+                    <th style="padding: 7px 8px;">Mode</th>
+                    <th style="padding: 7px 8px; text-align: right;">Montant</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${movementsHtml}
+                </tbody>
+              </table>
+            </div>
+
+            <div style="margin-top: 20px; padding: 12px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px;">
+              <div style="font-size: 12px; color: #065f46;">
+                📎 <strong>Rapport PDF officiel joint :</strong> Le bilan journalier complet est annexé à cet email (<code>bilan_${dateStr}.pdf</code>).
+              </div>
+            </div>
+          </div>
+
+          <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 16px; text-align: center; font-size: 11px; color: #64748b;">
+            <p style="margin: 0 0 3px 0;">Ce courriel a été généré automatiquement par le Système de Gestion Scolaire de ${schoolName}.</p>
+            <p style="margin: 0;">Destinataire officiel : <strong>${recipient}</strong></p>
+          </div>
+
+        </div>
+      </body>
+      </html>
+    `
+
+    const subject = `[Rapport Financier] Bilan Caisse du ${formattedDate} — ${schoolName}`
+    const attachments = pdfFilePath ? [pdfFilePath] : undefined
+
+    return EmailService.sendEmail(recipient, subject, htmlBody, attachments)
   }
 
   static startScheduler(): void {
@@ -207,7 +638,8 @@ export class EmailService {
       const config = getConfig()
       if (!config?.enabled || !config?.auto_send_daily) return
       const now = new Date()
-      if (now.getHours() >= 18) {
+      const isWorkingDay = now.getDay() >= 1 && now.getDay() <= 6
+      if (now.getHours() >= 18 && isWorkingDay) {
         const today = now.toISOString().split('T')[0]
         let lastSent = ''
         try {
@@ -220,23 +652,25 @@ export class EmailService {
         }
 
         if (lastSent !== today) {
-          EmailService.sendDailyReport()
-            .then(() => {
-              try {
-                const exists = db
-                  .prepare("SELECT key FROM settings WHERE key = 'email_last_sent_date'")
-                  .get()
-                if (exists) {
-                  db.prepare(
-                    "UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = 'email_last_sent_date'"
-                  ).run(JSON.stringify(today))
-                } else {
-                  db.prepare(
-                    "INSERT INTO settings (key, value, sync_status) VALUES (?, ?, 'synced')"
-                  ).run('email_last_sent_date', JSON.stringify(today))
+          EmailService.sendDailyReport(today)
+            .then((res) => {
+              if (res.success) {
+                try {
+                  const exists = db
+                    .prepare("SELECT key FROM settings WHERE key = 'email_last_sent_date'")
+                    .get()
+                  if (exists) {
+                    db.prepare(
+                      "UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = 'email_last_sent_date'"
+                    ).run(JSON.stringify(today))
+                  } else {
+                    db.prepare(
+                      "INSERT INTO settings (key, value, sync_status) VALUES (?, ?, 'synced')"
+                    ).run('email_last_sent_date', JSON.stringify(today))
+                  }
+                } catch {
+                  /* silent */
                 }
-              } catch {
-                /* silent */
               }
             })
             .catch(() => {})

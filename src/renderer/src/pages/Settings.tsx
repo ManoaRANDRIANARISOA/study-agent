@@ -10,6 +10,8 @@ import { Trash2, Plus } from 'lucide-react'
 import EmailSettings from '@/pages/settings/EmailSettings'
 import AssessmentSettings from '@/pages/settings/AssessmentSettings'
 import ThermalPrinterSettings from '@/pages/settings/ThermalPrinterSettings'
+import { DuplicateManager } from '@/components/settings/DuplicateManager'
+import { WorkstationMonitor } from '@/components/settings/WorkstationMonitor'
 
 export default function Settings() {
   const canRead = useAuthStore((s) => s.canRead)
@@ -572,6 +574,10 @@ export default function Settings() {
         <AssessmentSettings />
 
         <ThermalPrinterSettings />
+
+        <DuplicateManager />
+
+        <WorkstationMonitor />
 
         <div className="bg-white p-6 rounded shadow max-w-xl border-red-100 border">
           <h2 className="text-lg font-semibold mb-4 text-red-600">Zone de Danger</h2>

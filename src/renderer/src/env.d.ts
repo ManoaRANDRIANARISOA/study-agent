@@ -28,7 +28,12 @@ import type {
   ClassSubjectInput,
   SchoolConfig,
   CashJournalEntry,
-  CashJournalFilters
+  CashJournalFilters,
+  CashierOption,
+  CashierDailySummary,
+  CashClosure,
+  CashClosureInput,
+  TicketZData
 } from '../../shared/types'
 
 // --------------------------------------------
@@ -207,12 +212,18 @@ interface APIType {
 
     repairSync: () => Promise<{ success: boolean; error?: string }>
     resetDatabase: (includeRemote: boolean) => Promise<{ success: boolean; error?: string }>
+    rectifyEnrollmentType: (
+      studentId: string,
+      schoolYear: string,
+      newType: 'enrollment' | 'reenrollment'
+    ) => Promise<{ success: boolean; error?: string }>
   }
   payment: {
     create: (
       data: Omit<Payment, 'id' | 'created_at' | 'updated_at'>
     ) => Promise<{ success: boolean; id?: string; error?: string }>
     getByStudent: (studentId: string, schoolYear?: string) => Promise<Payment[]>
+    getBySchoolYear: (schoolYear: string) => Promise<Payment[]>
     getAll: (filters?: PaymentFilters) => Promise<Payment[]>
     getTuitionStatus: (
       studentId: string,
@@ -304,8 +315,17 @@ interface APIType {
   }
   printer: {
     getPrinters: () => Promise<any[]>
-    printReceipt: (data: any) => Promise<{ success: boolean; error?: string }>
-    testPrint: (size: '58mm' | '80mm') => Promise<{ success: boolean; error?: string }>
+    printReceipt: (
+      data: any,
+      copies?: number
+    ) => Promise<{
+      success: boolean
+      receipt_number?: string
+      is_duplicate?: boolean
+      duplicate_number?: number
+      error?: string
+    }>
+    testPrint: (size?: string) => Promise<{ success: boolean; error?: string }>
   }
   tenant: {
     check: () => Promise<{ isConfigured: boolean; tenantId: string | null }>
@@ -549,6 +569,26 @@ interface APIType {
       balance?: { total_income: number; total_expense: number; balance: number }
       error?: string
     }>
+    getDistinctCashiers: () => Promise<{ success: boolean; cashiers?: CashierOption[]; error?: string }>
+    getCashierDailySummary: (
+      date: string,
+      cashier?: string,
+      stationCode?: string
+    ) => Promise<{ success: boolean; summary?: CashierDailySummary; error?: string }>
+    createClosure: (
+      input: CashClosureInput
+    ) => Promise<{ success: boolean; id?: string; error?: string }>
+    getClosure: (
+      date: string,
+      cashier?: string
+    ) => Promise<{ success: boolean; closure?: CashClosure | null; error?: string }>
+    listClosures: (
+      schoolYear?: string
+    ) => Promise<{ success: boolean; closures?: CashClosure[]; error?: string }>
+    printTicketZ: (
+      data: TicketZData,
+      copies?: number
+    ) => Promise<{ success: boolean; error?: string }>
   }
   report: {
     monthlyFinance: (
@@ -581,16 +621,58 @@ interface APIType {
       columns: Array<{ key: string; label: string }>,
       filename: string
     ) => Promise<{ success: boolean; filePath?: string; error?: string }>
+    file: (options: {
+      format: 'xlsx' | 'xls' | 'csv' | 'json' | 'pdf'
+      data: Record<string, unknown>[]
+      columns: Array<{ key: string; label: string; width?: number }>
+      defaultFilename?: string
+      title?: string
+      subtitle?: string
+      schoolName?: string
+      schoolYear?: string
+      csvDelimiter?: ';' | ','
+    }) => Promise<{ success: boolean; filePath?: string; error?: string }>
+  }
+  printer: {
+    getPrinters: () => Promise<Array<{ name: string; isDefault?: boolean; displayName?: string }>>
+    printReceipt: (
+      data: Record<string, unknown>,
+      copies?: number
+    ) => Promise<{
+      success: boolean
+      receipt_number?: string
+      is_duplicate?: boolean
+      duplicate_number?: number
+      error?: string
+    }>
+    testPrint: (
+      sizeOrPrinterName?: string
+    ) => Promise<{ success: boolean; error?: string }>
   }
   email: {
     configure: (config: {
       enabled: boolean
-      gmail_address: string
-      gmail_app_password: string
-      recipient_email: string
+      provider?: 'brevo' | 'gmail'
+      smtp_host?: string
+      smtp_port?: number
+      smtp_user?: string
+      smtp_key?: string
+      sender_name?: string
+      sender_email?: string
+      gmail_address?: string
+      gmail_app_password?: string
+      recipient_email?: string
       auto_send_daily: boolean
     }) => Promise<{ success: boolean; error?: string }>
-    testConnection: () => Promise<{ success: boolean; error?: string }>
+    testConnection: (credentials?: {
+      provider?: 'brevo' | 'gmail'
+      smtp_host?: string
+      smtp_port?: number
+      smtp_user?: string
+      smtp_key?: string
+      gmail_address?: string
+      gmail_app_password?: string
+    }) => Promise<{ success: boolean; error?: string }>
     sendNow: (
       to: string,
       subject: string,
@@ -601,6 +683,7 @@ interface APIType {
       configured?: boolean
       enabled?: boolean
       auto_send?: boolean
+      provider?: string
       error?: string
     }>
     getLogs: () => Promise<{
@@ -614,7 +697,8 @@ interface APIType {
       }>
       error?: string
     }>
-    sendDailyReport: () => Promise<any>
+    clearLogs: () => Promise<{ success: boolean; error?: string }>
+    sendDailyReport: (targetDate?: string) => Promise<{ success: boolean; error?: string; message?: string }>
   }
   logs: {
     get: (limit?: number, offset?: number, tenantId?: string) => Promise<{ success: boolean; logs?: any[]; total?: number; error?: string }>
@@ -632,6 +716,8 @@ interface APIType {
       receipt_number?: string
       payment_method?: string
       department?: string
+      is_duplicate?: boolean
+      duplicate_count?: number
     }) => Promise<{ success: boolean; filePath?: string; error?: string }>
     generateCertificate: (data: {
       first_name: string
@@ -674,12 +760,21 @@ interface APIType {
       total_income: number
       total_expense: number
       balance: number
+      opening_balance?: number
+      closing_balance?: number
+      station_code?: string
+      cashier?: string
       entries: Array<{
         type: string
         department: string
         category: string
         amount: number
         description?: string
+        receipt_number?: string
+        beneficiary?: string
+        payment_method?: string
+        created_by?: string
+        time?: string
       }>
     }) => Promise<{ success: boolean; filePath?: string; error?: string }>
     openFile: (filePath: string) => Promise<{ success: boolean; error?: string }>
@@ -698,6 +793,98 @@ interface APIType {
     getTenants: () => Promise<{ success: boolean; data?: any[]; error?: string }>
     updateTenantSubscription: (id: string, status: string) => Promise<{ success: boolean; error?: string }>
     renewTenantSubscription: (id: string, durationMonths: number, customEndDate?: string) => Promise<{ success: boolean; newEndDate?: string; error?: string }>
+  }
+  duplicates: {
+    scan: () => Promise<{ success: boolean; count: number; groups: any[]; error?: string }>
+    merge: (
+      keepId: string,
+      removeId: string
+    ) => Promise<{ success: boolean; message?: string; error?: string }>
+    scanPayments: () => Promise<{ success: boolean; count: number; groups: any[]; error?: string }>
+    resolvePayment: (
+      keepPaymentId: string,
+      removePaymentId: string,
+      reason?: string
+    ) => Promise<{ success: boolean; message?: string; error?: string }>
+    autoResolveCollisions: () => Promise<{
+      success: boolean
+      count: number
+      resolved: any[]
+      message?: string
+      error?: string
+    }>
+  }
+  app: {
+    getVersion: () => Promise<string>
+  }
+  sync: {
+    getStatus: () => Promise<{
+      success: boolean
+      isSyncing: boolean
+      isOnline: boolean
+      latencyMs?: number
+      healthError?: string | null
+      pendingCount: number
+      errorCount: number
+      lastSyncTime: string | null
+      error?: string
+    }>
+    start: (forceFullSync?: boolean) => Promise<{
+      success: boolean
+      pushedCount?: number
+      pulledCount?: number
+      error?: string
+    }>
+    getErrors: () => Promise<{
+      success: boolean
+      errors: Array<{
+        id: string
+        table_name: string
+        record_id: string
+        operation: string
+        data?: string
+        retry_count: number
+        last_error?: string
+        created_at: string
+      }>
+      error?: string
+    }>
+    retryErrors: () => Promise<{ success: boolean; error?: string }>
+    quarantineAndUnblock: () => Promise<{ success: boolean; quarantinedCount?: number; error?: string }>
+    onProgress: (callback: (data: {
+      phase: 'idle' | 'checking' | 'pushing' | 'pulling' | 'completed' | 'failed'
+      currentTable?: string
+      processedTables: number
+      totalTables: number
+      pushedCount: number
+      pulledCount: number
+      error?: string
+    }) => void) => () => void
+  }
+  telemetry: {
+    fetchStationErrors: (limit?: number) => Promise<{
+      success: boolean
+      reports?: Array<{
+        id: number
+        station: string
+        hostname: string
+        context: string
+        message: string
+        table_name?: string
+        record_id?: string
+        pending_count?: number
+        error_details?: string
+        timestamp: string
+      }>
+      totalCount?: number
+      error?: string
+    }>
+    clearStationErrors: () => Promise<{ success: boolean; clearedCount?: number; error?: string }>
+    reportError: (
+      context: string,
+      error: unknown,
+      metadata?: Record<string, unknown>
+    ) => Promise<{ success: boolean; error?: string }>
   }
 }
 

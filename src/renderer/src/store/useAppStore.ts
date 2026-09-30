@@ -12,11 +12,13 @@ export interface SchoolConfig {
   director_name: string
   director_title: string
   receipt_prefix: string
+  currency: string
   primary_color: string
   module_cantine: boolean
   module_bus: boolean
   module_uniforms: boolean
   module_evaluations: boolean
+  module_cash_closure: boolean
   exonerate_personnel_children: boolean
   thermal_printer_enabled: boolean
   thermal_printer_name: string
@@ -25,8 +27,10 @@ export interface SchoolConfig {
 
 interface AppState {
   currentYear: string
+  stationCode: string
   schoolConfig: Partial<SchoolConfig>
   setCurrentYear: (year: string) => void
+  setStationCode: (code: string) => void
   fetchSettings: () => Promise<void>
 }
 
@@ -60,17 +64,22 @@ function applyTheme(primaryHsl: string) {
 
 export const useAppStore = create<AppState>((set) => ({
   currentYear: '',
+  stationCode: 'C1',
   schoolConfig: {},
   setCurrentYear: (year: string) => set({ currentYear: year }),
+  setStationCode: (code: string) => set({ stationCode: code }),
   fetchSettings: async () => {
     try {
       const all = (await window.api.settings.getAll()) as Record<string, unknown>
-      
+
       const year = cleanString(all.school_year)
       if (year) {
         set({ currentYear: year })
       }
-      
+
+      const station = cleanString(all.station_code) || 'C1'
+      set({ stationCode: station })
+
       const config: Partial<SchoolConfig> = {
         school_name: cleanString(all.school_name),
         school_address: cleanString(all.school_address),
@@ -83,17 +92,19 @@ export const useAppStore = create<AppState>((set) => ({
         director_name: cleanString(all.director_name),
         director_title: cleanString(all.director_title),
         receipt_prefix: cleanString(all.receipt_prefix),
+        currency: cleanString(all.currency) || 'Ar',
         primary_color: cleanString(all.primary_color),
         module_cantine: parseBool(all.module_cantine),
         module_bus: parseBool(all.module_bus),
         module_uniforms: parseBool(all.module_uniforms),
         module_evaluations: parseBool(all.module_evaluations),
+        module_cash_closure: all.module_cash_closure !== undefined ? parseBool(all.module_cash_closure) : true,
         exonerate_personnel_children: parseBool(all.exonerate_personnel_children),
         thermal_printer_enabled: parseBool(all.thermal_printer_enabled)
       }
-      
+
       set({ schoolConfig: config })
-      
+
       const primaryColor = config.primary_color
       if (primaryColor && primaryColor !== '24 23% 57%') {
         applyTheme(primaryColor)

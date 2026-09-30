@@ -11,10 +11,12 @@
  * @module AuthService
  */
 
-import { UserRepository } from '../database/repositories/user.repository'
+import { UserRepository, type UserRow } from '../database/repositories/user.repository'
+import { SettingsRepository } from '../database/repositories/settings.repository'
 import { setCurrentUser, getCurrentUser as getRBACCurrentUser, type User } from './rbac.service'
 import { createSession, destroySession, validateSession } from './session.service'
 import db from '../database/db'
+import { supabase, syncWithCloud } from '../services/sync.service'
 
 // --------------------------------------------
 // Types
@@ -29,12 +31,110 @@ export interface LoginResult {
 }
 
 // --------------------------------------------
+// Cloud Dynamic User Sync Helper
+// --------------------------------------------
+
+/**
+ * Dynamically queries Supabase for a user if absent or outdated locally.
+ * Enables instant multi-workstation login (e.g. PC2 authenticating an account created on PC1).
+ * Automatically saves credentials in SQLite so future logins remain 100% offline.
+ */
+async function fetchAndSyncUserFromCloud(
+  username: string
+): Promise<(UserRow & { password_hash: string }) | null> {
+  try {
+    if (!supabase) return null
+    const cleanUsername = username.trim()
+    const tenantId = (SettingsRepository.get('ecole_id') as string) || ''
+
+    let query = supabase
+      .from('users')
+      .select('*')
+      .ilike('username', cleanUsername)
+
+    if (tenantId) {
+      query = query.eq('ecole_id', tenantId)
+    }
+
+    const { data, error } = await query.maybeSingle()
+
+    if (error || !data) return null
+
+    // Ensure it's saved/updated in local SQLite so future logins work 100% offline
+    const existing = db.prepare('SELECT id FROM users WHERE id = ?').get(data.id) as any
+    const fieldsToSave = {
+      id: data.id,
+      username: data.username,
+      password_hash: data.password_hash,
+      role: data.role,
+      full_name: data.full_name || null,
+      email: data.email || null,
+      active: data.active ? 1 : 0,
+      deleted: data.deleted ? 1 : 0,
+      version: data.version || 1,
+      sync_status: 'synced',
+      updated_at: data.updated_at || new Date().toISOString(),
+      ecole_id: data.ecole_id || tenantId || null
+    }
+
+    if (existing) {
+      db.prepare(`
+        UPDATE users SET
+          username = ?, password_hash = ?, role = ?, full_name = ?,
+          email = ?, active = ?, deleted = ?, version = ?, sync_status = 'synced', updated_at = ?, ecole_id = ?
+        WHERE id = ?
+      `).run(
+        fieldsToSave.username,
+        fieldsToSave.password_hash,
+        fieldsToSave.role,
+        fieldsToSave.full_name,
+        fieldsToSave.email,
+        fieldsToSave.active,
+        fieldsToSave.deleted,
+        fieldsToSave.version,
+        fieldsToSave.updated_at,
+        fieldsToSave.ecole_id,
+        fieldsToSave.id
+      )
+    } else {
+      // Remove any local conflicting row with same username but different id
+      db.prepare('DELETE FROM users WHERE username = ? AND id != ?').run(fieldsToSave.username, fieldsToSave.id)
+      db.prepare(`
+        INSERT INTO users (id, username, password_hash, role, full_name, email, active, deleted, version, sync_status, updated_at, ecole_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        fieldsToSave.id,
+        fieldsToSave.username,
+        fieldsToSave.password_hash,
+        fieldsToSave.role,
+        fieldsToSave.full_name,
+        fieldsToSave.email,
+        fieldsToSave.active,
+        fieldsToSave.deleted,
+        fieldsToSave.version,
+        fieldsToSave.sync_status,
+        fieldsToSave.updated_at,
+        fieldsToSave.ecole_id
+      )
+    }
+
+    // Trigger non-blocking background sync
+    syncWithCloud().catch((e) => console.warn('Background sync after cloud auth notice:', e))
+
+    return UserRepository.getByUsernameWithHash(data.username)
+  } catch (err) {
+    console.warn('Could not dynamically fetch user from cloud:', err)
+    return null
+  }
+}
+
+// --------------------------------------------
 // Core Auth Functions
 // --------------------------------------------
 
 /**
  * Authenticate a user by username and password.
- * 100% offline — queries local SQLite only.
+ * Offline-first with dynamic cloud fallback for multi-postes (PC1 -> PC2).
  *
  * @param username - The username (not email)
  * @param password - The plaintext password
@@ -42,22 +142,35 @@ export interface LoginResult {
  */
 export async function loginWithPassword(username: string, password: string): Promise<LoginResult> {
   try {
-    // 1. Look up user by username (with password_hash for verification)
-    const userRow = UserRepository.getByUsernameWithHash(username)
+    const cleanUsername = username.trim()
 
-    if (!userRow) {
+    // 1. Look up user in local SQLite
+    let userRow = UserRepository.getByUsernameWithHash(cleanUsername)
+    let passwordValid = false
+
+    if (userRow) {
+      if (!userRow.active || userRow.deleted) {
+        return { ok: false, error: 'Ce compte est désactivé' }
+      }
+      passwordValid = UserRepository.verifyPassword(password, userRow.password_hash)
+    }
+
+    // 2. Dynamic Cloud Fallback: If not found locally or local password check fails, check Supabase
+    if (!userRow || !passwordValid) {
+      const cloudUser = await fetchAndSyncUserFromCloud(cleanUsername)
+      if (cloudUser) {
+        if (!cloudUser.active || cloudUser.deleted) {
+          return { ok: false, error: 'Ce compte est désactivé' }
+        }
+        if (UserRepository.verifyPassword(password, cloudUser.password_hash)) {
+          userRow = cloudUser
+          passwordValid = true
+        }
+      }
+    }
+
+    if (!userRow || !passwordValid) {
       // Don't reveal whether user exists (security best practice)
-      return { ok: false, error: 'Identifiants incorrects' }
-    }
-
-    // 2. Check if account is active
-    if (!userRow.active || userRow.deleted) {
-      return { ok: false, error: 'Ce compte est désactivé' }
-    }
-
-    // 3. Verify password with bcrypt
-    const passwordValid = UserRepository.verifyPassword(password, userRow.password_hash)
-    if (!passwordValid) {
       return { ok: false, error: 'Identifiants incorrects' }
     }
 

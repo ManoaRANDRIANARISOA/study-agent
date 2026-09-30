@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Search, Plus, Trash2, Eye, Edit, Download, Receipt } from 'lucide-react'
 import ReadOnlyBanner from '@/components/shared/ReadOnlyBanner'
 import { POSITION_LABELS, STATUS_LABELS } from '@/lib/personnel-constants'
+import DataExportModal from '@/components/shared/DataExportModal'
 
 export default function PersonnelList(): React.JSX.Element {
   const navigate = useNavigate()
@@ -26,6 +27,7 @@ export default function PersonnelList(): React.JSX.Element {
   const [positionFilter, setPositionFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState('active') // 'active', 'inactive', 'all'
   const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().substring(0, 7))
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
   const [payrollSummary, setPayrollSummary] = useState<
     Record<
       string,
@@ -87,25 +89,10 @@ export default function PersonnelList(): React.JSX.Element {
           <Button
             variant="outline"
             size="sm"
-            onClick={async () => {
-              const result = await window.api.personnel.list()
-              const personnel = result?.personnel || []
-              await window.api.export.csv(
-                personnel as unknown as Record<string, unknown>[],
-                [
-                  { key: 'last_name', label: 'Nom' },
-                  { key: 'first_name', label: 'Prénom' },
-                  { key: 'position', label: 'Poste' },
-                  { key: 'salary_type', label: 'Type salaire' },
-                  { key: 'monthly_salary', label: 'Salaire mensuel' },
-                  { key: 'phone', label: 'Téléphone' }
-                ],
-                'personnel_export.csv'
-              )
-            }}
+            onClick={() => setIsExportModalOpen(true)}
           >
             <Download className="w-4 h-4 mr-2" />
-            CSV
+            Exporter
           </Button>
           {canWrite('personnel') && (
             <>
@@ -308,6 +295,28 @@ export default function PersonnelList(): React.JSX.Element {
           </table>
         </div>
       </div>
+
+      <DataExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Exporter la liste du personnel"
+        defaultFilename={`personnel_${new Date().toISOString().split('T')[0]}`}
+        columns={[
+          { key: 'last_name', label: 'Nom', width: 18, defaultSelected: true },
+          { key: 'first_name', label: 'Prénom', width: 18, defaultSelected: true },
+          { key: 'position_label', label: 'Poste', width: 18, defaultSelected: true },
+          { key: 'salary_type_label', label: 'Type salaire', width: 16, defaultSelected: true },
+          { key: 'monthly_salary', label: 'Salaire mensuel (Ar)', width: 18, defaultSelected: true },
+          { key: 'contact', label: 'Contact', width: 16, defaultSelected: true },
+          { key: 'status_label', label: 'Statut', width: 12, defaultSelected: true }
+        ]}
+        data={filtered.map((p) => ({
+          ...p,
+          position_label: (p.position && POSITION_LABELS[p.position]) || p.position || '—',
+          salary_type_label: p.salary_type === 'hourly' ? 'Horaire' : 'Mensuel',
+          status_label: p.departure_date ? 'Inactif / Quitté' : 'Actif'
+        }))}
+      />
     </div>
   )
 }

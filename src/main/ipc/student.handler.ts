@@ -207,4 +207,25 @@ export function registerStudentHandlers(): void {
   ipcMain.handle('student:repairSync', async () => {
     return StudentRepository.repairSync()
   })
+
+  // --------------------------------------------
+  // RECTIFY ENROLLMENT TYPE (Inscription vs Réinscription)
+  // --------------------------------------------
+  ipcMain.handle('student:rectifyEnrollmentType', async (_, studentId, schoolYear, newType) => {
+    if (!canWrite('students')) {
+      return { success: false, error: 'Accès refusé : modification inscription élève' }
+    }
+    const result = StudentRepository.rectifyEnrollmentType(studentId, schoolYear, newType)
+    if (result.success) {
+      logAction(
+        getCurrentUser()?.id || null,
+        'update',
+        'students',
+        studentId,
+        null,
+        `Rectified enrollment type to ${newType} for year ${schoolYear}`
+      )
+    }
+    return result
+  })
 }

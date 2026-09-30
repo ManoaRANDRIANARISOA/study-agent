@@ -1,0 +1,269 @@
+import { create } from 'zustand'
+import { toast } from 'sonner'
+
+export interface SyncProgressData {
+  phase: 'idle' | 'checking' | 'pushing' | 'pulling' | 'completed' | 'failed'
+  current?: number
+  total?: number
+  percent?: number
+  message?: string
+  currentTable?: string
+  lastSync?: string
+  pendingCount?: number
+  errorCount?: number
+}
+
+export interface SyncErrorItem {
+  id: string
+  table_name: string
+  record_id: string
+  operation: string
+  data?: string
+  retry_count: number
+  last_error?: string
+  created_at: string
+}
+
+interface SyncState {
+  isSyncing: boolean
+  isOnline: boolean
+  latencyMs?: number
+  pendingCount: number
+  errorCount: number
+  quarantinedCount: number
+  lastSyncTime: string | null
+  healthError?: string
+  progress: SyncProgressData
+  errors: SyncErrorItem[]
+  isModalOpen: boolean
+  appVersion: string
+
+  // Actions
+  fetchStatus: () => Promise<void>
+  startSync: (forceFull?: boolean) => Promise<boolean>
+  fetchErrors: () => Promise<void>
+  retryErrors: () => Promise<boolean>
+  quarantineAndUnblock: () => Promise<boolean>
+  openModal: () => void
+  closeModal: () => void
+  init: () => () => void
+}
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+export const useSyncStore = create<SyncState>((set, get) => ({
+  isSyncing: false,
+  isOnline: navigator.onLine,
+  latencyMs: undefined,
+  pendingCount: 0,
+  errorCount: 0,
+  quarantinedCount: 0,
+  lastSyncTime: null,
+  healthError: undefined,
+  appVersion: '1.0.7',
+  progress: {
+    phase: 'idle',
+    percent: 0,
+    message: 'Prêt'
+  },
+  errors: [],
+  isModalOpen: false,
+
+  openModal: () => {
+    set({ isModalOpen: true })
+    get().fetchErrors()
+    get().fetchStatus()
+  },
+
+  closeModal: () => {
+    set({ isModalOpen: false })
+  },
+
+  fetchStatus: async () => {
+    try {
+      if (!window.api?.sync?.getStatus) return
+      const status = await window.api.sync.getStatus()
+      if (status.success) {
+        set({
+          isSyncing: status.isSyncing,
+          isOnline: status.isOnline,
+          latencyMs: status.latencyMs,
+          pendingCount: status.pendingCount,
+          errorCount: status.errorCount,
+          quarantinedCount: (status as any).quarantinedCount || 0,
+          lastSyncTime: status.lastSyncTime,
+          healthError: undefined
+        })
+      } else {
+        set({
+          isOnline: false,
+          healthError: status.error
+        })
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      set({ isOnline: false, healthError: msg })
+    }
+  },
+
+  startSync: async (forceFull = false) => {
+    if (get().isSyncing) return false
+    set({
+      isSyncing: true,
+      progress: {
+        phase: 'checking',
+        percent: 5,
+        message: 'Initialisation de la synchronisation...'
+      }
+    })
+
+    try {
+      const result = await window.api.sync.start(forceFull)
+      await get().fetchStatus()
+      await get().fetchErrors()
+      if (result && result.success) {
+        window.dispatchEvent(new CustomEvent('app:sync-completed'))
+        toast.success(
+          forceFull
+            ? 'Récupération complète effectuée avec succès !'
+            : 'Synchronisation cloud terminée avec succès !'
+        )
+      } else if (result && (result as any).partial) {
+        window.dispatchEvent(new CustomEvent('app:sync-completed'))
+        toast.warning(
+          result.error || 'Synchronisation partielle : des éléments sont encore en attente.'
+        )
+      } else {
+        toast.error(
+          `Échec de synchronisation : ${result?.error || 'Erreur inconnue'}`
+        )
+      }
+      return Boolean(result?.success)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('Manual sync failed:', err)
+      toast.error(`Erreur de synchronisation : ${msg}`)
+      await get().fetchStatus()
+      return false
+    } finally {
+      set({ isSyncing: false })
+    }
+  },
+
+  fetchErrors: async () => {
+    try {
+      if (!window.api?.sync?.getErrors) return
+      const res = await window.api.sync.getErrors()
+      if (res.success && res.errors) {
+        set({ errors: res.errors as any[] })
+      }
+    } catch (err) {
+      console.error('Failed to fetch sync errors:', err)
+    }
+  },
+
+  retryErrors: async () => {
+    try {
+      if (!window.api?.sync?.retryErrors) return false
+      const res = await window.api.sync.retryErrors()
+      if (res.success) {
+        await get().fetchStatus()
+        await get().fetchErrors()
+        return true
+      }
+      return false
+    } catch (err) {
+      console.error('Failed to retry sync errors:', err)
+      return false
+    }
+  },
+
+  quarantineAndUnblock: async () => {
+    try {
+      if (!window.api?.sync?.quarantineAndUnblock) return false
+      const res = await window.api.sync.quarantineAndUnblock()
+      await get().fetchStatus()
+      await get().fetchErrors()
+      if (res.success) {
+        toast.success('File de synchronisation débloquée avec succès')
+        return true
+      } else {
+        toast.error(res.error || 'Erreur lors du déblocage de la file')
+        return false
+      }
+    } catch (err) {
+      console.error('Failed to quarantine and unblock sync queue:', err)
+      toast.error('Erreur lors du déblocage de la file')
+      return false
+    }
+  },
+
+  init: () => {
+    // 1. Fetch dynamic app version
+    if (window.api?.app?.getVersion) {
+      window.api.app.getVersion().then((v) => {
+        if (v) set({ appVersion: v })
+      })
+    }
+
+    // 2. Fetch initial status
+    get().fetchStatus()
+
+    // 3. Listen to live sync progress from main process
+    let removeProgressListener = () => {}
+    if (window.api?.sync?.onProgress) {
+      removeProgressListener = window.api.sync.onProgress((data: any) => {
+        if (data.phase === 'completed') {
+          window.dispatchEvent(new CustomEvent('app:sync-completed'))
+        }
+        const pct = data.totalTables > 0 
+          ? Math.round((data.processedTables / data.totalTables) * 100) 
+          : 0
+        set((state) => ({
+          isSyncing: data.phase === 'checking' || data.phase === 'pushing' || data.phase === 'pulling',
+          progress: {
+            ...state.progress,
+            ...data,
+            percent: pct
+          },
+          pendingCount: data.pendingCount !== undefined ? data.pendingCount : state.pendingCount,
+          errorCount: data.errorCount !== undefined ? data.errorCount : state.errorCount,
+          lastSyncTime: data.lastSync || state.lastSyncTime
+        }))
+      })
+    }
+
+    // 4. Listen to browser network changes with 3-second debounce on reconnection
+    const handleOnline = () => {
+      set({ isOnline: true })
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(async () => {
+        await get().fetchStatus()
+        if (get().isOnline && get().pendingCount > 0) {
+          get().startSync(false)
+        }
+      }, 3000)
+    }
+
+    const handleOffline = () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      set({ isOnline: false })
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    // 5. Periodic status poll every 20 seconds
+    const interval = setInterval(() => {
+      get().fetchStatus()
+    }, 20000)
+
+    return () => {
+      removeProgressListener()
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+      clearInterval(interval)
+      if (debounceTimer) clearTimeout(debounceTimer)
+    }
+  }
+}))

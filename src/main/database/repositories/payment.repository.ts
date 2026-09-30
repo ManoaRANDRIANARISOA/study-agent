@@ -15,18 +15,257 @@ export interface Payment {
   payment_method?: 'cash' | 'check' | 'transfer' | 'mobile_money' | 'discount'
   receipt_number?: string
   school_year?: string
+  print_count?: number
+  last_printed_at?: string
+  last_printed_by?: string
+  created_by?: string
+  ecole_id?: string
   created_at?: string
   updated_at?: string
 }
 
 export class PaymentRepository {
+  static getSchoolCode(): string {
+    try {
+      const explicitCode = SettingsRepository.get('school_code') as string | null
+      if (explicitCode && explicitCode.trim()) {
+        return explicitCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)
+      }
+
+      const schoolName = (SettingsRepository.get('school_name') as string | null) || ''
+      if (schoolName.trim()) {
+        const words = schoolName
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-zA-Z0-9\s]/g, '')
+          .trim()
+          .split(/\s+/)
+          .filter((w) => w.length > 0)
+
+        if (words.length > 1) {
+          const initials = words.map((w) => w[0].toUpperCase()).join('').slice(0, 6)
+          if (initials.length >= 2) return initials
+        } else if (words.length === 1 && words[0].length >= 2) {
+          return words[0].slice(0, 4).toUpperCase()
+        }
+      }
+    } catch {
+      // Fallback
+    }
+    return 'SA'
+  }
+
+  static getStationCode(): string {
+    try {
+      const explicitStation =
+        (SettingsRepository.get('pos_station_code') as string | null) ||
+        (SettingsRepository.get('station_id') as string | null)
+      if (explicitStation && explicitStation.trim()) {
+        return explicitStation.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4)
+      }
+    } catch {
+      // Fallback
+    }
+    return 'C1'
+  }
+
+  static generateReceiptNumber(schoolYear?: string, prefix: string = 'REC'): string {
+    const tenantId =
+      (SettingsRepository.get('ecole_id') as string) ||
+      process.env.VITE_DEFAULT_TENANT_ID ||
+      'ecole_dev'
+
+    const cleanYear =
+      (schoolYear || '')
+        .replace(/['"]/g, '')
+        .trim() ||
+      (new Date().getMonth() >= 7
+        ? `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`
+        : `${new Date().getFullYear() - 1}-${new Date().getFullYear()}`)
+
+    const startYear = cleanYear.split('-')[0] || String(new Date().getFullYear())
+    const schoolCode = this.getSchoolCode()
+    const stationCode = this.getStationCode()
+    const sequenceId = `${tenantId}_${stationCode}_${cleanYear}_${prefix}`
+
+    let seqNumber = 1
+    try {
+      const row = db
+        .prepare(
+          `
+        INSERT INTO receipt_sequences (id, ecole_id, school_year, prefix, last_sequence, updated_at)
+        VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+        ON CONFLICT(id)
+        DO UPDATE SET last_sequence = last_sequence + 1, updated_at = CURRENT_TIMESTAMP
+        RETURNING last_sequence
+      `
+        )
+        .get(sequenceId, tenantId, cleanYear, prefix) as { last_sequence: number } | undefined
+
+      seqNumber = row?.last_sequence || 1
+    } catch (e) {
+      console.error('Error incrementing receipt sequence:', e)
+      const countRow = db
+        .prepare('SELECT count(*) as count FROM student_payments WHERE school_year = ?')
+        .get(cleanYear) as { count: number } | undefined
+      seqNumber = (countRow?.count || 0) + 1
+    }
+
+    const paddedSeq = String(seqNumber).padStart(5, '0')
+    return `${prefix}-${schoolCode}-${stationCode}-${startYear}-${paddedSeq}`
+  }
+
+  static incrementPrintCount(paymentIdOrReceipt: string, userId?: string) {
+    try {
+      const payment = db
+        .prepare(
+          `
+        SELECT * FROM student_payments 
+        WHERE id = ? OR receipt_number = ?
+      `
+        )
+        .get(paymentIdOrReceipt, paymentIdOrReceipt) as Payment | undefined
+
+      if (payment) {
+        const newCount = (payment.print_count || 0) + 1
+        db.prepare(
+          `
+          UPDATE student_payments 
+          SET print_count = ?, last_printed_at = CURRENT_TIMESTAMP, last_printed_by = ?
+          WHERE id = ?
+        `
+        ).run(newCount, userId || 'Caisse', payment.id)
+
+        return {
+          success: true,
+          print_count: newCount,
+          receipt_number: payment.receipt_number,
+          id: payment.id
+        }
+      }
+      return { success: false, error: 'Paiement non trouvé' }
+    } catch (e: any) {
+      console.error('Error incrementing print count:', e)
+      return { success: false, error: e.message }
+    }
+  }
+
+  static backfillMissingReceiptNumbers() {
+    try {
+      const missing = db
+        .prepare(
+          `
+        SELECT id, school_year, payment_date, created_at, student_id, payment_type
+        FROM student_payments
+        WHERE receipt_number IS NULL OR receipt_number = ''
+        ORDER BY payment_date ASC, created_at ASC
+      `
+        )
+        .all() as Array<{
+        id: string
+        school_year: string
+        payment_date: string
+        created_at: string
+        student_id: string
+        payment_type: string
+      }>
+
+      if (missing.length === 0) return
+
+      const updatePaymentStmt = db.prepare(
+        'UPDATE student_payments SET receipt_number = ? WHERE id = ?'
+      )
+      const updateJournalStmt = db.prepare(
+        'UPDATE cash_journal SET receipt_number = ? WHERE related_student_id = ? AND transaction_date = ?'
+      )
+
+      const trans = db.transaction(() => {
+        for (const item of missing) {
+          const generated = this.generateReceiptNumber(item.school_year, 'REC')
+          updatePaymentStmt.run(generated, item.id)
+          try {
+            updateJournalStmt.run(generated, item.student_id, item.payment_date)
+          } catch {
+            // non-fatal
+          }
+        }
+      })
+      trans()
+      console.log(`[ReceiptNormalization] Normalisé ${missing.length} anciens reçus.`)
+    } catch (e) {
+      console.error('Error backfilling receipt numbers:', e)
+    }
+  }
+
   static create(payment: Omit<Payment, 'id' | 'created_at' | 'updated_at'>) {
     const id = uuidv4()
+    const cleanYear = (payment.school_year || '').replace(/['"]/g, '').trim() || null
+
+    // SAFEGUARD: Prevent accidental duplicate payment of an already fully paid tuition month
+    if (payment.payment_type === 'tuition' && payment.month) {
+      const existing = db
+        .prepare(
+          `SELECT COALESCE(SUM(amount), 0) as total_paid 
+           FROM student_payments 
+           WHERE student_id = ? 
+             AND payment_type = 'tuition' 
+             AND month = ? 
+             AND (school_year = ? OR (? IS NULL AND school_year IS NULL))
+             AND deleted = 0`
+        )
+        .get(payment.student_id, payment.month, cleanYear, cleanYear) as { total_paid: number } | undefined
+
+      const totalPaid = Number(existing?.total_paid || 0)
+
+      // Fetch student's tuition fee
+      const feeRow = db
+        .prepare(
+          `SELECT monthly_tuition FROM student_fees WHERE student_id = ? AND (school_year = ? OR ? IS NULL) AND deleted = 0`
+        )
+        .get(payment.student_id, cleanYear, cleanYear) as { monthly_tuition: number | null } | undefined
+
+      let expectedMonthlyFee = Number(feeRow?.monthly_tuition || 0)
+      if (expectedMonthlyFee <= 0) {
+        const studentRow = db
+          .prepare(`SELECT class FROM students WHERE id = ?`)
+          .get(payment.student_id) as { class: string } | undefined
+        if (studentRow?.class) {
+          try {
+            const pricesSetting = db
+              .prepare("SELECT value FROM settings WHERE key = 'finance_prices'")
+              .get() as { value: string } | undefined
+            if (pricesSetting?.value) {
+              const prices = JSON.parse(pricesSetting.value)
+              expectedMonthlyFee = Number(prices.tuition?.[studentRow.class] || 0)
+            }
+          } catch {}
+        }
+      }
+
+      if (expectedMonthlyFee > 0 && totalPaid >= expectedMonthlyFee) {
+        return {
+          success: false,
+          error: `Le mois d'écolage ${payment.month} est déjà intégralement réglé (${totalPaid.toLocaleString()} Ar / ${expectedMonthlyFee.toLocaleString()} Ar) pour cet élève.`
+        }
+      }
+    }
+
+    const receiptNumber =
+      payment.receipt_number ||
+      PaymentRepository.generateReceiptNumber(cleanYear || undefined, 'REC')
+
+    const operatorName = payment.created_by || null
+    const ecoleId =
+      payment.ecole_id ||
+      (SettingsRepository.get('ecole_id') as string) ||
+      process.env.VITE_DEFAULT_TENANT_ID ||
+      'ecole_dev'
+
     const stmt = db.prepare(`
       INSERT INTO student_payments (
         id, student_id, payment_date, amount, payment_type, month, 
-        description, payment_method, receipt_number, school_year
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        description, payment_method, receipt_number, school_year, print_count, created_by, ecole_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
     `)
 
     const transaction = db.transaction(() => {
@@ -39,11 +278,20 @@ export class PaymentRepository {
         payment.month || null,
         payment.description || null,
         payment.payment_method || 'cash',
-        payment.receipt_number || null,
-        payment.school_year || null
+        receiptNumber,
+        cleanYear,
+        operatorName,
+        ecoleId
       )
 
-      addToSyncQueue('student_payments', id, 'create', { ...payment, id })
+      addToSyncQueue('student_payments', id, 'create', {
+        ...payment,
+        id,
+        receipt_number: receiptNumber,
+        school_year: cleanYear,
+        created_by: operatorName,
+        ecole_id: ecoleId
+      })
 
       // SYNC: Create a corresponding cash_journal entry so the school's cash register
       // reflects all student payments. Same pattern as personnel:createSalaryExpense.
@@ -79,8 +327,8 @@ export class PaymentRepository {
         const cashId = uuidv4()
         db.prepare(
           `
-          INSERT INTO cash_journal (id, transaction_date, type, department, category, amount, description, payment_method, related_student_id)
-          VALUES (?, ?, 'income', ?, ?, ?, ?, ?, ?)
+          INSERT INTO cash_journal (id, transaction_date, type, department, category, amount, description, payment_method, related_student_id, receipt_number, related_payment_id, created_by, ecole_id)
+          VALUES (?, ?, 'income', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `
         ).run(
           cashId,
@@ -90,7 +338,11 @@ export class PaymentRepository {
           payment.amount,
           cashDescription,
           payment.payment_method || 'cash',
-          payment.student_id
+          payment.student_id,
+          receiptNumber,
+          id,
+          operatorName,
+          ecoleId
         )
         addToSyncQueue('cash_journal', cashId, 'create', {
           id: cashId,
@@ -101,7 +353,10 @@ export class PaymentRepository {
           amount: payment.amount,
           description: cashDescription,
           payment_method: payment.payment_method || 'cash',
-          related_student_id: payment.student_id
+          related_student_id: payment.student_id,
+          related_payment_id: id,
+          created_by: operatorName,
+          ecole_id: ecoleId
         })
       }
 
@@ -187,7 +442,7 @@ export class PaymentRepository {
 
     try {
       transaction()
-      return { success: true, id }
+      return { success: true, id, receipt_number: receiptNumber }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
       console.error('Create payment error:', error)
@@ -259,44 +514,99 @@ export class PaymentRepository {
     return db.prepare(query).all(...params)
   }
 
+  static getBySchoolYear(schoolYear: string) {
+    const cleanYear = schoolYear.replace(/"/g, '').replace(/'/g, '').trim()
+    return db
+      .prepare(
+        `
+      SELECT * FROM student_payments 
+      WHERE REPLACE(REPLACE(school_year, '"', ''), '''', '') = ?
+      ORDER BY payment_date DESC
+    `
+      )
+      .all(cleanYear) as Payment[]
+  }
+
   static getTuitionStatus(studentId: string, schoolYear: string) {
+    const cleanYear = schoolYear.replace(/['"]/g, '').trim()
+
     // 1. Get Fee Structure
     let feeRecord = db
       .prepare(
         `
       SELECT * FROM student_fees 
-      WHERE student_id = ? AND school_year = ?
+      WHERE student_id = ? AND REPLACE(REPLACE(school_year, '"', ''), '''', '') = ?
     `
       )
-      .get(studentId, schoolYear) as Record<string, unknown> | undefined
+      .get(studentId, cleanYear) as Record<string, unknown> | undefined
 
     if (!feeRecord) {
-      // Try with quotes if not found (legacy fallback)
-      const feeRecordQuoted = db
+      // Auto-provision if student has active class
+      const studentObj = db
         .prepare(
-          `
-            SELECT * FROM student_fees 
-            WHERE student_id = ? AND school_year = ?
-        `
+          'SELECT ecole_id, class, is_personnel_child, departure_date FROM students WHERE id = ? AND deleted = 0'
         )
-        .get(studentId, `"${schoolYear}"`) as Record<string, unknown> | undefined
+        .get(studentId) as
+        | { ecole_id?: string; class?: string; is_personnel_child?: unknown; departure_date?: string | null }
+        | undefined
 
-      if (!feeRecordQuoted) {
+      if (
+        studentObj &&
+        studentObj.class &&
+        studentObj.class !== 'Non inscrit' &&
+        studentObj.class !== 'Classe non spécifiée' &&
+        !studentObj.departure_date
+      ) {
+        const rawPC = studentObj.is_personnel_child
+        const isPC =
+          rawPC == 1 || rawPC === '1' || rawPC === '1.0' || rawPC === true || rawPC === 'true'
+        const tuitionLevel = StudentRepository.determineTuitionLevel(studentObj.class)
+        const monthlyTuition = StudentRepository.getTuitionPrice(studentObj.class, isPC)
+        const newFeeId = uuidv4()
+
+        try {
+          db.prepare(
+            `
+            INSERT INTO student_fees (
+              id, student_id, ecole_id, school_year, tuition_level, monthly_tuition, class_name,
+              bus_subscribed, canteen_subscribed, fram_paid_by_parent, is_reenrollment,
+              deleted, sync_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 'pending')
+          `
+          ).run(newFeeId, studentId, studentObj.ecole_id || null, cleanYear, tuitionLevel, monthlyTuition, studentObj.class)
+
+          feeRecord = db
+            .prepare('SELECT * FROM student_fees WHERE id = ?')
+            .get(newFeeId) as Record<string, unknown> | undefined
+        } catch (e) {
+          console.error('Error auto-creating student fee record in getTuitionStatus:', e)
+        }
+      }
+
+      if (!feeRecord) {
         return { success: false, error: 'No fee record found for this year' }
       }
-      // Found with quotes, use it
-      feeRecord = feeRecordQuoted
     }
+
+    const [startYearStr, endYearStr] = cleanYear.split('-')
+    const startYear = parseInt(startYearStr) || 2026
+    const endYear = parseInt(endYearStr) || 2027
 
     // 2. Get Tuition Payments
     const payments = db
       .prepare(
         `
       SELECT * FROM student_payments 
-      WHERE student_id = ? AND payment_type = 'tuition'
+      WHERE student_id = ? 
+        AND payment_type = 'tuition'
+        AND (
+          REPLACE(REPLACE(school_year, '"', ''), '''', '') = ?
+          OR month LIKE ?
+          OR month LIKE ?
+        )
     `
       )
-      .all(studentId) as { month: string; amount: number }[]
+      .all(studentId, cleanYear, `${startYear}-%`, `${endYear}-%`) as { month: string; amount: number }[]
 
     // Track whether student is personnel child & check establishment setting
     let isPersonnelChild = false
@@ -333,9 +643,6 @@ export class PaymentRepository {
 
     // 3. Calculate Status for each month
     // Terminale (TA/TD) goes until July, others stop in June
-    const [startYearStr, endYearStr] = schoolYear.replace(/"/g, '').split('-')
-    const startYear = parseInt(startYearStr)
-    const endYear = parseInt(endYearStr)
     const className = (feeRecord.class_name as string) || ''
     const isTerminale = className === 'TA' || className === 'TD' || className === 'Terminale'
 
@@ -432,7 +739,7 @@ export class PaymentRepository {
                sf.canteen_subscribed, sf.canteen_days_per_week, sf.canteen_days
         FROM students s
         JOIN student_fees sf ON sf.student_id = s.id
-        WHERE sf.school_year = ? 
+        WHERE REPLACE(REPLACE(sf.school_year, '"', ''), '''', '') = ? 
           AND s.deleted = 0 
           AND sf.deleted = 0
       `
@@ -451,10 +758,26 @@ export class PaymentRepository {
         FROM student_payments
         WHERE deleted = 0 
           AND payment_type IN ('tuition', 'bus', 'canteen')
+          AND (
+            REPLACE(REPLACE(school_year, '"', ''), '''', '') = ?
+            OR (
+              school_year IS NULL 
+              AND (
+                month LIKE ? OR month LIKE ?
+                OR payment_date BETWEEN ? AND ?
+              )
+            )
+          )
         GROUP BY student_id, payment_type, month
       `
         )
-        .all() as Array<{
+        .all(
+          targetYear,
+          `${startYear}-%`,
+          `${endYear}-%`,
+          `${startYear}-06-01`,
+          `${endYear}-08-31`
+        ) as Array<{
         student_id: string
         payment_type: string
         month: string
@@ -483,94 +806,102 @@ export class PaymentRepository {
         amount_paid: number
       }>
 
-      const eventsMap = new Map<string, any[]>()
-      unpaidEvents.forEach((ev) => {
-        if (!eventsMap.has(ev.student_id)) eventsMap.set(ev.student_id, [])
-        eventsMap.get(ev.student_id)!.push(ev)
-      })
-
-      const now = new Date()
-      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-
-      const alerts: Array<Record<string, unknown>> = []
+      // 5. Aggregate Alerts
+      const alerts: any[] = []
 
       students.forEach((student) => {
-        const isTerminale =
-          student.class === 'TA' || student.class === 'TD' || student.class === 'Terminale'
-        const studentMonths = isTerminale ? terminaleMonths : months
-
+        const unpaidItems: Array<{ type: string; label: string; amount: number; month?: string }> =
+          []
         let totalDue = 0
-        const unpaidItems: Array<{ type: string; description: string; amount: number }> = []
+        const isTerminale = student.class === 'TA' || student.class === 'TD' || student.class === 'Terminale'
+        const relevantMonths = isTerminale ? terminaleMonths : months
 
-        // Helper to check monthly subscriptions
-        const checkMonthlyService = (type: string, monthlyCost: number, labelPrefix: string) => {
-          if (monthlyCost <= 0) return
-          studentMonths.forEach((m) => {
-            if (m > currentMonth) return // Not yet due
-            if (student.departure_date && m > student.departure_date.substring(0, 7)) return // After departure
+        // Check Tuition
+        const rawPC = student.is_personnel_child
+        const isPC = rawPC == 1 || rawPC === '1' || rawPC === '1.0' || rawPC === true || rawPC === 'true'
+        const shouldExonerate = SettingsRepository.get('exonerate_personnel_children') !== false
 
-            const paidAmount = paymentMap.get(`${student.id}_${type}_${m}`) || 0
-            const balance = monthlyCost - paidAmount
-            if (balance > 0) {
+        if (!isPC || !shouldExonerate) {
+          const config = student.class ? StudentRepository.resolveTuitionConfig(student.class) : null
+          const monthlyTuition = config?.price || student.monthly_tuition || 0
+
+          if (monthlyTuition > 0) {
+            relevantMonths.forEach((m) => {
+              const paid = paymentMap.get(`${student.id}_tuition_${m}`) || 0
+              if (paid < monthlyTuition) {
+                const due = monthlyTuition - paid
+                totalDue += due
+                unpaidItems.push({
+                  type: 'tuition',
+                  label: `Écolage ${m}`,
+                  amount: due,
+                  month: m
+                })
+              }
+            })
+          }
+        }
+
+        // Check Bus
+        if (student.bus_subscribed && student.bus_route && prices.bus && prices.bus[student.bus_route]) {
+          const busPrice = prices.bus[student.bus_route]
+          relevantMonths.forEach((m) => {
+            const paid = paymentMap.get(`${student.id}_bus_${m}`) || 0
+            if (paid < busPrice) {
+              const due = busPrice - paid
+              totalDue += due
               unpaidItems.push({
-                type,
-                description: `${labelPrefix} (${m})`,
-                amount: balance
+                type: 'bus',
+                label: `Transport (${student.bus_route}) ${m}`,
+                amount: due,
+                month: m
               })
-              totalDue += balance
             }
           })
         }
 
-        // --- Tuition ---
-        const shouldExonerate = SettingsRepository.get('exonerate_personnel_children') !== false
-        const isPersonnelChild =
-          shouldExonerate &&
-          (student.is_personnel_child === 1 ||
-            student.is_personnel_child === '1' ||
-            student.is_personnel_child === true ||
-            student.is_personnel_child === 'true')
-        const tuitionCost = isPersonnelChild ? 0 : student.monthly_tuition || 0
-        checkMonthlyService('tuition', tuitionCost, 'Écolage')
+        // Check Canteen
+        if (student.canteen_subscribed && prices.canteen) {
+          let daysCount = 0
+          try {
+            const days = typeof student.canteen_days === 'string' ? JSON.parse(student.canteen_days) : student.canteen_days
+            if (Array.isArray(days)) daysCount = days.length
+          } catch (e) {}
+          if (!daysCount && student.canteen_days_per_week) {
+            daysCount = student.canteen_days_per_week
+          }
 
-        // --- Bus ---
-        if (student.bus_subscribed && student.bus_route) {
-          const busCost = prices?.bus?.[student.bus_route] || 0
-          checkMonthlyService('bus', busCost, 'Transport')
+          const dailyPrice = prices.canteen.daily || 0
+          const monthlyCanteenPrice = daysCount * dailyPrice * 4 // Approximation 4 weeks/month
+
+          if (monthlyCanteenPrice > 0) {
+            relevantMonths.forEach((m) => {
+              const paid = paymentMap.get(`${student.id}_canteen_${m}`) || 0
+              if (paid < monthlyCanteenPrice) {
+                const due = monthlyCanteenPrice - paid
+                totalDue += due
+                unpaidItems.push({
+                  type: 'canteen',
+                  label: `Cantine ${m}`,
+                  amount: due,
+                  month: m
+                })
+              }
+            })
+          }
         }
 
-        // --- Canteen ---
-        if (student.canteen_subscribed) {
-          let canteenCost = 0
-          let daysCount = student.canteen_days_per_week || 0
-          if (typeof student.canteen_days === 'string') {
-            try {
-              const parsed = JSON.parse(student.canteen_days)
-              if (Array.isArray(parsed) && parsed.length > 0) daysCount = parsed.length
-            } catch (e) {}
-          }
-          const effectiveDays = daysCount === 0 ? 5 : daysCount
-          const monthlyPrice = Number(prices?.canteen?.monthly) || 0
-          const dailyPrice = Number(prices?.canteen?.daily) || 0
-          if (monthlyPrice > 0 && effectiveDays >= 5) {
-            canteenCost = monthlyPrice
-          } else {
-            canteenCost = dailyPrice * effectiveDays * 4
-          }
-          checkMonthlyService('canteen', canteenCost, 'Cantine')
-        }
-
-        // --- Events ---
-        const sEvents = eventsMap.get(student.id) || []
-        sEvents.forEach((ev) => {
-          const balance = ev.amount_due - ev.amount_paid
-          if (balance > 0) {
+        // Check Unpaid Events
+        const studentEvents = unpaidEvents.filter((e) => e.student_id === student.id)
+        studentEvents.forEach((e) => {
+          const due = e.amount_due - e.amount_paid
+          if (due > 0) {
+            totalDue += due
             unpaidItems.push({
               type: 'event',
-              description: `Événement: ${ev.event_name}`,
-              amount: balance
+              label: `Événement: ${e.event_name}`,
+              amount: due
             })
-            totalDue += balance
           }
         })
 
@@ -607,13 +938,14 @@ export class PaymentRepository {
         SELECT COALESCE(SUM(sf.monthly_tuition), 0) as expected
         FROM student_fees sf
         JOIN students s ON s.id = sf.student_id
-        WHERE sf.school_year = ? AND s.deleted = 0 AND sf.deleted = 0
+        WHERE REPLACE(REPLACE(sf.school_year, '"', ''), '''', '') = ? AND s.deleted = 0 AND sf.deleted = 0
       `
         )
         .get(targetYear) as { expected: number } | undefined
 
       return { success: true, expected: result?.expected || 0 }
     } catch (error: unknown) {
+      console.error('Error fetching expected revenue:', error)
       const message = error instanceof Error ? error.message : 'Erreur de base de données'
       return { success: false, error: message }
     }
@@ -621,6 +953,7 @@ export class PaymentRepository {
 
   static checkFramFratrie(studentId: string, schoolYear: string) {
     try {
+      const cleanYear = schoolYear.replace(/['"]/g, '').trim()
       const student = db.prepare('SELECT siblings FROM students WHERE id = ?').get(studentId) as
         | { siblings: string | null }
         | undefined
@@ -636,24 +969,27 @@ export class PaymentRepository {
       // Check if any sibling has a payment for 'fram'
       const placeholders = siblings.map(() => '?').join(',')
 
-      // Note: fram payment might just be payment_type='fram' but wait, what about fram_paid_by_parent?
       // First check if any sibling has fram_paid_by_parent in student_fees
       const siblingsWithFramParent = db
         .prepare(
           `
         SELECT id FROM student_fees 
         WHERE student_id IN (${placeholders}) 
-        AND school_year = ? 
+        AND REPLACE(REPLACE(school_year, '"', ''), '''', '') = ? 
         AND fram_paid_by_parent = 1
       `
         )
-        .all(...siblings, schoolYear)
+        .all(...siblings, cleanYear)
 
       if (siblingsWithFramParent.length > 0) {
         return { success: true, isPaid: true, by: 'parent' }
       }
 
       // Next, check actual payments
+      const [startYearStr, endYearStr] = cleanYear.split('-')
+      const startYear = parseInt(startYearStr) || 2026
+      const endYear = parseInt(endYearStr) || 2027
+
       const payments = db
         .prepare(
           `
@@ -662,10 +998,18 @@ export class PaymentRepository {
         JOIN students s ON p.student_id = s.id
         WHERE p.payment_type = 'fram' 
         AND p.student_id IN (${placeholders})
-        AND p.school_year = ?
+        AND (
+          REPLACE(REPLACE(p.school_year, '"', ''), '''', '') = ?
+          OR p.payment_date BETWEEN ? AND ?
+        )
       `
         )
-        .all(...siblings, schoolYear) as any[]
+        .all(
+          ...siblings,
+          cleanYear,
+          `${startYear}-06-01`,
+          `${endYear}-08-31`
+        ) as any[]
 
       if (payments.length > 0) {
         const siblingNames = payments.map((p) => `${p.first_name} ${p.last_name}`).join(', ')

@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, protocol } from 'electron'
+import { app, shell, BrowserWindow, protocol, nativeTheme } from 'electron'
 import path, { join } from 'path'
 import fs from 'fs'
 
@@ -29,6 +29,8 @@ import { registerBuilderHandlers } from './ipc/builder.handler'
 import { registerLogHandlers } from './ipc/log.handler'
 import { setupPrinterHandlers } from './ipc/printer.handler'
 import { registerSuperAdminHandlers } from './ipc/superadmin.handler'
+import { registerDuplicateHandlers } from './ipc/duplicate.handler'
+import { registerSyncHandlers } from './ipc/sync.handler'
 import { startPeriodicSync } from './services/sync.service'
 import { startSessionMonitor, stopSessionMonitor } from './auth/session.service'
 import { EmailService } from './services/email.service'
@@ -77,6 +79,9 @@ app.whenReady().then(() => {
   const appNameId = (process.env.VITE_APP_NAME || 'StudyAgent').toLowerCase().replace(/\s+/g, '')
   electronApp.setAppUserModelId(`com.app.${appNameId}`)
 
+  // Force native light theme to avoid dark mode / transparency glitches on Windows
+  nativeTheme.themeSource = 'light'
+
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
@@ -108,6 +113,8 @@ app.whenReady().then(() => {
   registerBuilderHandlers()
   registerLogHandlers()
   registerSuperAdminHandlers()
+  registerDuplicateHandlers()
+  registerSyncHandlers()
   setupPrinterHandlers()
 
   // Register custom protocol for local resources
