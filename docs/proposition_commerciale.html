@@ -158,25 +158,34 @@
                 gap: 8px !important;
             }
 
-            /* PAGE 3 (CAHIER DES CHARGES) */
+            
+            /* PAGE 3 (CAHIER DES CHARGES COMPACTÉ POUR A4) */
             .specs-table {
-                margin-bottom: 12px !important;
+                margin-bottom: 8px !important;
             }
 
             .specs-table th {
-                padding: 6px 0 4px 0 !important;
-                font-size: 14px !important;
+                padding: 4px 0 2px 0 !important;
+                font-size: 12.5px !important;
             }
 
             .specs-table td {
-                padding: 7px 0 !important;
-                font-size: 12px !important;
-                line-height: 1.45 !important;
+                padding: 4px 0 !important;
+                font-size: 11px !important;
+                line-height: 1.35 !important;
+            }
+
+            .specs-table td.feature-name {
+                width: 32% !important;
+                font-size: 11px !important;
+                font-weight: 600 !important;
             }
 
             .specs-table td.feature-desc {
-                font-size: 11.5px !important;
+                width: 68% !important;
+                font-size: 10.5px !important;
             }
+
 
             .no-print {
                 display: none;
@@ -793,16 +802,14 @@
             ainsi que la formation de la Direction et de la Caisse.
         </p>
 
+        
         <!-- OPTION 1 -->
         <div class="pricing-card">
             <div class="pricing-header">
                 <div class="pricing-title-area">
-                    <span
-                        style="font-size: 10px; color: var(--rust); text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">Formule
-                        1</span>
-                    <h3 class="serif">Premium — Sécurité & Pédagogie</h3>
-                    <div class="sub">L'essentiel pour digitaliser le secrétariat et sécuriser la trésorerie.
-                        Rentabilisée au 1er impayé.</div>
+                    <span style="font-size: 10px; color: var(--rust); text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">Formule 1</span>
+                    <h3 class="serif">Premium — Sécurité Caisse & Pédagogie</h3>
+                    <div class="sub">L'essentiel pour digitaliser le secrétariat, fiabiliser les encaissements et traquer les impayés. Rentabilisée au 1<sup>er</sup> retard recouvré.</div>
                 </div>
                 <div class="pricing-amount-area">
                     <div class="crossed-price-container"><span class="strike">119&nbsp;000&nbsp;Ar/mois</span></div>
@@ -814,28 +821,26 @@
                 </div>
             </div>
             <ul class="pricing-list">
-                <li>Dossiers & Inscriptions Élèves</li>
-                <li>Pointage d'Assiduité (Bus/Cantine)</li>
-                <li>Carnet de notes & Évaluations</li>
-                <li><strong>Journal de Caisse complet</strong></li>
-                <li><strong>Gestion centralisée des Écolages</strong></li>
-                <li><strong>Alertes automatiques (Retards d'écolage)</strong></li>
-                <li>Fonctionnement 100% Hors-ligne sur votre PC</li>
+                <li>Dossiers Élèves & Affectation de classe</li>
+                <li>Pointage d'Assiduité quotidien (Bus & Cantine)</li>
+                <li>Carnet de notes, moyennes & rangs automatiques</li>
+                <li><strong>Certificats de scolarité PDF officiels en 1 clic</strong></li>
+                <li><strong>Journal de Caisse complet & Suivi des Écolages</strong></li>
+                <li><strong>Moteur d'Alertes Impayés & Reliquats au jour le jour</strong></li>
+                <li><strong>Fonctionnement 100% Hors-Ligne (Tolérance JIRAMA)</strong></li>
+                <li>Export Excel / CSV des élèves et de la caisse</li>
             </ul>
         </div>
 
+
         <!-- OPTION 2 -->
-        <div class="pricing-card"
-            style="border-color: var(--rust); border-width: 2px; box-shadow: 0 10px 30px rgba(164, 90, 61, 0.12);">
+        <div class="pricing-card" style="border-color: var(--rust); border-width: 2px; box-shadow: 0 10px 30px rgba(164, 90, 61, 0.12);">
             <div class="pricing-header">
                 <div class="pricing-title-area">
-                    <span
-                        style="font-size: 10px; color: var(--rust); text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">Formule
-                        2</span>
-                    <span class="badge-recommended"
-                        style="background: var(--rust-light); color: var(--rust); border-color: var(--rust);">Offre Partenaire VIP</span>
-                    <h3 class="serif">Excellence — ERP Intégral</h3>
-                    <div class="sub">Pour une administration totalement automatisée et une image "Zéro papier".</div>
+                    <span style="font-size: 10px; color: var(--rust); text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">Formule 2</span>
+                    <span class="badge-recommended" style="background: var(--rust-light); color: var(--rust); border-color: var(--rust);">Offre Partenaire VIP</span>
+                    <h3 class="serif">Excellence — ERP Intégral & Bouclier Financier</h3>
+                    <div class="sub">Le système complet certifié : Clôture de caisse, billetage physique, ticket Z thermique 80 mm, paie RH et synchronisation Cloud.</div>
                 </div>
                 <div class="pricing-amount-area">
                     <div class="crossed-price-container">
@@ -847,24 +852,24 @@
                         <div class="unit">/&nbsp;mois</div>
                     </div>
                     <div class="promo-badge green">Tarif 1<sup style="font-size: 8px;">er</sup> trimestre</div>
-                    <div class="pricing-subtext" style="max-width: 220px; margin-left: auto;">
+                    <div class="pricing-subtext" style="max-width: 230px; margin-left: auto;">
                         Dès le 4<sup>ème</sup> mois : 199&nbsp;000&nbsp;Ar/mois sans engagement (ou 159&nbsp;000&nbsp;Ar/mois sur engagement annuel)
                     </div>
                 </div>
             </div>
             <ul class="pricing-list">
-                <li><strong>Tout le contenu Premium (Notes, Caisse...)</strong></li>
-                <li><strong>Module RH (Dossiers Personnel & Contrats)</strong></li>
-                <li><strong>Paie Automatisée (IRSA, CNaPS) & Bulletins PDF</strong></li>
-                <li><strong>Gestion Financière des Événements (Sorties...)</strong></li>
-                <li><strong>Clôture Journalière, Billetage Physique & Calcul d'Écarts</strong></li>
-                <li><strong>Impression Directe ESC/POS (Ticket Z 80 mm certifié)</strong></li>
+                <li><strong>Tout le contenu Premium (Élèves, Notes, Caisse...)</strong></li>
+                <li><strong>Clôture de Caisse avec Billetage physique (20 000 à 100 Ar)</strong></li>
+                <li><strong>Calcul automatique des Écarts (Théorique vs Tiroir Réel)</strong></li>
+                <li><strong>Impression Directe ESC/POS (Tickets & Ticket Z 80 mm scellé)</strong></li>
+                <li><strong>Tampon Duplicata certifié anti-fraude & Reçus groupés</strong></li>
+                <li><strong>Règle comptable d'intangibilité & Contre-passation</strong></li>
+                <li><strong>Bilan quotidien de caisse par Email automatique à 18h00</strong></li>
                 <li><strong>Moteur d'Auto-Guérison Multi-Postes (Supabase & SQLite)</strong></li>
-                <li><strong>Impression de Reçus Thermiques (Tickets)</strong></li>
-                <li><strong>Licence Multi-postes (Réseau local complet)</strong></li>
-                <li><strong>Administration, Droits d'accès & Journal d'Audit</strong></li>
-                <li><strong>Sauvegarde Cloud (Double Sécurité des données)</strong></li>
-                <li><strong>Assistance & Support Prioritaire</strong></li>
+                <li><strong>Module RH & Paie Automatisée (IRSA, CNaPS & Bulletins PDF)</strong></li>
+                <li><strong>Grand Livre financier paginé avec filtres Caissier/Poste</strong></li>
+                <li><strong>Séparation des Rôles (RBAC Direction) & Journal d'Audit</strong></li>
+                <li><strong>Assistance & Support Réactif Prioritaire 6j/7</strong></li>
             </ul>
         </div>
 
@@ -921,37 +926,33 @@
             modules dépend de l'Option d'abonnement que vous aurez sélectionnée (Standard, Premium ou Excellence).
         </p>
 
+        
         <table class="specs-table">
             <thead>
                 <tr>
-                    <th colspan="2" class="serif">1. Module Académique & Assiduité</th>
+                    <th colspan="2" class="serif">1. Module Académique, Vie Scolaire & Assiduité</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td class="feature-name">Profil Élève Exhaustif</td>
-                    <td class="feature-desc">Identité complète, matricule auto-généré, classe actuelle, informations
-                        détaillées sur les parents et tuteurs, école d'origine, numéros d'urgence.</td>
+                    <td class="feature-name">Profil Élève & Scolarité</td>
+                    <td class="feature-desc">Identité complète, matricule automatique, photo, classe, coordonnées tuteurs, numéros d'urgence, école d'origine et gestion des fratries.</td>
                 </tr>
                 <tr>
-                    <td class="feature-name">Inscriptions & Frais annuels</td>
-                    <td class="feature-desc">Affectation des droits annuels (Inscription, Frais divers) et définition
-                        automatique de l'écolage mensuel attendu selon la classe de l'élève.</td>
+                    <td class="feature-name">Inscriptions & Frais Annuels</td>
+                    <td class="feature-desc">Affectation des droits annuels (Inscription, Droit d'examen) et échéancier d'écolage mensuel calibré selon la classe.</td>
                 </tr>
                 <tr>
-                    <td class="feature-name">Services Annexes</td>
-                    <td class="feature-desc">Abonnement au Transport (Bus avec itinéraires configurables) et à la
-                        Cantine.</td>
+                    <td class="feature-name">Services Annexes & Transport</td>
+                    <td class="feature-desc">Abonnement Cantine et Transport Scolaire par circuit/arrêt, avec prise en charge des tarifs dérogatoires personnalisés.</td>
                 </tr>
                 <tr>
-                    <td class="feature-name">Pointage et Assiduité</td>
-                    <td class="feature-desc">Interface quotidienne de pointage validant la présence physique des élèves
-                        inscrits aux services (Bus et Cantine) pour assurer une parfaite traçabilité.</td>
+                    <td class="feature-name">Pointage Quotidien & Assiduité</td>
+                    <td class="feature-desc">Interface de contrôle journalier validant la présence physique des élèves (Bus, Cantine) pour une traçabilité totale.</td>
                 </tr>
                 <tr>
-                    <td class="feature-name">Certificats de Scolarité</td>
-                    <td class="feature-desc">Génération en un clic du certificat de scolarité au format PDF, formaté de
-                        manière professionnelle avec espaces dédiés à la signature et au cachet.</td>
+                    <td class="feature-name">Certificats & Exports</td>
+                    <td class="feature-desc">Édition en 1 clic des certificats de scolarité PDF officiels prêts pour signature et cachet. Export complet des effectifs en Excel/CSV.</td>
                 </tr>
             </tbody>
         </table>
@@ -959,26 +960,29 @@
         <table class="specs-table">
             <thead>
                 <tr>
-                    <th colspan="2" class="serif">2. Module Trésorerie (Dès la formule Premium)</th>
+                    <th colspan="2" class="serif">2. Module Trésorerie, Caisses & Clôture (Dès Formule 1, Avancé en Formule 2)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td class="feature-name">Journal de Caisse Centralisé</td>
-                    <td class="feature-desc">Enregistrement numérique de l'intégralité des entrées (Écolages, Droits
-                        d'examen) et sorties (Dépenses courantes, Achats). Calcul automatique du solde réel pour
-                        contrôler les erreurs de caisse.</td>
+                    <td class="feature-name">Grand Livre & Multi-Caisses</td>
+                    <td class="feature-desc">Centralisation des flux par poste isolé (<code>C1</code>, <code>C2</code>) anti-collision. Filtres dynamiques par caissier, date, mode de paiement et rubriques avec pagination fluide.</td>
                 </tr>
                 <tr>
-                    <td class="feature-name">Analyse des Impayés</td>
-                    <td class="feature-desc">Surveillance en temps réel des versements générant une liste d'alertes
-                        automatiques pour les élèves en retard sur l'écolage ou le bus.</td>
+                    <td class="feature-name">Alertes Impayés Dynamiques</td>
+                    <td class="feature-desc">Moteur de calcul en temps réel des mensualités échues en retard. Identification immédiate des reliquats dès l'ouverture de la fiche élève.</td>
                 </tr>
                 <tr>
-                    <td class="feature-name">Historique Financier Élève</td>
-                    <td class="feature-desc">Vue ultra-détaillée sur chaque profil retraçant l'intégralité des
-                        transactions passées de l'élève. Prévient toute tentative de fraude ou litige avec un parent.
-                    </td>
+                    <td class="feature-name">Billetage Physique & Clôture Z</td>
+                    <td class="feature-desc">Interface de comptage des espèces par coupure (20 000 à 100 Ar) et chèques. Calcul automatique des écarts théoriques vs constatés. Impression du Ticket Z scellé et PV PDF A4.</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Impression ESC/POS & Anti-Fraude</td>
+                    <td class="feature-desc">Impression thermique directe 80 mm en 1 seconde (zéro boîte de dialogue). Marquage indélébile <em>DUPLICATA N° X</em> horodaté et reçus groupés multi-mois.</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Intangibilité & Bilan 18h</td>
+                    <td class="feature-desc">Interdiction de suppression directe : annulation par contre-passation compensatoire normée. Envoi autonome du bilan PDF sur l'email de la Direction à 18h.</td>
                 </tr>
             </tbody>
         </table>
@@ -986,25 +990,21 @@
         <table class="specs-table">
             <thead>
                 <tr>
-                    <th colspan="2" class="serif">3. Module Ressources Humaines (Excellence)</th>
+                    <th colspan="2" class="serif">3. Module Ressources Humaines & Paie Malagasy (Formule 2)</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td class="feature-name">Profils du Personnel</td>
-                    <td class="feature-desc">Création du dossier numérique du personnel administratif et des
-                        enseignants. Gestion du statut contractuel (Temps plein, partiel, vacataire horaire).</td>
+                    <td class="feature-name">Dossiers RH & Contrats</td>
+                    <td class="feature-desc">Gestion du personnel enseignant et administratif (CDI, CDD, vacataires payés à l'heure). Cadrage mensuel (AAAA-MM) anti-faux arriérés.</td>
                 </tr>
                 <tr>
-                    <td class="feature-name">Calcul Automatique de Paie</td>
-                    <td class="feature-desc">Génération intelligente de la paie en fin de mois. Application automatique
-                        du calcul du salaire brut minoré des déductions légales (Absences, CNaPS, IRSA, Avances sur
-                        salaire).</td>
+                    <td class="feature-name">Paie Légale Automatisée</td>
+                    <td class="feature-desc">Calcul du brut au net intégrant les déductions d'absences, acomptes sur salaire, retenue légale CNaPS (1%) et tranches progressives de l'IRSA malagasy.</td>
                 </tr>
                 <tr>
-                    <td class="feature-name">Bulletins de Salaire PDF</td>
-                    <td class="feature-desc">Édition électronique du bulletin pour chaque paiement, exportable
-                        instantanément en PDF pour signature.</td>
+                    <td class="feature-name">Bulletins de Paie PDF</td>
+                    <td class="feature-desc">Édition électronique instantanée des fiches de paie conformes, prêtes pour signature, émargement et archivage comptable.</td>
                 </tr>
             </tbody>
         </table>
@@ -1012,29 +1012,25 @@
         <table class="specs-table">
             <thead>
                 <tr>
-                    <th colspan="2" class="serif">4. Pédagogie & Sécurité des données</th>
+                    <th colspan="2" class="serif">4. Pédagogie, Sécurité & Architecture Hybride Résiliente</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td class="feature-name">Carnet de Notes Numérique</td>
-                    <td class="feature-desc">Création d'évaluations paramétrables par matière avec coefficients. Saisie
-                        rapide sous forme de tableur avec calcul instantané des moyennes par élève et par classe.</td>
+                    <td class="feature-name">Notes & Bulletins Scolaires</td>
+                    <td class="feature-desc">Saisie des notes par période avec coefficients. Calcul instantané des moyennes individuelles, de classe et rangs. Génération des bulletins PDF complets.</td>
                 </tr>
                 <tr>
-                    <td class="feature-name">Séparation des Rôles (RBAC)</td>
-                    <td class="feature-desc">Mise en place de rôles stricts : la caissière est limitée à l'encaissement,
-                        tandis que la Direction conserve l'accès exclusif aux données de trésorerie et aux salaires.
-                    </td>
+                    <td class="feature-name">RBAC & Journal d'Audit</td>
+                    <td class="feature-desc">Contrôle strict des accès par profil (Direction, Caisse, Secrétariat, Profs). Journal d'audit horodaté traçant chaque opération de caisse ou modification.</td>
                 </tr>
                 <tr>
-                    <td class="feature-name">Backup Double Sécurité</td>
-                    <td class="feature-desc">Fonctionnement primaire sur une base locale hors-ligne pour la rapidité.
-                        Synchronisation transparente vers un Cloud sécurisé (Supabase) dès l'accès à internet,
-                        garantissant zéro perte en cas de crash matériel.</td>
+                    <td class="feature-name">Moteur d'Auto-Guérison Cloud</td>
+                    <td class="feature-desc">Base SQLite locale en mode WAL (100% hors-ligne, immunisée contre les coupures JIRAMA) avec réconciliation intelligente vers le Cloud Supabase sans écrasement de données.</td>
                 </tr>
             </tbody>
         </table>
+
 
         
         <!-- BON POUR ACCORD & ENGAGEMENT CONTRACTUEL (PAGE 3) -->
