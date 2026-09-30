@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposition Commerciale — ERP Entreprise Study Agent (v2.2.4)</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --rust: #A45A3D;
+            --rust-light: #F8EFEA;
+            --text-dark: #2C2C2C;
+            --text-gray: #666666;
+            --text-light: #999999;
+            --border: #E5DCD5;
+            --green: #4CAF50;
+            --green-light: #E8F5E9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-dark);
+            background-color: #333;
+            font-size: 13.5px;
+            line-height: 1.6;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 25mm 20mm;
+            margin: 15mm auto;
+            background: white;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        @media print {
+            body {
+                background: white;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .page {
+                margin: 0;
+                box-shadow: none;
+                padding: 8mm 15mm;
+                width: 210mm;
+                height: 296mm;
+                /* Safe height for A4 */
+                min-height: 296mm;
+                page-break-after: always;
+                page-break-inside: avoid;
+                overflow: hidden;
+            }
+
+            .page-footer {
+                bottom: 6mm !important;
+                left: 15mm !important;
+                right: 15mm !important;
+            }
+
+            /* GLOBAL PRINT ADJUSTMENTS TO FIT A4 */
+            h1.main-title {
+                font-size: 34px !important;
+                margin-bottom: 5px !important;
+            }
+
+            h2.main-subtitle {
+                font-size: 20px !important;
+                margin-bottom: 15px !important;
+            }
+
+            .intro-text {
+                margin-bottom: 15px !important;
+                font-size: 12.5px !important;
+            }
+
+            /* PAGE 1 */
+            .header-top {
+                padding-bottom: 10px !important;
+                margin-bottom: 15px !important;
+            }
+
+            .badges-container {
+                margin-bottom: 15px !important;
+            }
+
+            .guarantee-section {
+                margin-bottom: 15px !important;
+                padding: 15px 20px !important;
+            }
+
+            .section-header {
+                margin-top: 15px !important;
+                margin-bottom: 15px !important;
+            }
+
+            .features-grid {
+                margin-bottom: 10px !important;
+                gap: 15px !important;
+            }
+
+            /* PAGE 2 */
+            .pricing-card {
+                margin-bottom: 8px !important;
+                padding: 12px 18px !important;
+            }
+
+            .pricing-header {
+                margin-bottom: 8px !important;
+                padding-bottom: 8px !important;
+            }
+            
+            .pricing-list {
+                gap: 6px 15px !important;
+            }
+
+            .pricing-list li {
+                font-size: 11.5px !important;
+            }
+
+            .pricing-subtext {
+                line-height: 1.1 !important;
+                margin-top: 4px !important;
+            }
+
+            /* PAGE 3 (CAHIER DES CHARGES) */
+            .specs-table {
+                margin-bottom: 12px !important;
+            }
+
+            .specs-table th {
+                padding: 6px 0 4px 0 !important;
+                font-size: 14px !important;
+            }
+
+            .specs-table td {
+                padding: 7px 0 !important;
+                font-size: 12px !important;
+                line-height: 1.45 !important;
+            }
+
+            .specs-table td.feature-desc {
+                font-size: 11.5px !important;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+
+        .serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* HEADER */
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        .header-left {
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            color: var(--rust);
+            margin-top: 5px;
+        }
+
+        .header-left .sub {
+            color: var(--text-gray);
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            font-weight: 400;
+            margin-top: 4px;
+        }
+
+        .header-right {
+            text-align: right;
+            font-size: 11px;
+            color: var(--text-gray);
+        }
+
+        .header-right strong {
+            color: var(--text-dark);
+            font-size: 13px;
+        }
+
+        /* MAIN TITLES */
+        h1.main-title {
+            font-size: 42px;
+            font-weight: 500;
+            color: var(--text-dark);
+            line-height: 1.1;
+            margin-bottom: 10px;
+        }
+
+        h2.main-subtitle {
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--rust);
+            margin-bottom: 30px;
+        }
+
+        .intro-text {
+            color: var(--text-gray);
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        /* BADGES */
+        .badges-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .badge.outline-rust {
+            border: 1px solid var(--rust);
+            color: var(--rust);
+            background: white;
+        }
+
+        .badge.outline-green {
+            border: 1px solid var(--green);
+            color: #2E7D32;
+            background: var(--green-light);
+        }
+
+        /* INFO BOX */
+        .info-box {
+            background: var(--rust-light);
+            border-left: 3px solid var(--rust);
+            padding: 20px 25px;
+            border-radius: 4px;
+            margin-bottom: 40px;
+        }
+
+        .info-box h4 {
+            color: var(--rust);
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        /* SECTION TITLES */
+        .section-header {
+            margin-top: 40px;
+            margin-bottom: 25px;
+        }
+
+        .section-header .num {
+            color: var(--rust);
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .section-header .title {
+            font-size: 28px;
+            color: var(--text-dark);
+            font-weight: 400;
+        }
+
+        .section-header .subtitle {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 5px;
+            margin-left: 30px;
+        }
+
+        /* GRID / CARDS */
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .text-block h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .text-block h4::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background: var(--rust);
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+
+        .text-block p {
+            color: var(--text-gray);
+            padding-left: 14px;
+        }
+
+        /* PRICING CARDS */
+        .pricing-card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px;
+            position: relative;
+            background: white;
+        }
+
+        .pricing-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
+        }
+
+        .pricing-title-area h3 {
+            font-size: 20px;
+            color: var(--text-dark);
+            font-weight: 400;
+        }
+
+        .pricing-title-area .sub {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 5px;
+        }
+
+        .pricing-amount-area {
+            text-align: right;
+        }
+
+        .pricing-amount-area .price {
+            font-size: 26px;
+            font-weight: 400;
+            color: var(--text-dark);
+        }
+
+        .pricing-amount-area .unit {
+            font-size: 12px;
+            color: var(--text-gray);
+            text-transform: none;
+        }
+
+        .crossed-price-container {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        .crossed-price-container .strike {
+            text-decoration: line-through;
+        }
+
+        .discount-badge {
+            background: #FFEBEE;
+            color: #D32F2F;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .promo-badge {
+            display: inline-block;
+            border: 1px solid var(--border);
+            background: #F9F9F9;
+            color: var(--text-gray);
+            font-size: 9px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+        
+        .promo-badge.green {
+            border-color: #A5D6A7;
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .pricing-subtext {
+            font-size: 10px;
+            color: var(--text-gray);
+            font-style: italic;
+            margin-top: 8px;
+            text-align: right;
+            line-height: 1.3;
+        }
+
+        .pricing-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 20px;
+            list-style: none;
+        }
+
+        .pricing-list li {
+            position: relative;
+            padding-left: 20px;
+            color: var(--text-gray);
+            font-size: 13px;
+        }
+
+        .pricing-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--rust);
+            font-size: 14px;
+        }
+
+        .badge-recommended {
+            display: inline-block;
+            background: var(--green-light);
+            color: #2E7D32;
+            border: 1px solid var(--green);
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-bottom: 5px;
+            vertical-align: middle;
+            text-transform: uppercase;
+        }
+
+        /* MINIMAL TABLES FOR CAHIER DES CHARGES */
+        .specs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .specs-table th {
+            background: transparent;
+            color: var(--rust);
+            font-size: 15px;
+            font-weight: 500;
+            text-align: left;
+            padding: 10px 0 5px 0;
+            border-bottom: 1px solid var(--rust);
+        }
+
+        .specs-table td {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        .specs-table td.feature-name {
+            width: 35%;
+            font-weight: 500;
+            color: var(--text-dark);
+        }
+
+        .specs-table td.feature-desc {
+            width: 65%;
+            color: var(--text-gray);
+            font-size: 12.5px;
+        }
+
+        /* FOOTER */
+        .page-footer {
+            position: absolute;
+            bottom: 20mm;
+            left: 20mm;
+            right: 20mm;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid var(--border);
+            padding-top: 15px;
+            font-size: 10px;
+            color: var(--text-light);
+        }
+
+        .guarantee-section {
+            background: linear-gradient(135deg, var(--rust-light) 0%, #FFFFFF 100%);
+            border: 1px solid rgba(164, 90, 61, 0.2);
+            border-radius: 8px;
+            padding: 25px 30px;
+            margin-bottom: 40px;
+            margin-top: 10px;
+        }
+
+        .g-header {
+            margin-bottom: 20px;
+        }
+
+        .g-header h3 {
+            color: var(--text-dark);
+            font-size: 18px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .badge-gold {
+            background: var(--rust);
+            color: white;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .g-cards {
+            display: flex;
+            gap: 20px;
+        }
+
+        .g-item {
+            flex: 1;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .g-icon {
+            font-size: 20px;
+            background: var(--rust-light);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .g-content strong {
+            display: block;
+            font-size: 13px;
+            color: var(--rust);
+            margin-bottom: 3px;
+        }
+
+        .g-content span {
+            display: block;
+            font-size: 11.5px;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- BARRE D'ACTION ET NAVIGATION WEB (MASQUÉE À L'IMPRESSION) -->
+    <div class="no-print" style="position: sticky; top: 0; z-index: 9999; background: #1C1917; border-bottom: 2px solid var(--rust); padding: 12px 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <a href="index.html" style="text-decoration: none; color: white; display: flex; align-items: center; gap: 8px; font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 600;">
+                <span style="background: var(--rust); color: white; width: 28px; height: 28px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700;">SA</span>
+                Study Agent Enterprise
+            </a>
+            <span style="color: #78716C;">•</span>
+            <span style="color: #D6D3D1; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">Proposition Entreprise & Sociétés (A4)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <a href="index.html" style="background: rgba(255,255,255,0.08); color: #E7E5E4; text-decoration: none; font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: 4px; transition: all 0.2s;">
+                ← Portail Central
+            </a>
+            <a href="proposition_commerciale.html" style="background: var(--rust); color: white; text-decoration: none; font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 4px; transition: all 0.2s;">
+                Version Scolaire (Écoles & Lycées) →
+            </a>
+            <a href="guide_utilisateur_et_avantages_pro.html" style="background: rgba(255,255,255,0.08); color: #E7E5E4; text-decoration: none; font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: 4px; transition: all 0.2s;">
+                Manuel Utilisateur
+            </a>
+            <button onclick="window.print()" style="background: var(--rust); color: white; border: none; font-size: 12px; font-weight: 600; padding: 8px 18px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(164, 90, 61, 0.4);">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                Imprimer le Dossier (3 Pages A4)
+            </button>
+        </div>
+    </div>
+
+
+    <!-- PAGE 1 -->
+    <div class="page">
+        <div class="header-top">
+            <div class="header-left">
+                PROPOSITION COMMERCIALE — ERP ENTREPRISE
+                <div class="sub">Solution Digitale Globale</div>
+            </div>
+            <div class="header-right">
+                Émis en<br>
+                <strong>2026</strong><br>
+                Estimatif — ajustable avant bon pour accord
+            </div>
+        </div>
+
+        <h1 class="main-title serif">Solution de Gestion d'Entreprise</h1>
+        <h2 class="main-subtitle serif">Système intégré : Finances, Stocks, Réservations & RH</h2>
+
+        <p class="intro-text">
+            Ce document détaille notre progiciel de gestion d'entreprise (ERP). Conçu spécifiquement pour la réalité locale, il
+            s'articule autour de priorités absolues : <strong>sécuriser la trésorerie et les stocks</strong>,
+            <strong>automatiser l'administration chronophage</strong>, et <strong>garantir un fonctionnement
+                hors-ligne</strong> pour pallier toute coupure internet.
+        </p>
+
+        <div class="badges-container">
+            <span class="badge outline-rust">Trésorerie & Finances</span>
+            <span class="badge outline-rust">Stocks & Réservations</span>
+            <span class="badge outline-rust">Paie & RH Biomètrique</span>
+            <span class="badge outline-green">100% Hors-ligne & Backup Cloud</span>
+        </div>
+
+        <div class="guarantee-section">
+            <div class="g-header">
+                <span class="badge-gold">Notre Engagement Qualité</span>
+                <h3 class="serif">La différence d'un véritable partenaire technologique</h3>
+            </div>
+            <div class="g-cards">
+                <div class="g-item">
+                    <div class="g-icon"><svg style="width: 20px; height: 20px; color: var(--rust);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
+                    <div class="g-content">
+                        <strong>Zéro Perte de Données</strong>
+                        <span>Synchronisation Cloud intégrée. Vos données sont à l'abri des pannes matérielles.</span>
+                    </div>
+                </div>
+                <div class="g-item">
+                    <div class="g-icon"><svg style="width: 20px; height: 20px; color: var(--rust);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                    <div class="g-content">
+                        <strong>Bouclier Financier</strong>
+                        <span>Un investissement rentabilisé immédiatement grâce à la traque des impayés et ruptures.</span>
+                    </div>
+                </div>
+                <div class="g-item">
+                    <div class="g-icon"><svg style="width: 20px; height: 20px; color: var(--rust);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg></div>
+                    <div class="g-content">
+                        <strong>Support Continu</strong>
+                        <span>Mises à jour légales, assistance : nous ne vous laissons jamais seul avec le
+                            logiciel.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 01 -->
+        <div class="section-header">
+            <span class="num">01</span><span class="title serif">Les 4 piliers de notre solution</span>
+            <div class="subtitle">Sécurisation, productivité et image de marque</div>
+        </div>
+
+        <div class="features-grid">
+            <div class="text-block">
+                <h4>Sécurité Financière Absolue</h4>
+                <p>Traçabilité de chaque Ariary encaissé ou décaissé. Génération de rapports financiers complets et statistiques. Le journal de caisse devient inaltérable.</p>
+            </div>
+            <div class="text-block">
+                <h4>Stocks & Réservations</h4>
+                <p>Suivi précis de l'inventaire avec alertes de rupture. Planning interactif pour gérer les réservations de vos clients ou de vos ressources internes.</p>
+            </div>
+            <div class="text-block">
+                <h4>Gain de Temps Administratif & RH</h4>
+                <p>Saisie fluide des contrats, pointage biométrique du personnel, et automatisation totale du calcul des salaires (Absences, IRSA, CNaPS, Bulletins PDF).</p>
+            </div>
+            <div class="text-block">
+                <h4>Zéro Dépendance à Internet</h4>
+                <p>L'application fonctionne nativement sur vos ordinateurs. Aucune lenteur liée au réseau. Une sauvegarde Cloud s'exécute discrètement en arrière-plan.</p>
+            </div>
+        </div>
+
+        <div class="page-footer">
+            <span>01</span>
+        </div>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div class="page">
+        <!-- SECTION 02 -->
+        <div class="section-header">
+            <span class="num">02</span><span class="title serif">L'Offre Intégrale — Abonnement</span>
+            <div class="subtitle">Une formule unique tout compris, évolutive selon les besoins de votre entreprise</div>
+        </div>
+
+        <p class="intro-text" style="margin-bottom: 20px;">
+            Pour cette formule, des <strong>frais d'installation initiaux de 350 000 Ar</strong> (One-shot) sont
+            appliqués. Ils couvrent le déploiement sur vos postes, la configuration de votre base de données locale,
+            ainsi que la formation de vos équipes (Direction, Caisse, RH).
+        </p>
+
+        <!-- SINGLE OPTION -->
+        <div class="pricing-card single-offer"
+            style="border-color: var(--rust); border-width: 2px; box-shadow: 0 10px 30px rgba(164, 90, 61, 0.12);">
+            <div class="pricing-header">
+                <div class="pricing-title-area">
+                    <span class="badge-recommended"
+                        style="background: var(--rust-light); color: var(--rust); border-color: var(--rust); margin-left: 0;">Pack Entreprise</span>
+                    <h3 class="serif">Excellence — ERP Intégral</h3>
+                    <div class="sub">Pour une gestion totalement centralisée, automatisée et sécurisée.</div>
+                </div>
+                <div class="pricing-amount-area">
+                    <div class="crossed-price-container">
+                        <span class="strike">299&nbsp;000&nbsp;Ar/mois</span> 
+                        <span class="discount-badge">-33%</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; justify-content: flex-end; gap: 4px; white-space: nowrap;">
+                        <div class="price" style="color: var(--rust);">199&nbsp;000&nbsp;Ar</div>
+                        <div class="unit">/&nbsp;mois</div>
+                    </div>
+                    <div class="promo-badge green">Tarif 1<sup style="font-size: 8px;">er</sup> trimestre</div>
+                    <div class="pricing-subtext" style="max-width: 230px; margin-left: auto;">
+                        Dès le 4<sup>ème</sup> mois : 299&nbsp;000&nbsp;Ar/mois sans engagement (ou 229&nbsp;000&nbsp;Ar/mois sur engagement annuel)
+                    </div>
+                </div>
+            </div>
+            <ul class="pricing-list" style="gap: 12px 20px;">
+                <li><strong>Gestion Financière & Trésorerie multi-caisses</strong></li>
+                <li><strong>Gestion Complète des Stocks (Entrées/Sorties)</strong></li>
+                <li><strong>Planning et Gestion des Réservations</strong></li>
+                <li><strong>Module RH (Dossiers Personnel & Contrats)</strong></li>
+                <li><strong>Paie Automatisée (IRSA, CNaPS) & Bulletins PDF</strong></li>
+                <li><strong>Pointage RH Biomètrique (Liaison pointeuse)</strong></li>
+                <li><strong>Générateur de Formulaires Web Intégrés</strong></li>
+                <li><strong>Rapports Statistiques Globaux (BI)</strong></li>
+                <li><strong>Licence Multi-postes (Réseau local complet)</strong></li>
+                <li><strong>Administration, Droits d'accès & Journal d'Audit</strong></li>
+                <li><strong>Sauvegarde Cloud (Double Sécurité des données)</strong></li>
+                <li><strong>Assistance & Support Prioritaire</strong></li>
+            </ul>
+        </div>
+
+        <div class="page-footer">
+            <span>02</span>
+        </div>
+    </div>
+
+    <!-- PAGE 3 -->
+    <div class="page">
+        <!-- SECTION 03 -->
+        <div class="section-header">
+            <span class="num">03</span><span class="title serif">Cahier des charges détaillé</span>
+            <div class="subtitle">Périmètre technique et modules inclus dans la solution logicielle</div>
+        </div>
+
+        <p class="intro-text">
+            Le tableau ci-dessous détaille de manière exhaustive les capacités du logiciel. Cette solution intégrale vous garantit l'accès complet à tous les modules suivants.
+        </p>
+
+        <table class="specs-table">
+            <thead>
+                <tr>
+                    <th colspan="2" class="serif">1. Finances, Stocks & Réservations</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feature-name">Journal de Caisse & Trésorerie</td>
+                    <td class="feature-desc">Enregistrement numérique de l'intégralité des flux financiers. Calcul automatique du solde réel, gestion des factures fournisseurs et encaissements clients.</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Gestion des Stocks</td>
+                    <td class="feature-desc">Suivi rigoureux des articles, matières premières ou fournitures. Traçabilité des entrées/sorties, alertes automatiques de seuil de rupture.</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Module de Réservation</td>
+                    <td class="feature-desc">Planning visuel et interactif. Enregistrement des réservations clients ou affectation de ressources matérielles. Gestion des statuts (Confirmé, Annulé).</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Rapports Financiers & Statistiques</td>
+                    <td class="feature-desc">Tableaux de bord graphiques générant des analyses financières poussées (CA, dépenses, évolution des stocks) pour aider à la prise de décision.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="specs-table">
+            <thead>
+                <tr>
+                    <th colspan="2" class="serif">2. Ressources Humaines & Sécurité</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feature-name">Profils du Personnel</td>
+                    <td class="feature-desc">Création du dossier numérique des employés. Gestion du statut contractuel, des congés et des historiques.</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Pointage Biomètrique</td>
+                    <td class="feature-desc">Interfaçage du logiciel avec une pointeuse digitale (empreinte ou badge) pour un calcul automatique des heures travaillées et des retards.</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Calcul Automatique de Paie</td>
+                    <td class="feature-desc">Génération intelligente de la paie en fin de mois (Brut à net). Application automatique des déductions légales (Absences, CNaPS, IRSA). Édition des fiches de paie PDF.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <table class="specs-table">
+            <thead>
+                <tr>
+                    <th colspan="2" class="serif">3. Outils Numériques & Connectivité</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feature-name">Générateur de Formulaires</td>
+                    <td class="feature-desc">Outil de création de formulaires web (Candidatures en ligne, enquêtes clients). Les données saisies remontent automatiquement dans la base de l'ERP.</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Séparation des Rôles (RBAC) & Audit</td>
+                    <td class="feature-desc">Gestion stricte des droits. Le personnel d'accueil ne voit pas les finances. Un journal d'audit enregistre chaque clic pour une traçabilité parfaite.</td>
+                </tr>
+                <tr>
+                    <td class="feature-name">Backup Double Sécurité</td>
+                    <td class="feature-desc">Fonctionnement primaire hors-ligne ultra-rapide. Synchronisation transparente vers un Cloud sécurisé dès l'accès à internet, garantissant zéro perte en cas de panne matérielle.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        
+        <!-- BON POUR ACCORD & ENGAGEMENT CONTRACTUEL (PAGE 3) -->
+        <div style="margin-top: 15px; border: 1.5px solid var(--rust); border-radius: 6px; padding: 12px 18px; background: var(--rust-light);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(164, 90, 61, 0.25); padding-bottom: 5px;">
+                <h4 class="serif" style="font-size: 13.5px; color: var(--rust); font-weight: 600; margin: 0;">
+                    Bon pour Accord & Validation Officielle de Déploiement Entreprise
+                </h4>
+                <span style="font-size: 10px; color: var(--text-gray); text-transform: uppercase; letter-spacing: 0.5px;">Document Contractuel Engageant</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 11.5px; color: var(--text-dark); flex-wrap: wrap; gap: 8px;">
+                <div>
+                    <strong>Formule retenue :</strong> &nbsp;
+                    <label style="cursor: pointer;"><input type="checkbox" checked style="accent-color: var(--rust); vertical-align: -1px;"> <strong>Pack Entreprise Intégral (199 000 Ar/mois)</strong></label>
+                </div>
+                <div style="font-size: 11px; color: var(--rust); font-weight: 600;">
+                    + Frais de déploiement & formation : 350 000 Ar (One-shot)
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 8px;">
+                <div style="background: white; border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; min-height: 52px; font-size: 11px;">
+                    <strong style="color: var(--text-dark); display: block; margin-bottom: 2px;">Pour la Société (Direction Générale) :</strong>
+                    <span style="color: var(--text-light); font-size: 10px;">Date, Nom du signataire & Mention « Bon pour accord » :</span>
+                </div>
+                <div style="background: white; border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; min-height: 52px; font-size: 11px;">
+                    <strong style="color: var(--text-dark); display: block; margin-bottom: 2px;">Pour l'Éditeur & Intégrateur (Study Agent) :</strong>
+                    <span style="color: var(--text-light); font-size: 10px;">Date, Signature & Engagement de mise en service sous 48h :</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-footer">
+            <span>03</span>
+        </div>
+    </div>
+</body>
+
+</html>
