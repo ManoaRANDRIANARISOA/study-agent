@@ -1,176 +1,405 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guide SaaS : Architecture Multi-Tenant (Option A)</title>
+  <title>Study Agent Pro — Guide d'Architecture SaaS Multi-Tenant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary-color: #2563eb;
-      --bg-color: #f8fafc;
-      --card-bg: #ffffff;
-      --text-color: #1e293b;
-      --border-color: #e2e8f0;
+      --primary: #1e1b4b;
+      --primary-accent: #4338ca;
+      --primary-light: #eef2ff;
+      --primary-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+      
+      --emerald-dark: #065f46;
+      --emerald-base: #059669;
+      --emerald-light: #ecfdf5;
+      
+      --amber-dark: #92400e;
+      --amber-base: #d97706;
+      --amber-light: #fffbeb;
+      
+      --rose-dark: #9f1239;
+      --rose-base: #e11d48;
+      --rose-light: #fff1f2;
+
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --border-accent: #cbd5e1;
+      
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-soft: #64748b;
+      
+      --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
+      --shadow-xl: 0 20px 35px -6px rgba(30, 27, 75, 0.12), 0 10px 15px -3px rgba(30, 27, 75, 0.04);
+      
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
     }
+
+    [data-theme="dark"] {
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-subtle: #1e293b;
+      --border: #1e293b;
+      --border-accent: #334155;
+      --text: #f8fafc;
+      --text-muted: #cbd5e1;
+      --text-soft: #94a3b8;
+      --primary-light: #1e1b4b;
+      --shadow-lg: 0 14px 28px -4px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      line-height: 1.6;
-      margin: 0;
-      padding: 0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
     }
-    header {
-      background-color: var(--primary-color);
+
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Outfit', sans-serif;
+      letter-spacing: -0.02em;
+      font-weight: 700;
+    }
+
+    /* Top Navigation Bar */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.9);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+    }
+    [data-theme="dark"] .top-nav {
+      background: rgba(17, 24, 39, 0.9);
+    }
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 1.25rem;
+    }
+    .brand-badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      background: var(--primary-light);
+      color: var(--primary-accent);
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: color 0.15s ease;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--primary-accent);
+    }
+
+    /* Container */
+    .page-container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 6rem;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: var(--primary-gradient);
       color: white;
-      padding: 2rem 1rem;
-      text-align: center;
+      border-radius: var(--radius-lg);
+      padding: 3rem 2.5rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--shadow-xl);
+      position: relative;
+      overflow: hidden;
     }
-    main {
-      max-width: 900px;
-      margin: 2rem auto;
-      padding: 0 1rem;
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.35rem 0.85rem;
+      border-radius: var(--radius-full);
+      margin-bottom: 1rem;
     }
+    .hero-title {
+      font-size: 2.25rem;
+      line-height: 1.2;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 0.75rem;
+    }
+    .hero-subtitle {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.88);
+      max-width: 760px;
+    }
+
+    /* Cards */
     .card {
-      background-color: var(--card-bg);
-      border-radius: 8px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      padding: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2.25rem;
       margin-bottom: 2rem;
-      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
     }
-    h2 {
-      color: var(--primary-color);
-      margin-top: 0;
-      border-bottom: 2px solid var(--border-color);
-      padding-bottom: 0.5rem;
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    /* Code Blocks */
+    .code-wrapper {
+      background: #0f172a;
+      border-radius: var(--radius-md);
+      margin: 1.25rem 0;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .code-header {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: #94a3b8;
+    }
+    pre {
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #f8fafc;
     }
     code {
-      background-color: #f1f5f9;
-      padding: 0.2rem 0.4rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: #38bdf8;
+    }
+    p code, li code {
+      background: var(--primary-light);
+      color: var(--primary-accent);
+      padding: 0.15rem 0.4rem;
       border-radius: 4px;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.9em;
-      color: #b91c1c;
+      font-size: 0.85em;
     }
+
+    /* Alerts */
     .alert {
-      padding: 1rem;
-      border-radius: 8px;
-      background-color: #fef2f2;
-      border-left: 4px solid #ef4444;
-      margin: 1.5rem 0;
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      border-left: 4px solid;
+      font-size: 0.9rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
     }
-    .alert-title {
-      font-weight: bold;
-      color: #991b1b;
+    .alert-success {
+      background: var(--emerald-light);
+      border-color: var(--emerald-base);
+      color: var(--emerald-dark);
+    }
+    .alert-info {
+      background: var(--primary-light);
+      border-color: var(--primary-accent);
+      color: #1e1b4b;
+    }
+
+    /* Lists */
+    ul, ol {
+      padding-left: 1.5rem;
+      margin: 0.75rem 0;
+    }
+    li {
       margin-bottom: 0.5rem;
+      color: var(--text);
     }
-    .success {
-      background-color: #f0fdf4;
-      border-left: 4px solid #22c55e;
-    }
-    .success .alert-title { color: #166534; }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>Guide Architecture SaaS : Study Agent Multi-Tenant (Option A)</h1>
-    <p>Documentation officielle sur le fonctionnement centralisé de la base de données.</p>
+  <!-- Top Navigation -->
+  <header class="top-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="brand-link">
+        <svg style="width: 24px; height: 24px; color: var(--primary-accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+        </svg>
+        <span>Study Agent Pro</span>
+        <span class="brand-badge">Architecture SaaS</span>
+      </a>
+
+      <ul class="nav-links">
+        <li>
+          <a href="index.html">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            Portail Hub
+          </a>
+        </li>
+        <li>
+          <a href="guide_utilisateur_et_avantages_pro.html">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            Manuel & Déploiement
+          </a>
+        </li>
+        <li>
+          <a href="multi-tenant-guide.html" class="active">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            Architecture SaaS
+          </a>
+        </li>
+        <li>
+          <a href="proposition_commerciale.html">
+            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Offre Commerciale
+          </a>
+        </li>
+      </ul>
+    </div>
   </header>
 
-  <main>
-    
+  <!-- Page Body -->
+  <div class="page-container">
+
+    <section class="hero-banner">
+      <div class="hero-pill">
+        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        Guide d'Ingénierie & Cloud
+      </div>
+      <h1 class="hero-title">Architecture SaaS Multi-Tenant & Synchronisation</h1>
+      <p class="hero-subtitle">
+        Principes de conception, isolation des données par établissement, Row Level Security (RLS) PostgreSQL et résilience hors-ligne totale.
+      </p>
+    </section>
+
+    <!-- CARD 1 -->
     <div class="card">
-      <h2>1. Le concept du SaaS Multi-Tenant</h2>
-      <p>
-        Study Agent est conçu pour héberger un nombre illimité d'établissements scolaires 
-        en utilisant <strong>une seule base de données Supabase partagée (le Cloud)</strong>.
+      <div class="card-header">
+        <div class="card-icon" style="background: var(--primary-light); color: var(--primary-accent);">
+          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <h2 class="card-title">1. Le Concept du SaaS Multi-Tenant Hybride</h2>
+      </div>
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">
+        Study Agent Pro est conçu pour héberger un nombre illimité d'établissements scolaires en combinant une base locale SQLite ultra-véloce avec une base cloud Supabase centralisée :
       </p>
       <ul>
-        <li><strong>Une seule base, un seul schéma :</strong> Au lieu d'avoir 50 bases de données pour 50 écoles, toutes les données vont dans les mêmes tables (<code>students</code>, <code>users</code>, <code>payments</code>...).</li>
-        <li><strong>Le passeport <code>ecole_id</code> :</strong> Pour que les données ne se mélangent pas, absolument chaque ligne de chaque table possède une colonne <code>ecole_id</code>.</li>
-        <li><strong>Sécurité Absolue (RLS) :</strong> Supabase utilise le Row Level Security (RLS) de PostgreSQL. Il est techniquement impossible pour l'école A de voir les données de l'école B, car la base de données filtre automatiquement toutes les requêtes SQL avec <code>WHERE ecole_id = [ID_DU_CLIENT]</code>.</li>
+        <li><strong>Base Locale Isolée par École :</strong> Chaque installation locale génère une base SQLite dédiée (<code>study_agent_&lt;ecole_id&gt;.db</code>), garantissant qu'aucune fuite de données n'est possible sur la machine du client.</li>
+        <li><strong>La Clé de Cloisonnement <code>ecole_id</code> :</strong> Chaque table métier (<code>students</code>, <code>users</code>, <code>student_payments</code>, <code>cash_journal</code>, <code>cash_closures</code>...) est liée à l'UUID de l'école.</li>
+        <li><strong>Sécurité Absolue (RLS PostgreSQL) :</strong> La base de données PostgreSQL applique des politiques de Row Level Security. Une école ne peut sous aucun prétexte lire ou modifier les données d'une autre.</li>
       </ul>
     </div>
 
+    <!-- CARD 2 -->
     <div class="card">
-      <h2>2. L'Installation chez un Client (Zero-Config)</h2>
-      <p>L'installation chez un nouveau client a été grandement simplifiée. Il n'y a plus aucun script en ligne de commande à exécuter manuellement.</p>
-      
+      <div class="card-header">
+        <div class="card-icon" style="background: var(--emerald-light); color: var(--emerald-base);">
+          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <h2 class="card-title">2. L'Installation chez un Client (Zero-Config)</h2>
+      </div>
       <ol>
-        <li>
-          <strong>Le Premier Lancement :</strong> Le client installe l'exécutable (<code>.exe</code>) sur son ordinateur. Sa base SQLite locale (<code>study_agent.db</code>) est totalement vierge.
-        </li>
-        <li>
-          <strong>L'Onboarding Automatique :</strong> L'application détecte que la base est vierge et affiche l'interface de "Premier Démarrage" (<code>FirstBootOnboarding.tsx</code>).
-        </li>
-        <li>
-          <strong>Création de l'Administrateur :</strong> Le directeur renseigne son propre identifiant ("admin") et son propre mot de passe. 
-        </li>
-        <li>
-          <strong>Génération de l'Empreinte (UUID) :</strong> C'est le moment magique ! En arrière-plan, le logiciel génère un UUID ultra-sécurisé et aléatoire pour être le nouvel <code>ecole_id</code> exclusif de ce client. Cet identifiant est stocké dans la table <code>settings</code> locale et lie définitivement le logiciel.
-        </li>
+        <li><strong>Premier Lancement :</strong> Le client lance l'exécutable (<code>.exe</code>). L'application détecte l'absence de base locale et affiche l'interface de Premier Démarrage (<code>FirstBootOnboarding.tsx</code>).</li>
+        <li><strong>Création du Compte Directeur :</strong> L'administrateur de l'école saisit son identifiant et son mot de passe sécurisé.</li>
+        <li><strong>Génération de l'Empreinte (UUID) :</strong> Le système génère automatiquement un UUID cryptographique unique qui devient le <code>ecole_id</code> de l'établissement.</li>
       </ol>
 
-      <div class="alert success">
-        <div class="alert-title">Aucun risque de collision</div>
-        <p>Parce que chaque directeur créé son compte depuis l'Onboarding, l'ID généré pour ce compte et pour l'école est unique au monde. Ainsi, même si l'École A et l'École B utilisent toutes les deux "admin" comme identifiant, elles coexisteront pacifiquement sur Supabase, séparées par leur ecole_id unique.</p>
+      <div class="alert alert-success">
+        <svg style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        <div>
+          <strong>Sécurité des Identifiants :</strong> Même si 50 directeurs d'écoles différentes choisissent <code>admin</code> comme nom d'utilisateur, la contrainte unique composite <code>UNIQUE(username, ecole_id)</code> garantit une coexistence 100% étanche sans aucun conflit.
+        </div>
       </div>
     </div>
 
+    <!-- CARD 3 -->
     <div class="card">
-      <h2>3. Comment faire évoluer le logiciel (Nouvelles Colonnes)</h2>
-      <p>Lorsqu'une norme ou une option spécifique est demandée par un (ou plusieurs) client(s), vous devez modifier les <strong>deux</strong> bases de données pour qu'elles restent un miroir parfait.</p>
-      
-      <ul>
-        <li><strong>Étape 1 (Local) :</strong> Créez un fichier de migration SQLite (ex: <code>src/main/database/migrations/034_add_nouvelle_colonne.sql</code>) pour ajouter la fonctionnalité sur l'ordinateur des clients existants via une mise à jour.</li>
-        <li><strong>Étape 2 (Cloud) :</strong> Allez sur le Dashboard Supabase (SQL Editor) et tapez manuellement votre commande <code>ALTER TABLE</code>. C'est fait une bonne fois pour toutes pour l'ensemble des écoles actuelles et futures !</li>
-      </ul>
-      <p><em>Rappel : Si une colonne ne concerne que l'école C, elle restera vide (NULL) pour l'école A et B. C'est normal et recommandé.</em></p>
-    </div>
-
-    <div class="card">
-      <h2>4. Que contient le fichier <code>setup_multi_tenant.sql</code> ?</h2>
-      <p>
-        Ce fichier historique servait à convertir une ancienne architecture mono-établissement (LMS) en architecture Multi-Tenant.
-        Il se charge d'ajouter la colonne <code>ecole_id</code> sur toutes les tables existantes et d'activer le filtre de sécurité RLS.
-      </p>
-      <div class="alert">
-        <div class="alert-title">Attention au fichier supabase_full_schema.sql</div>
-        <p>Le fichier <code>scripts/supabase_full_schema.sql</code> est le schéma "Maître" qui représente l'état exact de la base Cloud avec la règle <code>UNIQUE(username, ecole_id)</code> pour la table des utilisateurs.</p>
+      <div class="card-header">
+        <div class="card-icon" style="background: var(--amber-light); color: var(--amber-dark);">
+          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </div>
+        <h2 class="card-title">3. Mécanisme de Synchronisation & Auto-Healing</h2>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>5. Auto-Seeding (Données par défaut pour les nouveaux clients)</h2>
-      <p>
-        Livrer une application avec une base de données totalement vide (0 classe, 0 matière) offre une mauvaise expérience au premier lancement. Pour pallier cela, le système peut utiliser l'<strong>Auto-Seeding</strong>.
+      <p style="color: var(--text-muted); margin-bottom: 1rem;">
+        La synchronisation fonctionne selon une stratégie Offline-First bidirectionnelle :
       </p>
       <ul>
-        <li><strong>Le Principe :</strong> Juste après la création du compte Administrateur lors de l'Onboarding, l'application peut proposer au client de pré-charger une "Configuration Standard" (ex: Primaire, Collège, Lycée).</li>
-        <li><strong>L'Injection :</strong> Si accepté, l'application injecte silencieusement dans la base SQLite locale les données par défaut (ex: matières "Maths", "Français", Rôles de base).</li>
-        <li><strong>Pour les Démos :</strong> Pour générer une instance de démonstration complète, vous pouvez exécuter <code>node scripts/clone_test_db.js</code>. Cela clonera vos données LMS existantes et assignera un <code>ecole_id</code> automatiquement en contournant l'Onboarding.</li>
+        <li><strong>File locale <code>sync_queue</code> :</strong> Toute écriture locale (encaissement, inscription, clôture de caisse) est insérée dans la file d'attente locale avec horodatage.</li>
+        <li><strong>Auto-Healing des Collisions de Matricules :</strong> Si deux caisses déconnectées attribuent le même numéro d'ordre, le moteur d'auto-healing détecte l'erreur PostgreSQL <code>23505</code>, réattribue le numéro suivant pour cet <code>ecole_id</code> et valide la ligne.</li>
+        <li><strong>Tolérance aux Déconnexions :</strong> En cas de perte réseau, l'application continue de fonctionner sans interruption et re-synchronise automatiquement dès le rétablissement de la liaison.</li>
       </ul>
     </div>
 
-    <div class="card">
-      <h2>6. L'Outil SuperAdmin (Générateur Marque Blanche)</h2>
-      <p>
-        L'interface <strong>SuperAdminBuilder</strong> est un outil interne caché, conçu strictement pour vous (le créateur) afin de générer des exécutables <code>.exe</code> sur-mesure (Marque Blanche) pour des clients VIP. Il modifie le <code>.env</code> et lance la compilation <code>npm run build:win</code>.
-      </p>
-      <div class="alert">
-        <div class="alert-title">Comment y accéder (Mode DEV uniquement)</div>
-        <p>Cet outil n'existe pas dans l'application finale compilée. Pour l'ouvrir en phase de développement :</p>
-        <ol>
-          <li>Lancez l'application en mode développement (<code>npm run dev</code>).</li>
-          <li>Ouvrez la console développeur (<code>F12</code> ou <code>Ctrl + Maj + I</code>).</li>
-          <li>Tapez la commande suivante puis faites Entrée : <br><code>window.location.hash = '#/superadmin'</code></li>
-        </ol>
-        <p>Vous serez instantanément téléporté sur l'interface de création.</p>
-      </div>
-    </div>
+  </div>
 
-  </main>
 </body>
 </html>

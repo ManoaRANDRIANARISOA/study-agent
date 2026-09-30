@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portail de Documentation & Ressources — Study Agent Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1e1b4b;
+      --primary-accent: #4338ca;
+      --primary-light: #eef2ff;
+      --primary-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+      
+      --emerald-dark: #065f46;
+      --emerald-base: #059669;
+      --emerald-light: #ecfdf5;
+      
+      --amber-dark: #92400e;
+      --amber-base: #d97706;
+      --amber-light: #fffbeb;
+
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-subtle: #f1f5f9;
+      --border: #e2e8f0;
+      --border-accent: #cbd5e1;
+      
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-soft: #64748b;
+      
+      --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
+      --shadow-xl: 0 20px 35px -6px rgba(30, 27, 75, 0.12), 0 10px 15px -3px rgba(30, 27, 75, 0.04);
+      
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-subtle: #1e293b;
+      --border: #1e293b;
+      --border-accent: #334155;
+      --text: #f8fafc;
+      --text-muted: #cbd5e1;
+      --text-soft: #94a3b8;
+      --primary-light: #1e1b4b;
+      --shadow-lg: 0 14px 28px -4px rgba(0, 0, 0, 0.5);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Outfit', sans-serif;
+      letter-spacing: -0.02em;
+      font-weight: 700;
+    }
+
+    /* Top Navigation Bar */
+    .top-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.9);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+    }
+    [data-theme="dark"] .top-nav {
+      background: rgba(17, 24, 39, 0.9);
+    }
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 1.25rem;
+    }
+    .brand-badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      background: var(--primary-light);
+      color: var(--primary-accent);
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Container */
+    .page-container {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 6rem;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: var(--primary-gradient);
+      color: white;
+      border-radius: var(--radius-lg);
+      padding: 3.5rem 3rem;
+      margin-bottom: 3rem;
+      box-shadow: var(--shadow-xl);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.4rem 0.9rem;
+      border-radius: var(--radius-full);
+      margin-bottom: 1.25rem;
+    }
+    .hero-title {
+      font-size: 2.75rem;
+      line-height: 1.15;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 1rem;
+      max-width: 840px;
+    }
+    .hero-subtitle {
+      font-size: 1.15rem;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.88);
+      max-width: 760px;
+      margin-bottom: 2rem;
+      font-weight: 400;
+    }
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+    .hero-badge {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 0.35rem 0.85rem;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: white;
+    }
+
+    /* Pillars Grid */
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3.5rem;
+    }
+    .pillar-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2.25rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+    .pillar-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--primary-accent);
+    }
+    .pillar-icon-box {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .pillar-tag {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--radius-full);
+      width: fit-content;
+      margin-bottom: 0.75rem;
+    }
+    .pillar-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+      line-height: 1.3;
+    }
+    .pillar-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 1.75rem;
+      flex-grow: 1;
+    }
+    .pillar-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 2rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+    .pillar-features li {
+      font-size: 0.85rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 500;
+    }
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .btn-primary {
+      background: var(--primary-accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #3730a3;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: var(--surface-subtle);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      border-color: var(--primary-accent);
+      color: var(--primary-accent);
+    }
+
+    /* Spec Sheet Box */
+    .spec-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2.25rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .spec-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+    }
+    .spec-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .spec-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-soft);
+    }
+    .spec-val {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Nav -->
+  <header class="top-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="brand-link">
+        <svg style="width: 24px; height: 24px; color: var(--primary-accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+        </svg>
+        <span>Study Agent Pro</span>
+        <span class="brand-badge">Documentation & Hub</span>
+      </a>
+
+      <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">
+        Release Officielle <span style="color: var(--primary-accent); font-weight: 800;">v2.2.4</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Body -->
+  <div class="page-container">
+
+    <!-- Hero Header -->
+    <section class="hero-banner">
+      <div class="hero-pill">
+        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        Centre de Ressources Unifié 2026-2027
+      </div>
+      <h1 class="hero-title">
+        Portail Officiel : Guides d'Exploitation, Architecture & Stratégie
+      </h1>
+      <p class="hero-subtitle">
+        Accédez à l'ensemble de la documentation technique, au manuel de déploiement terrain et à la proposition commerciale pour les directeurs et promoteurs d'établissements scolaires.
+      </p>
+
+      <div class="hero-badges">
+        <span class="hero-badge">Architecture Multi-Tenant</span>
+        <span class="hero-badge">100% Offline-First</span>
+        <span class="hero-badge">Ticket Z & Billetage</span>
+        <span class="hero-badge">Auto-Healing Multi-Postes</span>
+        <span class="hero-badge">Impression ESC/POS 80mm</span>
+      </div>
+    </section>
+
+    <!-- 3 PILLARS DOCUMENTATION -->
+    <div class="pillars-grid">
+
+      <!-- PILLAR 1: PROPOSITION COMMERCIALE -->
+      <div class="pillar-card">
+        <div class="pillar-icon-box" style="background: var(--amber-light); color: var(--amber-dark);">
+          <svg style="width: 26px; height: 26px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <span class="pillar-tag" style="background: var(--amber-light); color: var(--amber-dark);">Offre Promoteurs & Directeurs</span>
+        <h2 class="pillar-title">Proposition Commerciale & Stratégique</h2>
+        <p class="pillar-desc">
+          Document commercial exécutif démontrant le retour sur investissement, la fin des fuites de trésorerie de caisse, les simulations financières et le bon de commande.
+        </p>
+
+        <ul class="pillar-features">
+          <li>
+            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            Diagnostic des 4 fuites invisibles
+          </li>
+          <li>
+            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            ROI chiffré (+85% recouvrement)
+          </li>
+          <li>
+            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            Grille tarifaire & Bon d'accord
+          </li>
+        </ul>
+
+        <a href="proposition_commerciale.html" class="btn-link btn-primary">
+          <span>Consulter la Proposition Commerciale</span>
+          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </a>
+      </div>
+
+      <!-- PILLAR 2: MANUEL UTILISATEUR & DEPLOIEMENT -->
+      <div class="pillar-card">
+        <div class="pillar-icon-box" style="background: var(--primary-light); color: var(--primary-accent);">
+          <svg style="width: 26px; height: 26px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        </div>
+        <span class="pillar-tag" style="background: var(--primary-light); color: var(--primary-accent);">Guide Opérationnel Terrain</span>
+        <h2 class="pillar-title">Manuel Utilisateur & Déploiement v2.2.4</h2>
+        <p class="pillar-desc">
+          Guide pas-à-pas pour les équipes sur site : installation des imprimantes thermiques Xprinter, protocole de clôture de caisse et exploitation de chaque module.
+        </p>
+
+        <ul class="pillar-features">
+          <li>
+            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            Installation Xprinter USB/ESC-POS
+          </li>
+          <li>
+            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            Billetage physique & Ticket Z scellé
+          </li>
+          <li>
+            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            Fiches modules : Caisse, Élèves, Notes
+          </li>
+        </ul>
+
+        <a href="guide_utilisateur_et_avantages_pro.html" class="btn-link btn-secondary">
+          <span>Ouvrir le Manuel d'Exploitation</span>
+          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </a>
+      </div>
+
+      <!-- PILLAR 3: ARCHITECTURE SAAS -->
+      <div class="pillar-card">
+        <div class="pillar-icon-box" style="background: var(--emerald-light); color: var(--emerald-base);">
+          <svg style="width: 26px; height: 26px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <span class="pillar-tag" style="background: var(--emerald-light); color: var(--emerald-base);">Architecture & Cloud</span>
+        <h2 class="pillar-title">Guide Architecture Multi-Tenant</h2>
+        <p class="pillar-desc">
+          Documentation technique détaillée sur le modèle SaaS unifié : base Supabase partagée avec RLS, isolation physique SQLite locale et synchronisation autonome.
+        </p>
+
+        <ul class="pillar-features">
+          <li>
+            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            Cloisonnement PostgreSQL RLS
+          </li>
+          <li>
+            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            Base SQLite locale dédiée par école
+          </li>
+          <li>
+            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            Auto-healing & Zéro-conflit
+          </li>
+        </ul>
+
+        <a href="multi-tenant-guide.html" class="btn-link btn-secondary">
+          <span>Lire le Guide Multi-Tenant</span>
+          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </a>
+      </div>
+
+    </div>
+
+    <!-- TECHNICAL SPECIFICATION SUMMARY -->
+    <section class="spec-card">
+      <div class="spec-header">
+        <div>
+          <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text);">Spécifications Techniques Officielles</h3>
+          <p style="font-size: 0.85rem; color: var(--text-soft);">Résumé de conformité aux normes d'ingénierie logicielle ESN</p>
+        </div>
+        <div style="font-size: 0.85rem; font-weight: 700; color: var(--emerald-base); background: var(--emerald-light); padding: 0.35rem 0.85rem; border-radius: var(--radius-full);">
+          ✓ Conforme Normes Bancaires & ESN
+        </div>
+      </div>
+
+      <div class="spec-grid">
+        <div class="spec-item">
+          <span class="spec-label">Version Système</span>
+          <span class="spec-val">v2.2.4 (Septembre 2026)</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Base de Données Locale</span>
+          <span class="spec-val">SQLite 3 (Mode WAL + 64 Mo Cache)</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Protocole Impression Caisse</span>
+          <span class="spec-val">ESC/POS Natif (winspool.Drv 80/58 mm)</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Sécurité & Cloisonnement</span>
+          <span class="spec-val">Row Level Security (RLS) PostgreSQL</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Relais E-mails</span>
+          <span class="spec-val">SMTP Transactionnel Brevo (Port 587)</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Résilience Réseau</span>
+          <span class="spec-val">100% Autonome Hors-Ligne</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+</body>
+</html>
