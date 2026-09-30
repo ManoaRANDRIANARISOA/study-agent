@@ -3,43 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Study Agent Pro — Proposition Stratégique & Offre Commerciale</title>
+  <title>Study Agent Pro — Proposition Commerciale & Analyse Stratégique</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #1e1b4b;
-      --primary-accent: #4338ca;
-      --primary-light: #eef2ff;
-      --primary-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+      /* Palette Signature Blanc & Marron Beige */
+      --primary: #AD8B73;
+      --primary-dark: #8C6D58;
+      --primary-darker: #46372D;
+      --primary-light: #EFE9E3;
+      --accent: #CEAB93;
       
-      --emerald-dark: #065f46;
-      --emerald-base: #059669;
-      --emerald-light: #ecfdf5;
+      --bg: #FAF8F5;
+      --surface: #FFFFFF;
+      --surface-card: #FFFDFB;
+      --surface-subtle: #F4EFEA;
+      --border: #E6DCD2;
+      --border-accent: #D9C8BA;
       
-      --amber-dark: #92400e;
-      --amber-base: #d97706;
-      --amber-light: #fffbeb;
+      --text: #2D241E;
+      --text-muted: #6E5D53;
+      --text-soft: #8C7A70;
       
-      --rose-dark: #9f1239;
-      --rose-base: #e11d48;
-      --rose-light: #fff1f2;
+      --success: #15803D;
+      --success-bg: #DCFCE7;
+      --warning: #B45309;
+      --warning-bg: #FEF3C7;
+      --danger: #B91C1C;
+      --danger-bg: #FEE2E2;
+      --info: #0369A1;
+      --info-bg: #E0F2FE;
 
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --surface-subtle: #f1f5f9;
-      --border: #e2e8f0;
-      --border-accent: #cbd5e1;
-      
-      --text: #0f172a;
-      --text-muted: #475569;
-      --text-soft: #64748b;
-      
-      --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-      --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
-      --shadow-xl: 0 20px 35px -6px rgba(30, 27, 75, 0.12), 0 10px 15px -3px rgba(30, 27, 75, 0.04);
+      --shadow-sm: 0 1px 3px 0 rgba(70, 55, 45, 0.05);
+      --shadow: 0 4px 14px -2px rgba(70, 55, 45, 0.08), 0 2px 6px -1px rgba(70, 55, 45, 0.04);
+      --shadow-lg: 0 12px 28px -4px rgba(70, 55, 45, 0.12), 0 4px 10px -2px rgba(70, 55, 45, 0.05);
       
       --radius-sm: 8px;
       --radius-md: 14px;
@@ -48,17 +47,17 @@
     }
 
     [data-theme="dark"] {
-      --bg: #090d16;
-      --surface: #111827;
-      --surface-subtle: #1e293b;
-      --border: #1e293b;
-      --border-accent: #334155;
-      --text: #f8fafc;
-      --text-muted: #cbd5e1;
-      --text-soft: #94a3b8;
-      --primary-light: #1e1b4b;
-      --shadow-lg: 0 14px 28px -4px rgba(0, 0, 0, 0.5);
-      --shadow-xl: 0 20px 35px -6px rgba(0, 0, 0, 0.6);
+      --bg: #1A1410;
+      --surface: #241D18;
+      --surface-card: #2B231D;
+      --surface-subtle: #332A23;
+      --border: #42362D;
+      --border-accent: #5A4B40;
+      --text: #F5EFEB;
+      --text-muted: #D1C2B8;
+      --text-soft: #A6958A;
+      --primary-light: #3D3128;
+      --shadow-lg: 0 14px 28px -4px rgba(0, 0, 0, 0.6);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -84,13 +83,13 @@
       top: 0;
       z-index: 100;
       backdrop-filter: blur(16px);
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(250, 248, 245, 0.92);
       border-bottom: 1px solid var(--border);
       padding: 0.75rem 2rem;
       transition: all 0.2s ease;
     }
     [data-theme="dark"] .top-nav {
-      background: rgba(17, 24, 39, 0.9);
+      background: rgba(26, 20, 16, 0.92);
     }
     .nav-inner {
       max-width: 1200px;
@@ -111,11 +110,12 @@
     }
     .brand-badge {
       font-size: 0.7rem;
-      padding: 0.2rem 0.6rem;
+      padding: 0.2rem 0.65rem;
       background: var(--primary-light);
-      color: var(--primary-accent);
+      color: var(--primary-darker);
+      border: 1px solid var(--border-accent);
       border-radius: var(--radius-full);
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -136,40 +136,35 @@
       transition: color 0.15s ease;
     }
     .nav-links a:hover, .nav-links a.active {
-      color: var(--primary-accent);
-    }
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+      color: var(--primary-darker);
     }
 
     /* Container */
     .page-container {
-      max-width: 1160px;
+      max-width: 1140px;
       margin: 0 auto;
       padding: 2.5rem 1.5rem 6rem;
     }
 
     /* Hero Header */
     .hero-banner {
-      background: var(--primary-gradient);
+      background: linear-gradient(135deg, var(--primary-darker) 0%, #362A22 60%, var(--primary-dark) 100%);
       color: white;
       border-radius: var(--radius-lg);
       padding: 3.5rem 3rem;
-      margin-bottom: 3rem;
-      box-shadow: var(--shadow-xl);
+      margin-bottom: 2.75rem;
+      box-shadow: var(--shadow-lg);
       position: relative;
       overflow: hidden;
     }
     .hero-banner::before {
       content: '';
       position: absolute;
-      top: -30%;
-      right: -15%;
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(99, 102, 241, 0) 70%);
+      top: -25%;
+      right: -10%;
+      width: 440px;
+      height: 440px;
+      background: radial-gradient(circle, rgba(206, 171, 147, 0.22) 0%, rgba(206, 171, 147, 0) 70%);
       border-radius: 50%;
       pointer-events: none;
     }
@@ -179,10 +174,10 @@
       gap: 0.5rem;
       background: rgba(255, 255, 255, 0.12);
       backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #FFFDFB;
       font-size: 0.75rem;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       padding: 0.4rem 0.9rem;
@@ -190,38 +185,35 @@
       margin-bottom: 1.25rem;
     }
     .hero-title {
-      font-size: 2.75rem;
-      line-height: 1.15;
+      font-size: 2.65rem;
+      line-height: 1.18;
       font-weight: 900;
       color: #ffffff;
       margin-bottom: 1rem;
-      max-width: 820px;
+      max-width: 860px;
     }
     .hero-subtitle {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       line-height: 1.6;
-      color: rgba(255, 255, 255, 0.88);
-      max-width: 760px;
+      color: rgba(255, 255, 255, 0.9);
+      max-width: 780px;
       margin-bottom: 2rem;
       font-weight: 400;
     }
     .hero-meta-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
+      gap: 1.25rem;
       padding-top: 1.75rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
     }
-    .hero-meta-item {
-      display: flex;
-      flex-direction: column;
-    }
+    .hero-meta-item { display: flex; flex-direction: column; }
     .hero-meta-label {
-      font-size: 0.75rem;
+      font-size: 0.725rem;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: rgba(255, 255, 255, 0.6);
-      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.65);
+      font-weight: 700;
       margin-bottom: 0.25rem;
     }
     .hero-meta-value {
@@ -244,7 +236,7 @@
       transition: box-shadow 0.2s ease, border-color 0.2s ease;
     }
     .card:hover {
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow);
       border-color: var(--border-accent);
     }
     .card-header {
@@ -265,17 +257,57 @@
       flex-shrink: 0;
     }
     .card-title {
-      font-size: 1.5rem;
+      font-size: 1.45rem;
       font-weight: 800;
-      color: var(--text);
+      color: var(--primary-darker);
     }
     .card-subtitle {
       font-size: 0.875rem;
-      color: var(--text-soft);
+      color: var(--text-muted);
       font-weight: 500;
     }
 
-    /* Section Grids */
+    /* Expert Opinion Callout (Avis Marketing & Commercial) */
+    .expert-callout {
+      background: var(--surface-card);
+      border: 2px solid var(--primary);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin: 2rem 0;
+      position: relative;
+      box-shadow: var(--shadow);
+    }
+    .expert-badge {
+      position: absolute;
+      top: -13px;
+      left: 28px;
+      background: var(--primary-darker);
+      color: white;
+      font-size: 0.725rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 0.35rem 0.9rem;
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-sm);
+    }
+    .expert-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary-darker);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .expert-p {
+      font-size: 0.925rem;
+      color: var(--text);
+      line-height: 1.7;
+      margin-bottom: 1rem;
+    }
+
+    /* Grids */
     .grid-2 {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -289,145 +321,33 @@
       margin: 1.5rem 0;
     }
 
-    /* Pain Point Box (Psychological Trigger) */
-    .pain-box {
+    /* Advantage Box */
+    .advantage-box {
       background: var(--surface-subtle);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      padding: 1.5rem;
-      position: relative;
+      padding: 1.4rem;
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
+      gap: 0.5rem;
       transition: transform 0.15s ease;
     }
-    .pain-box:hover {
+    .advantage-box:hover {
       transform: translateY(-2px);
+      box-shadow: var(--shadow);
     }
-    .pain-header {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-weight: 700;
+    .advantage-box h4 {
       font-size: 1.05rem;
-      color: var(--text);
-    }
-    .pain-badge {
-      display: inline-block;
-      font-size: 0.7rem;
-      padding: 0.2rem 0.5rem;
-      border-radius: var(--radius-full);
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .pain-danger {
-      background: var(--rose-light);
-      color: var(--rose-dark);
-      border: 1px solid rgba(225, 29, 72, 0.2);
-    }
-    .pain-amber {
-      background: var(--amber-light);
-      color: var(--amber-dark);
-      border: 1px solid rgba(217, 119, 6, 0.2);
-    }
-    .pain-desc {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      line-height: 1.55;
-    }
-    .pain-impact {
-      margin-top: 0.5rem;
-      padding: 0.6rem 0.85rem;
-      border-radius: var(--radius-sm);
-      background: var(--surface);
-      border: 1px dashed var(--border-accent);
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--rose-dark);
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    /* Feature Value Box */
-    .value-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-      box-shadow: var(--shadow-sm);
-    }
-    .value-box-header {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-weight: 700;
-      font-size: 1.05rem;
-      color: var(--text);
-    }
-    .value-box-desc {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      line-height: 1.55;
-    }
-    .value-check-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-      margin-top: 0.5rem;
-    }
-    .value-check-list li {
-      font-size: 0.825rem;
-      color: var(--text);
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      font-weight: 500;
-    }
-
-    /* ROI / Impact Metric Banner */
-    .metric-banner {
-      background: linear-gradient(135deg, #065f46 0%, #059669 100%);
-      color: white;
-      border-radius: var(--radius-lg);
-      padding: 2.5rem;
-      margin: 2rem 0;
-      box-shadow: var(--shadow-lg);
-    }
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 2rem;
-      margin-top: 1.5rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .metric-card {
-      display: flex;
-      flex-direction: column;
-    }
-    .metric-number {
-      font-family: 'Outfit', sans-serif;
-      font-size: 2.5rem;
       font-weight: 800;
-      line-height: 1;
-      margin-bottom: 0.5rem;
-      letter-spacing: -0.03em;
+      color: var(--primary-darker);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
-    .metric-label {
-      font-size: 0.95rem;
-      font-weight: 700;
-      margin-bottom: 0.25rem;
-    }
-    .metric-sub {
-      font-size: 0.8rem;
-      opacity: 0.85;
-      line-height: 1.4;
+    .advantage-box p {
+      font-size: 0.885rem;
+      color: var(--text-muted);
+      line-height: 1.6;
     }
 
     /* Pricing Section */
@@ -435,15 +355,16 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 1.75rem;
-      margin-top: 2rem;
+      margin: 2rem 0;
     }
     .pricing-card {
       background: var(--surface);
-      border: 1px solid var(--border);
+      border: 2px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 2.25rem;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
       position: relative;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
@@ -452,14 +373,15 @@
       box-shadow: var(--shadow-lg);
     }
     .pricing-featured {
-      border: 2px solid var(--primary-accent);
-      background: linear-gradient(to bottom, var(--primary-light), var(--surface) 25%);
+      border: 2px solid var(--primary);
+      background: var(--surface-card);
+      box-shadow: var(--shadow);
     }
     .pricing-badge-popular {
       position: absolute;
       top: -12px;
       right: 24px;
-      background: var(--primary-accent);
+      background: var(--primary-darker);
       color: white;
       font-size: 0.7rem;
       font-weight: 800;
@@ -469,92 +391,77 @@
       border-radius: var(--radius-full);
       box-shadow: var(--shadow-sm);
     }
+    .pricing-tier {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary-dark);
+      margin-bottom: 0.35rem;
+    }
     .pricing-name {
       font-size: 1.35rem;
       font-weight: 800;
-      color: var(--text);
-      margin-bottom: 0.35rem;
-    }
-    .pricing-desc {
-      font-size: 0.85rem;
-      color: var(--text-soft);
-      margin-bottom: 1.5rem;
-      min-height: 42px;
+      color: var(--primary-darker);
+      margin-bottom: 0.5rem;
     }
     .pricing-price {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.25rem;
+      font-weight: 900;
+      color: var(--primary-darker);
+      margin-bottom: 1.25rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: baseline;
       gap: 0.35rem;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1.5rem;
-      border-bottom: 1px solid var(--border);
     }
-    .pricing-amount {
-      font-family: 'Outfit', sans-serif;
-      font-size: 2.4rem;
-      font-weight: 900;
-      color: var(--text);
-      letter-spacing: -0.02em;
-    }
-    .pricing-period {
+    .pricing-price span {
       font-size: 0.85rem;
-      color: var(--text-soft);
       font-weight: 600;
+      color: var(--text-soft);
     }
     .pricing-features {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
-      margin-bottom: 2rem;
-      flex-grow: 1;
-    }
-    .pricing-features li {
+      gap: 0.7rem;
+      margin-bottom: 1.75rem;
       font-size: 0.875rem;
       color: var(--text);
+    }
+    .pricing-features li {
       display: flex;
       align-items: flex-start;
       gap: 0.6rem;
     }
 
-    /* Buttons */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
+    /* Key Argument Boxes */
+    .key-arg-box {
       border-radius: var(--radius-md);
-      font-size: 0.9rem;
-      font-weight: 700;
-      text-decoration: none;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      border: 1px solid transparent;
+      padding: 1rem 1.2rem;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin-top: auto;
     }
-    .btn-primary {
-      background: var(--primary-accent);
-      color: white;
+    .arg-clarity {
+      background: var(--surface-subtle);
+      border-left: 3px solid #64748B;
+      color: #334155;
     }
-    .btn-primary:hover {
-      background: #3730a3;
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-md);
+    .arg-shield {
+      background: var(--warning-bg);
+      border-left: 3px solid var(--warning);
+      color: #854D0E;
     }
-    .btn-outline {
-      background: var(--surface);
-      border-color: var(--border-accent);
-      color: var(--text);
-    }
-    .btn-outline:hover {
-      border-color: var(--primary-accent);
-      color: var(--primary-accent);
-    }
-    .btn-block {
-      width: 100%;
+    .arg-saas {
+      background: var(--success-bg);
+      border-left: 3px solid var(--success);
+      color: #166534;
     }
 
-    /* Comparison Table */
+    /* Historical Evolution Table */
     .table-container {
       overflow-x: auto;
       margin: 1.5rem 0;
@@ -569,8 +476,8 @@
     }
     th {
       background: var(--surface-subtle);
-      color: var(--text-muted);
-      font-weight: 700;
+      color: var(--primary-darker);
+      font-weight: 800;
       padding: 0.85rem 1rem;
       border-bottom: 1px solid var(--border);
       text-transform: uppercase;
@@ -585,9 +492,22 @@
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: var(--surface-subtle); }
 
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--radius-full);
+      font-size: 0.725rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-executed { background: var(--success-bg); color: var(--success); }
+    .badge-gold { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(217, 119, 6, 0.3); }
+
     /* Order Agreement Section */
     .order-box {
-      background: var(--surface-subtle);
+      background: var(--surface-card);
       border: 2px dashed var(--border-accent);
       border-radius: var(--radius-lg);
       padding: 2.25rem;
@@ -614,8 +534,8 @@
     .sign-title {
       font-size: 0.8rem;
       text-transform: uppercase;
-      font-weight: 700;
-      color: var(--text-soft);
+      font-weight: 800;
+      color: var(--primary-darker);
       letter-spacing: 0.05em;
     }
     .sign-line {
@@ -625,14 +545,45 @@
       padding-top: 0.5rem;
     }
 
-    /* Print Styles */
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: var(--primary-darker);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #241A14;
+      transform: translateY(-1px);
+    }
+    .btn-outline {
+      background: var(--surface);
+      border-color: var(--border-accent);
+      color: var(--text);
+    }
+    .btn-outline:hover {
+      border-color: var(--primary);
+      color: var(--primary-darker);
+    }
+
     @media print {
-      .top-nav, .theme-toggle, .btn-print, .no-print { display: none !important; }
+      .top-nav, .btn, .no-print { display: none !important; }
       body { background: white; color: black; font-size: 13px; }
       .page-container { padding: 0; max-width: 100%; }
-      .card { border: none; box-shadow: none; padding: 1.5rem 0; margin-bottom: 2rem; page-break-inside: avoid; }
-      .hero-banner { background: #1e1b4b !important; color: white !important; -webkit-print-color-adjust: exact; padding: 2rem; }
-      .metric-banner { background: #059669 !important; color: white !important; -webkit-print-color-adjust: exact; }
+      .card { border: none; box-shadow: none; padding: 1.5rem 0; margin-bottom: 2rem; break-inside: avoid; }
+      .hero-banner { background: #46372D !important; color: white !important; -webkit-print-color-adjust: exact; padding: 2rem; }
       .pricing-card { break-inside: avoid; }
     }
   </style>
@@ -643,7 +594,7 @@
   <header class="top-nav">
     <div class="nav-inner">
       <a href="index.html" class="brand-link">
-        <svg class="w-6 h-6" style="width: 24px; height: 24px; color: var(--primary-accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <svg style="width: 24px; height: 24px; color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
         </svg>
         <span>Study Agent Pro</span>
@@ -677,29 +628,27 @@
         </li>
       </ul>
 
-      <div class="nav-actions">
-        <button class="btn btn-outline btn-print" onclick="window.print()">
-          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-          Imprimer l'Offre
-        </button>
-      </div>
+      <button class="btn btn-outline" onclick="window.print()">
+        <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+        Imprimer ce Devis
+      </button>
     </div>
   </header>
 
   <!-- Page Body -->
   <div class="page-container">
 
-    <!-- Hero Header -->
+    <!-- Hero Header Blanc & Marron Beige -->
     <section class="hero-banner">
       <div class="hero-pill">
         <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-        Offre Partenaire Stratégique 2026-2027
+        Étude Stratégique & Offre Commerciale d'Évolution
       </div>
       <h1 class="hero-title">
-        Sécurisez vos Recettes, Supprimez les Pertes Financières et Modernisez votre Établissement
+        Proposition d'Évolution Financière & Rapprochement de Caisse
       </h1>
       <p class="hero-subtitle">
-        Une plateforme de gouvernance scolaire et de gestion financière hors-ligne conçue pour les Fondateurs, Directeurs d'Établissements et Gestionnaires exigeants. Zéro panne réseau, zéro fraude de caisse, zéro perte de données.
+        Module de Rapprochement de Caisse, Billetage Physique du Tiroir, Ticket Z Certifié & Clôtures Multi-Postes pour la Direction et les Gestionnaires d'Établissements Scolaires.
       </p>
 
       <div class="hero-meta-grid">
@@ -708,481 +657,315 @@
           <span class="hero-meta-value">Direction Générale & Promoteurs</span>
         </div>
         <div class="hero-meta-item">
-          <span class="hero-meta-label">Disponibilité</span>
-          <span class="hero-meta-value">100% Autonome (Hors-Ligne)</span>
+          <span class="hero-meta-label">Périmètre</span>
+          <span class="hero-meta-value">Multi-Postes & Caisse Sécurisée</span>
         </div>
         <div class="hero-meta-item">
-          <span class="hero-meta-label">Sécurité Caisse</span>
-          <span class="hero-meta-value">Ticket Z & Billetage Verrouillé</span>
+          <span class="hero-meta-label">Objectif Clé</span>
+          <span class="hero-meta-value">0 Litige de Caisse & 0 Écart</span>
         </div>
         <div class="hero-meta-item">
-          <span class="hero-meta-label">Version Logicielle</span>
-          <span class="hero-meta-value">v2.2.4 — Entreprise & Multi-Postes</span>
+          <span class="hero-meta-label">Statut Proposition</span>
+          <span class="hero-meta-value">Offre Tarifée & Équilibrée</span>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 1: LE CONSTAT PSYCHOLOGIQUE & FINANCIER -->
+    <!-- 1. HISTORIQUE & CONTEXTE DU PROJET -->
     <section class="card">
       <div class="card-header">
-        <div class="card-icon" style="background: var(--rose-light); color: var(--rose-base);">
-          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <div class="card-icon" style="background: var(--primary-light); color: var(--primary-darker);">
+          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <div>
-          <h2 class="card-title">Le Diagnostic sans Fard : Les 4 Fuites Invisibles d'un Établissement</h2>
-          <p class="card-subtitle">Ce que vous coûtent chaque mois les méthodes traditionnelles sur papier ou Excel bricolé</p>
+          <h2 class="card-title">1. Rappel du Contexte & Besoins Émergents</h2>
+          <p class="card-subtitle">De la caisse unique vers l'exploitation multi-postes collaborative</p>
         </div>
       </div>
 
-      <div class="grid-2">
-        <div class="pain-box">
-          <div class="pain-header">
-            <span>1. Les Impayés Silencieux & Non Recouvrés</span>
-            <span class="pain-badge pain-danger">Perte Directe</span>
-          </div>
-          <p class="pain-desc">
-            Dans la cohue des rentrées et des examens, des parents accumulent des retards de 2, 3 ou 5 mois. Faute d'alertes instantanées au guichet, les élèves terminent l'année scolaire sans régularisation.
-          </p>
-          <div class="pain-impact">
-            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>
-            Impact moyen : 8% à 15% des écolages annuels définitivement perdus.
-          </div>
-        </div>
+      <p style="color: var(--text); line-height: 1.7; margin-bottom: 1rem;">
+        Le Cahier des Charges initial couvrait le périmètre d'une gestion financière centralisée sur un poste unique. Avec le déploiement opérationnel multi-postes (Avenant N°1 RBAC et Avenant N°2 Impression Thermique), <strong>deux à trois collaborateurs encaissent désormais simultanément</strong> sur des machines distinctes.
+      </p>
 
-        <div class="pain-box">
-          <div class="pain-header">
-            <span>2. Le Manque de Traçabilité & Risques de Fraude</span>
-            <span class="pain-badge pain-danger">Vulnérabilité</span>
-          </div>
-          <p class="pain-desc">
-            Reçus manuscrits à souche carbone : numérotations incohérentes, reçus antidatés, déclarations d'espèces minorées. La direction n'a aucun moyen de contrôler le contenu physique du tiroir en temps réel.
-          </p>
-          <div class="pain-impact">
-            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>
-            Conséquence : Écarts de caisse inexpliqués et soupçons chroniques.
-          </div>
-        </div>
-
-        <div class="pain-box">
-          <div class="pain-header">
-            <span>3. La Paralysie par Panne Internet ou Électrique</span>
-            <span class="pain-badge pain-amber">Blocage Opérationnel</span>
-          </div>
-          <p class="pain-desc">
-            Les logiciels 100% "dans le cloud" ou sur navigateur web se bloquent dès que la fibre ou la 4G coupe. Les parents font la queue, s'énervent, et le personnel de caisse est contraint d'écrire sur du papier brouillon.
-          </p>
-          <div class="pain-impact">
-            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            Perte de crédibilité et temps de double saisie interminable le soir.
-          </div>
-        </div>
-
-        <div class="pain-box">
-          <div class="pain-header">
-            <span>4. L'Anarchie des Bulletins & Saisie de Notes</span>
-            <span class="pain-badge pain-amber">Stress Administratif</span>
-          </div>
-          <p class="pain-desc">
-            Fichiers Excel corrompus par une mauvaise formule, calculs de rangs erronés, professeurs qui rendent les notes au dernier moment : la fin de trimestre devient un cauchemar pour l'équipe pédagogique.
-          </p>
-          <div class="pain-impact">
-            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            Des nuits blanches pour la direction et des réclamations de parents.
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 2: LA RÉPONSE STUDY AGENT PRO -->
-    <section class="card">
-      <div class="card-header">
-        <div class="card-icon" style="background: var(--primary-light); color: var(--primary-accent);">
-          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-        </div>
-        <div>
-          <h2 class="card-title">La Solution Study Agent Pro : Rigueur Bancaire & Sérénité Totale</h2>
-          <p class="card-subtitle">Une ingénierie logicielle robuste conçue pour donner le contrôle absolu à la Direction</p>
-        </div>
-      </div>
-
-      <div class="grid-3">
-        <div class="value-box">
-          <div class="value-box-header">
-            <svg style="width: 20px; height: 20px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            <span>100% Autonome Hors-Ligne</span>
-          </div>
-          <p class="value-box-desc">
-            Base de données locale SQLite à haute vélocité (WAL). L'application s'exécute avec 0 ms de latence, même en plein délestage ou sans connexion Internet.
-          </p>
-          <ul class="value-check-list">
-            <li>
-              <svg style="width: 14px; height: 14px; color: var(--emerald-base); shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              Encaissement en 3 secondes chrono
-            </li>
-            <li>
-              <svg style="width: 14px; height: 14px; color: var(--emerald-base); shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              Zéro file d'attente au secrétariat
-            </li>
-          </ul>
-        </div>
-
-        <div class="value-box">
-          <div class="value-box-header">
-            <svg style="width: 20px; height: 20px; color: var(--primary-accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-            <span>Ticket Thermique 80 mm</span>
-          </div>
-          <p class="value-box-desc">
-            Sortie instantanée via le spouleur Windows direct (ESC/POS). Double exemplaire (Client + Souche Caisse) avec massicot automatique sans aucune boîte de dialogue.
-          </p>
-          <ul class="value-check-list">
-            <li>
-              <svg style="width: 14px; height: 14px; color: var(--emerald-base); shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              Économie de 80% sur le papier A4
-            </li>
-            <li>
-              <svg style="width: 14px; height: 14px; color: var(--emerald-base); shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              Filigrane légal Duplicata anti-fraude
-            </li>
-          </ul>
-        </div>
-
-        <div class="value-box">
-          <div class="value-box-header">
-            <svg style="width: 20px; height: 20px; color: var(--amber-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-            <span>Ticket Z & Billetage</span>
-          </div>
-          <p class="value-box-desc">
-            Fin de journée cadrée : la caissière saisit les coupures en Ariary (100 à 20 000 Ar). Le système calcule l'écart de caisse et génère le Ticket Z avec visa contradictoire.
-          </p>
-          <ul class="value-check-list">
-            <li>
-              <svg style="width: 14px; height: 14px; color: var(--emerald-base); shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              Écart de caisse immédiatement détecté
-            </li>
-            <li>
-              <svg style="width: 14px; height: 14px; color: var(--emerald-base); shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              Double signature Direction & Caissier
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="grid-3" style="margin-top: 1.25rem;">
-        <div class="value-box">
-          <div class="value-box-header">
-            <svg style="width: 20px; height: 20px; color: var(--primary-accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-            <span>Auto-Healing Multi-Postes</span>
-          </div>
-          <p class="value-box-desc">
-            Plusieurs postes (Secrétariat, Caisse, Direction) travaillent simultanément. Lors de la synchronisation vers le Cloud, les collisions de matricules sont résolues automatiquement sans conflit.
-          </p>
-        </div>
-
-        <div class="value-box">
-          <div class="value-box-header">
-            <svg style="width: 20px; height: 20px; color: var(--rose-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            <span>Sécurité & Rôles RBAC</span>
-          </div>
-          <p class="value-box-desc">
-            Verrouillage étanche : les caissiers encaissent sans pouvoir altérer les tarifs ni les règles financières. Seuls les comptes Direction et Administrateur gèrent la configuration.
-          </p>
-        </div>
-
-        <div class="value-box">
-          <div class="value-box-header">
-            <svg style="width: 20px; height: 20px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-            <span>Relais Transactionnel Brevo</span>
-          </div>
-          <p class="value-box-desc">
-            Envoi d'e-mails et de quittances par SMTP transactionnel professionnel Brevo avec clé API pérenne, insensibles aux changements d'adresse IP de l'école.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 3: IMPACT FINANCIER & ROI (LE CHIFFRAGE RASSURANT) -->
-    <section class="metric-banner">
-      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
-        <div>
-          <span style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; opacity: 0.85;">Retour sur Investissement Immédiat</span>
-          <h2 style="font-size: 2rem; font-weight: 800; margin-top: 0.25rem;">Combien Study Agent Pro fait-il économiser à votre établissement ?</h2>
-        </div>
-        <div style="background: rgba(255, 255, 255, 0.2); padding: 0.5rem 1rem; border-radius: var(--radius-full); font-weight: 700; font-size: 0.85rem;">
-          Simulation pour un collège / lycée de 500 élèves
-        </div>
-      </div>
-
-      <div class="metric-grid">
-        <div class="metric-card">
-          <div class="metric-number">+ 85 %</div>
-          <div class="metric-label">Taux de Recouvrement des Impayés</div>
-          <div class="metric-sub">Grâce au moteur d'alerte automatique au guichet et au filtrage inscription vs réinscription.</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-number">0 Ar</div>
-          <div class="metric-label">Écart de Caisse Dissimulé</div>
-          <div class="metric-sub">Le billetage physique contradictoire supprime mathématiquement toute fuite de numéraire en fin de journée.</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-number">- 75 %</div>
-          <div class="metric-label">Temps Administratif Passé</div>
-          <div class="metric-sub">Fini les soirées de pointage manuel, les bulletins se génèrent en 1 clic et les reçus en 0,5 seconde.</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-number">100 %</div>
-          <div class="metric-label">Continuité Sans Connexion</div>
-          <div class="metric-sub">Même en cas de panne Internet de 3 semaines, les caisses continuent de tourner et synchronisent dès le retour du réseau.</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SECTION 4: TABLEAU COMPARATIF CONCURRENTIEL -->
-    <section class="card">
-      <div class="card-header">
-        <div class="card-icon" style="background: var(--surface-subtle); color: var(--primary);">
-          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-        </div>
-        <div>
-          <h2 class="card-title">Comparatif Stratégique : Pourquoi nous sommes sans équivalent</h2>
-          <p class="card-subtitle">Analyse comparative face aux solutions web classiques et aux cahiers / Excel</p>
-        </div>
-      </div>
+      <p style="color: var(--text); line-height: 1.7; margin-bottom: 1.5rem;">
+        Cette évolution positive génère un besoin légitime de <strong>ventilation fine et de contrôle contradictoire</strong> : la Direction doit pouvoir distinguer immédiatement qui a encaissé quoi, s'assurer que le contenu du tiroir-caisse correspond au centime près au logiciel, et figer les écritures à la fermeture sans risque de contestation.
+      </p>
 
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Fonctionnalité Majeure</th>
-              <th style="color: var(--primary-accent); font-weight: 800;">Study Agent Pro</th>
-              <th>Logiciels Web Classiques</th>
-              <th>Fichiers Excel / Papier</th>
+              <th>Jalon Contractuel</th>
+              <th>Périmètre Traité</th>
+              <th>Bénéfice Constaté sur le Terrain</th>
+              <th>Statut</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>Résistance aux pannes réseau & délestages</strong></td>
-              <td><span style="color: var(--emerald-base); font-weight: 700;">100% Autonome (0 ms latence)</span></td>
-              <td>Bloqué dès coupure Internet</td>
-              <td>Local mais non collaboratif</td>
+              <td><strong>Cahier des Charges Base</strong></td>
+              <td>Gestion élèves, écolages, notes, bulletins, personnel</td>
+              <td>Numérisation intégrale de la scolarité et fin des registres papier</td>
+              <td><span class="badge badge-executed">Livré & Opérationnel</span></td>
             </tr>
             <tr>
-              <td><strong>Émission de reçus de caisse</strong></td>
-              <td><span style="color: var(--emerald-base); font-weight: 700;">Thermique direct 80mm ESC/POS (0,5s)</span></td>
-              <td>Lente (fenêtre d'impression A4)</td>
-              <td>Reçus manuels falsifiables</td>
+              <td><strong>Avenant N°1 (RBAC)</strong></td>
+              <td>Comptes nominatifs, séparation des rôles, journal d'audit</td>
+              <td>Sécurisation des accès, traçabilité des modifications et fin des mots de passe partagés</td>
+              <td><span class="badge badge-executed">Livré & Opérationnel</span></td>
             </tr>
             <tr>
-              <td><strong>Clôture de journée & Billetage physique</strong></td>
-              <td><span style="color: var(--emerald-base); font-weight: 700;">Ticket Z + Billetage 100-20.000 Ar</span></td>
-              <td>Absente ou simple total d'écran</td>
-              <td>Comptage manuel sur feuille volante</td>
+              <td><strong>Avenant N°2 (Impression POS)</strong></td>
+              <td>Impression thermique directe 80mm ESC/POS, double reçu, massicot</td>
+              <td>Encaissement en 0,5 seconde, zéro dialogue système et tickets conformes anti-fraude</td>
+              <td><span class="badge badge-executed">Livré & Opérationnel</span></td>
             </tr>
             <tr>
-              <td><strong>Gestion Multi-Postes collaborative</strong></td>
-              <td><span style="color: var(--emerald-base); font-weight: 700;">Auto-Healing sans conflit (C1, C2, C3)</span></td>
-              <td>Partagé mais dépend du serveur web</td>
-              <td>Conflits de versions majeurs</td>
-            </tr>
-            <tr>
-              <td><strong>Protection des données financières</strong></td>
-              <td><span style="color: var(--emerald-base); font-weight: 700;">RBAC strict (Direction / Admin)</span></td>
-              <td>Généralement basique</td>
-              <td>Aucune protection (tout le monde lit)</td>
-            </tr>
-            <tr>
-              <td><strong>Personnalisation Marque Blanche</strong></td>
-              <td><span style="color: var(--emerald-base); font-weight: 700;">Nom, Logo et Exécutable dédiés</span></td>
-              <td>Logo générique du fournisseur</td>
-              <td>Aucune identité d'entreprise</td>
+              <td><strong>Avenant N°3 (Proposé)</strong></td>
+              <td>Rapprochement de caisse, billetage physique, Ticket Z, stats opérateur</td>
+              <td>Maîtrise absolue du tiroir-caisse, suppression totale des litiges et arrêt de caisse en 2 minutes</td>
+              <td><span class="badge badge-gold">Objet du Présent Devis</span></td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- SECTION 5: OFFRES COMMERCIALES & PACKS -->
-    <section class="card" id="tarifs">
+    <!-- 2. L'AVIS DE L'EXPERT MARKETING DIGITAL & COMMERCIAL VENDEUR -->
+    <section class="expert-callout">
+      <span class="expert-badge">Avis Stratégique & Psychologie Décideur</span>
+      <div class="expert-title">
+        <svg style="width: 22px; height: 22px; color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        <span>L'Analyse de l'Expert Commercial : Pourquoi cet investissement est immédiatement rentable</span>
+      </div>
+
+      <p class="expert-p">
+        « Dans tout établissement d'enseignement privé, <strong>le point de friction numéro un n'est pas pédagogique, il est financier</strong>. Lorsque 15 à 30 millions d'Ariary transitent en liquide chaque mois au guichet, la moindre imprécision détruit la confiance entre la Direction et les caissiers.
+      </p>
+
+      <p class="expert-p">
+        Du point de vue du <strong>retour sur investissement (ROI)</strong>, le coût de cette évolution (300 000 Ar à 600 000 Ar) représente <em>moins d'un demi-mois de salaire d'une secrétaire</em>, ou la récupération de <em>seulement deux mensualités d'écolage impayées</em>. En contrepartie, vous supprimez définitivement les écarts de caisse nocturnes, les contestations de parents et les déperditions d'espèces. 
+      </p>
+
+      <p class="expert-p" style="margin-bottom: 0;">
+        C'est l'outil qui achète la <strong>tranquillité d'esprit de la Directrice</strong> : le soir, elle n'a plus à recompter des billets jusqu'à 19h. Elle exige simplement le Ticket Z signé et scellé. »
+      </p>
+    </section>
+
+    <!-- 3. FONCTIONNALITÉS DU MODULE DE RAPPROCHEMENT -->
+    <section class="card">
       <div class="card-header">
-        <div class="card-icon" style="background: var(--amber-light); color: var(--amber-dark);">
+        <div class="card-icon" style="background: var(--surface-subtle); color: var(--primary-darker);">
+          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        </div>
+        <div>
+          <h2 class="card-title">2. Fonctionnalités Détaillées du Module de Rapprochement</h2>
+          <p class="card-subtitle">Quatre piliers technologiques apportés à votre logiciel de gestion</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="advantage-box">
+          <h4>
+            <svg style="width: 18px; height: 18px; color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+            <span>1. Filtre Dynamique par Opérateur & Code Poste</span>
+          </h4>
+          <p>
+            Ajout d'un sélecteur multi-critères dans le Journal Financier permettant d'isoler en 1 clic :
+            <br>• Tous les encaissements effectués par un collaborateur précis (ex: <em>Secrétaire 1</em>, <em>Comptable</em>).
+            <br>• Ou tous les flux traités sur une station physique déterminée (<em>Poste C1</em>, <em>Poste C2</em>, <em>Poste C3</em>).
+          </p>
+        </div>
+
+        <div class="advantage-box">
+          <h4>
+            <svg style="width: 18px; height: 18px; color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span>2. Statistiques de Volumétrie & Nombre de Tickets</span>
+          </h4>
+          <p>
+            Indicateurs d'activité en temps réel pour chaque caisse :
+            <br>• Nombre total de tickets/paiements traités par jour, semaine, mois et année scolaire.
+            <br>• Panier moyen par transaction et répartition horaire de l'affluence au guichet.
+          </p>
+        </div>
+
+        <div class="advantage-box">
+          <h4>
+            <svg style="width: 18px; height: 18px; color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>3. Récolement & Billetage du Tiroir-Caisse (Pointage)</span>
+          </h4>
+          <p>
+            Ventilation instantanée des encaissements de l'opérateur par mode de règlement :
+            <br>• <strong>Total Espèces</strong> (à confronter directement avec les billets physiques du tiroir).
+            <br>• <strong>Total Chèques</strong> (avec liste des numéros de chèques remis).
+            <br>• <strong>Total Mobile Money & Virements</strong>.
+          </p>
+        </div>
+
+        <div class="advantage-box">
+          <h4>
+            <svg style="width: 18px; height: 18px; color: var(--primary);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>4. Fiche / Ticket « Z de Clôture de Caisse » (80 mm)</span>
+          </h4>
+          <p>
+            Génération en 1 clic en fin de service du récapitulatif officiel scellé :
+            <br>• Impression automatique sur ticket thermique 80 mm ou export PDF certifié.
+            <br>• Encadré pour visa contradictoire : signature du caissier et émargement de la Direction.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. TARIFICATION HISTORIQUE & DEVIS FORFAITAIRE ÉQUILIBRÉ -->
+    <section class="card" id="devis">
+      <div class="card-header">
+        <div class="card-icon" style="background: var(--warning-bg); color: var(--warning);">
           <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <div>
-          <h2 class="card-title">Grille Tarifaire Transparente & Investissement</h2>
-          <p class="card-subtitle">Des formules calibrées selon la taille et l'ambition de votre établissement</p>
+          <h2 class="card-title">3. Devis Forfaitaire & Tarifs Justes et Équilibrés</h2>
+          <p class="card-subtitle">Calculé au plus juste du travail d'adaptation restant, dans un esprit de partenariat équitable</p>
         </div>
       </div>
 
       <div class="pricing-grid">
         
-        <!-- PACK 1: ESSENTIEL -->
+        <!-- FORMULE 1 -->
         <div class="pricing-card">
-          <div class="pricing-name">Pack Essentiel</div>
-          <div class="pricing-desc">Pour école primaire ou collège avec 1 poste administratif centralisé.</div>
-          <div class="pricing-price">
-            <span class="pricing-amount">Sur Mesure</span>
-            <span class="pricing-period">/ an</span>
+          <div>
+            <div class="pricing-tier">Formule 1 — Extension Opérationnelle</div>
+            <h3 class="pricing-name">Filtres Caissiers & Comptage de Tickets</h3>
+            <div class="pricing-price">
+              300 000 Ar <span>forfait unique</span>
+            </div>
+
+            <ul class="pricing-features">
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-dark); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Sélecteur d'opérateur / caissier dans le Journal Financier.</span>
+              </li>
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-dark); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Filtre par code station physique (Poste C1, Poste C2, Poste C3).</span>
+              </li>
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-dark); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Compteur dynamique du nombre total de tickets traités (jour/mois).</span>
+              </li>
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-dark); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Sous-total des encaissements par caissier et mode de règlement.</span>
+              </li>
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-dark); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Délai de déploiement : <strong>1 à 2 jours ouvrés</strong>.</span>
+              </li>
+            </ul>
           </div>
-          <ul class="pricing-features">
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>1 Poste de Travail (Caisse & Secrétariat)</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Moteur 100% Autonome Hors-Ligne</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Impression Reçus Thermiques & Duplicatas</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Bulletins de Notes & Export Excel</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Mises à jour de sécurité incluses</span>
-            </li>
-          </ul>
-          <a href="#commande" class="btn btn-outline btn-block">Sélectionner cette offre</a>
+
+          <div class="key-arg-box arg-clarity">
+            <strong>🎯 Argument Clé (Clarté Quotidienne) :</strong><br>
+            Permet à chaque collaborateur (secrétariat, comptabilité) de connaître instantanément son total du jour et son volume de tickets sans mélanger ses chiffres avec les autres bureaux. Idéal pour un pointage rapide le soir.
+          </div>
         </div>
 
-        <!-- PACK 2: MULTI-POSTES (FEATURED) -->
+        <!-- FORMULE 2 -->
         <div class="pricing-card pricing-featured">
-          <div class="pricing-badge-popular">Recommandé Établissements</div>
-          <div class="pricing-name">Pack Performance Multi-Postes</div>
-          <div class="pricing-desc">La formule complète pour les établissements avec plusieurs guichets de caisse.</div>
-          <div class="pricing-price">
-            <span class="pricing-amount">Sur Devis</span>
-            <span class="pricing-period">/ établissement</span>
-          </div>
-          <ul class="pricing-features">
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span><strong>Jusqu'à 4 Postes en Réseau</strong> (C1, C2, C3, Direction)</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span><strong>Auto-Healing Multi-Postes</strong> anti-collision</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span><strong>Clôture de Caisse, Billetage & Ticket Z</strong></span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Moteur d'Alertes Impayés & Historique</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Sauvegarde Cloud Sécurisée Supabase RLS</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Relais Transactionnel SMTP Brevo préconfiguré</span>
-            </li>
-          </ul>
-          <a href="#commande" class="btn btn-primary btn-block">Choisir l'Excellence Multi-Postes</a>
-        </div>
+          <div class="pricing-badge-popular">Recommandé Direction</div>
+          <div>
+            <div class="pricing-tier">Formule 2 — Contrôle & Sérénité Absolue</div>
+            <h3 class="pricing-name">Clôture Journalière, Billetage & Ticket Z</h3>
+            <div class="pricing-price">
+              600 000 Ar <span>forfait unique</span>
+            </div>
 
-        <!-- PACK 3: MARQUE BLANCHE & SOUVERAINETÉ -->
-        <div class="pricing-card">
-          <div class="pricing-name">Pack Marque Blanche & Souveraineté</div>
-          <div class="pricing-desc">Pour les groupes scolaires et établissements souhaitant leur propre application brandée.</div>
-          <div class="pricing-price">
-            <span class="pricing-amount">Partenaire</span>
-            <span class="pricing-period">/ groupe</span>
+            <ul class="pricing-features">
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-darker); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span><strong>Tout le contenu de la Formule 1 inclus</strong>.</span>
+              </li>
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-darker); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span><strong>Interface de Billetage Physique</strong> : Saisie guidée des coupures de billets (20 000, 10 000, 5 000, 2 000, 1 000, 500, 200, 100 Ar) et chèques.</span>
+              </li>
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-darker); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span><strong>Calcul Automatique des Écarts</strong> : Détection instantanée des surplus ou manquants de caisse (<em>Théorique logiciel vs Réel constaté</em>).</span>
+              </li>
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-darker); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span><strong>Impression du « Ticket Z de Clôture » 80 mm</strong> : Ticket récapitulatif officiel sur imprimante thermique avec visa contradictoire.</span>
+              </li>
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-darker); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span><strong>Verrouillage Comptable de Clôture</strong> : Gel des écritures validées pour interdire toute altération rétroactive.</span>
+              </li>
+              <li>
+                <svg style="width: 16px; height: 16px; color: var(--primary-darker); flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Délai de déploiement : <strong>3 à 4 jours ouvrés</strong>.</span>
+              </li>
+            </ul>
           </div>
-          <ul class="pricing-features">
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span><strong>Exécutable Windows Dédié (.exe)</strong> au nom de votre école</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Logo & Charte Graphique intégrés nativement</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Nombre de postes illimité au sein du site</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Installation & Déploiement assistés par nos ingénieurs</span>
-            </li>
-            <li>
-              <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-              <span>Support Prioritaire VIP 6j/7</span>
-            </li>
-          </ul>
-          <a href="#commande" class="btn btn-outline btn-block">Consulter pour Marque Blanche</a>
+
+          <div class="key-arg-box arg-shield">
+            <strong>🛡️ Argument Clé (Bouclier Anti-Écart & Protection Direction) :</strong><br>
+            Supprime 100% des litiges de caisse. La Directrice n'a plus à recompter des liasses de billets à la main : le système calcule l'écart, verrouille la journée et imprime un ticket officiel scellé faisant foi juridique et comptable.
+          </div>
         </div>
 
       </div>
+
+      <!-- SYNTHÈSE D'ORIENTATION COMMERCIALE -->
+      <div style="background: var(--surface-subtle); border-left: 4px solid var(--primary-darker); padding: 1.25rem 1.5rem; border-radius: var(--radius-md); font-size: 0.925rem; color: var(--text);">
+        <strong>🤝 Synthèse d'Orientation Commerciale :</strong><br>
+        • <strong>La Formule 1 (300 000 Ar)</strong> comble immédiatement le besoin formulé de visibilité sur le nombre de tickets et le tri par caissier.<br>
+        • <strong>La Formule 2 (600 000 Ar)</strong> transforme l'application en véritable système de caisse certifié, offrant à la Direction un contrôle financier infaillible et un gain de temps considérable lors de la fermeture quotidienne.
+      </div>
     </section>
 
-    <!-- SECTION 6: BON D'ACCORD & SIGNATURE -->
-    <section class="order-box" id="commande">
-      <div style="text-align: center; max-width: 680px; margin: 0 auto 2rem;">
-        <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--primary-accent);">
-          Engagement de Qualité & Déploiement Immédiat
+    <!-- 5. BON D'ACCORD & SIGNATURE DIRECTEUR -->
+    <section class="order-box">
+      <div style="text-align: center; max-width: 680px; margin: 0 auto 1.75rem;">
+        <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--primary-darker);">
+          Validation & Accord de Principe
         </span>
-        <h2 style="font-size: 1.85rem; font-weight: 800; margin-top: 0.5rem; color: var(--text);">
-          Accord de Principe & Bon de Déploiement
+        <h2 style="font-size: 1.85rem; font-weight: 800; margin-top: 0.5rem; color: var(--primary-darker);">
+          Bon de Commande & Déploiement Avenant N°3
         </h2>
         <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">
-          Pour valider le déploiement de Study Agent Pro au sein de votre établissement, retournez ce document visé et signé par la Direction.
+          Pour valider le déploiement du module de caisse au sein de votre établissement, cochez l'option choisie et retournez ce document signé.
         </p>
       </div>
 
       <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; font-size: 0.875rem;">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-          <div><strong>Nom de l'Établissement :</strong> ............................................................................</div>
-          <div><strong>Ville / Région :</strong> ............................................................................</div>
+          <div><strong>Établissement Bénéficiaire :</strong> ............................................................................</div>
+          <div><strong>Date de Validation :</strong> ............................................................................</div>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
-          <div><strong>Nom du Directeur / Promoteur :</strong> ............................................................................</div>
-          <div><strong>Téléphone & Contact WhatsApp :</strong> ............................................................................</div>
+          <div><strong>Nom du Directeur / Décideur :</strong> ............................................................................</div>
+          <div><strong>Contact / Téléphone :</strong> ............................................................................</div>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
-          <div><strong>Formule Retenue :</strong> [  ] Pack Essentiel &nbsp;&nbsp;&nbsp; [  ] Pack Performance &nbsp;&nbsp;&nbsp; [  ] Marque Blanche</div>
-          <div><strong>Nombre d'imprimantes thermiques :</strong> [  ] 1 &nbsp;&nbsp;&nbsp; [  ] 2 &nbsp;&nbsp;&nbsp; [  ] Autre (......)</div>
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+          <strong>Option Validée :</strong> &nbsp;&nbsp;&nbsp;
+          [ &nbsp; ] <strong>Formule 1 (300 000 Ar)</strong> — Extension Opérationnelle &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          [ &nbsp; ] <strong>Formule 2 (600 000 Ar)</strong> — Contrôle & Sérénité Absolue (Recommandée)
         </div>
       </div>
 
       <div class="sign-grid">
         <div class="sign-box">
-          <div class="sign-title">Pour le Promoteur / La Direction de l'Établissement</div>
-          <div class="sign-line">Date, Signature & Cachet Officiel de l'École :</div>
+          <div class="sign-title">Pour la Direction de l'Établissement</div>
+          <div class="sign-line">Date, Signature & Cachet Officiel :</div>
         </div>
         <div class="sign-box">
-          <div class="sign-title">Pour l'Équipe Ingénierie & Déploiement Study Agent Pro</div>
-          <div class="sign-line">Date, Visa Technique & Validation Déploiement :</div>
+          <div class="sign-title">Pour le Développeur & Responsable Technique</div>
+          <div class="sign-line">Date, Visa Technique & Engagement de Livraison :</div>
         </div>
       </div>
     </section>
 
   </div>
 
-  <script>
-    // Theme Switcher Logic
-    function toggleTheme() {
-      const html = document.documentElement;
-      const isDark = html.getAttribute('data-theme') === 'dark';
-      const newTheme = isDark ? 'light' : 'dark';
-      html.setAttribute('data-theme', newTheme);
-      localStorage.setItem('study_agent_guide_theme', newTheme);
-    }
-
-    (function() {
-      const saved = localStorage.getItem('study_agent_guide_theme');
-      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      }
-    })();
-  </script>
 </body>
 </html>
