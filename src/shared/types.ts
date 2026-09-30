@@ -247,6 +247,7 @@ export interface FeeRecord {
   monthly_tuition: number
   fram_paid_by_parent: boolean
   is_reenrollment?: boolean | number
+  deleted?: boolean | number
 
   created_at?: string
   updated_at?: string
@@ -535,6 +536,9 @@ export interface CashierDailySummary {
   expected_mobile: number
   expected_transfer: number
   expected_total: number
+  expected_cash_income?: number
+  expected_cash_expense?: number
+  expected_expenses?: number
   average_basket: number
   first_receipt?: string
   last_receipt?: string
@@ -599,6 +603,8 @@ export interface TicketZData {
   first_receipt?: string
   last_receipt?: string
   expected_cash: number
+  expected_cash_income?: number
+  expected_cash_expense?: number
   expected_check: number
   expected_mobile: number
   expected_transfer: number

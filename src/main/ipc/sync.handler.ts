@@ -19,7 +19,7 @@ export function registerSyncHandlers(): void {
   // App version (Dynamic)
   // --------------------------------------------
   ipcMain.handle('app:getVersion', () => {
-    return app.getVersion() || '1.0.7'
+    return app.getVersion() || '2.2.4'
   })
 
   // --------------------------------------------

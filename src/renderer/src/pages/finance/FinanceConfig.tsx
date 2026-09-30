@@ -9,6 +9,7 @@ import { useFinanceStore } from '@/store/useFinanceStore'
 import { useClasses } from '@/lib/useClasses'
 import { useAppStore } from '@/store/useAppStore'
 import { usePermissions } from '@/lib/usePermissions'
+import { useAuthStore } from '@/store/useAuthStore'
 import ReadOnlyBanner from '@/components/shared/ReadOnlyBanner'
 
 export default function FinanceConfig() {
@@ -16,6 +17,22 @@ export default function FinanceConfig() {
   const { classes: settingsClasses } = useClasses()
   const { canWrite } = usePermissions()
   const { schoolConfig } = useAppStore()
+  const user = useAuthStore((s) => s.user)
+  const role = user?.role
+
+  if (role && role !== 'admin' && role !== 'direction') {
+    return (
+      <div className="flex items-center justify-center h-full p-8">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-destructive mb-2">Accès refusé</h2>
+          <p className="text-muted-foreground">
+            Seuls la direction et l'administrateur ont accès à la configuration financière.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const [prices, setPrices] = useState<FinancePrices>(defaultPrices)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

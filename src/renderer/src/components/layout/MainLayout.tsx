@@ -106,7 +106,14 @@ export default function MainLayout(): React.JSX.Element {
             <Route path="/certificate/:studentId" element={<CertificatePage />} />
             <Route path="/finance" element={<FinanceJournal />} />
             <Route path="/finance/alertes" element={<PaymentAlerts />} />
-            <Route path="/finance/config" element={<FinanceConfig />} />
+            <Route
+              path="/finance/config"
+              element={
+                <ProtectedRoute resource="payments" allowedRoles={['admin', 'direction']}>
+                  <FinanceConfig />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/personnel" element={<PersonnelList />} />
             <Route path="/personnel/payroll" element={<PersonnelPayroll />} />

@@ -730,30 +730,40 @@ export class PaymentRepository {
         }
       } catch (e) {}
 
-      // 2. Fetch Active Students & Fees
-      const students = db
-        .prepare(
-          `
+      const tenantId = (SettingsRepository.get('ecole_id') as string) || null
+
+      // 2. Fetch Active Students & Fees with past_years_count
+      const studentSql = `
         SELECT s.id, s.first_name, s.last_name, s.class, s.departure_date, s.is_personnel_child,
-               sf.monthly_tuition, sf.bus_subscribed, sf.bus_route, 
-               sf.canteen_subscribed, sf.canteen_days_per_week, sf.canteen_days
+               sf.monthly_tuition, sf.tuition_level, sf.bus_subscribed, sf.bus_route, sf.bus_monthly_fee,
+               sf.canteen_subscribed, sf.canteen_days_per_week, sf.canteen_days,
+               sf.is_reenrollment, sf.enrollment_fee, sf.reenrollment_fee, sf.class_name,
+               (SELECT COUNT(*) FROM student_fees sf_past 
+                WHERE sf_past.student_id = s.id 
+                  AND REPLACE(REPLACE(sf_past.school_year, '"', ''), '''', '') < ?
+                  AND sf_past.deleted = 0
+                  ${tenantId ? 'AND (sf_past.ecole_id = ? OR sf_past.ecole_id IS NULL)' : ''}
+               ) as past_years_count
         FROM students s
         JOIN student_fees sf ON sf.student_id = s.id
         WHERE REPLACE(REPLACE(sf.school_year, '"', ''), '''', '') = ? 
           AND s.deleted = 0 
           AND sf.deleted = 0
+          ${tenantId ? 'AND (s.ecole_id = ? OR s.ecole_id IS NULL) AND (sf.ecole_id = ? OR sf.ecole_id IS NULL)' : ''}
       `
-        )
-        .all(targetYear) as Array<any>
+      const studentParams: any[] = [targetYear]
+      if (tenantId) studentParams.push(tenantId)
+      studentParams.push(targetYear)
+      if (tenantId) studentParams.push(tenantId, tenantId)
+
+      const students = db.prepare(studentSql).all(...studentParams) as Array<any>
 
       if (students.length === 0) {
         return { success: true, alerts: [] }
       }
 
-      // 3. Fetch Payments
-      const payments = db
-        .prepare(
-          `
+      // 3. Fetch Monthly Payments (tuition, bus, canteen)
+      const paymentSql = `
         SELECT student_id, payment_type, month, SUM(amount) as total_paid
         FROM student_payments
         WHERE deleted = 0 
@@ -768,16 +778,19 @@ export class PaymentRepository {
               )
             )
           )
+          ${tenantId ? 'AND (ecole_id = ? OR ecole_id IS NULL)' : ''}
         GROUP BY student_id, payment_type, month
       `
-        )
-        .all(
-          targetYear,
-          `${startYear}-%`,
-          `${endYear}-%`,
-          `${startYear}-06-01`,
-          `${endYear}-08-31`
-        ) as Array<{
+      const paymentParams: any[] = [
+        targetYear,
+        `${startYear}-%`,
+        `${endYear}-%`,
+        `${startYear}-06-01`,
+        `${endYear}-08-31`
+      ]
+      if (tenantId) paymentParams.push(tenantId)
+
+      const payments = db.prepare(paymentSql).all(...paymentParams) as Array<{
         student_id: string
         payment_type: string
         month: string
@@ -789,113 +802,202 @@ export class PaymentRepository {
         paymentMap.set(`${p.student_id}_${p.payment_type}_${p.month}`, p.total_paid)
       })
 
-      // 4. Fetch Unpaid Events
-      const unpaidEvents = db
-        .prepare(
-          `
+      // 4. Fetch Registration / Reenrollment Payments (droits)
+      const droitSql = `
+        SELECT student_id, payment_type, SUM(amount) as total_paid
+        FROM student_payments
+        WHERE deleted = 0 
+          AND payment_type IN ('enrollment', 'reenrollment')
+          AND (
+            REPLACE(REPLACE(school_year, '"', ''), '''', '') = ?
+            OR (
+              school_year IS NULL 
+              AND payment_date BETWEEN ? AND ?
+            )
+          )
+          ${tenantId ? 'AND (ecole_id = ? OR ecole_id IS NULL)' : ''}
+        GROUP BY student_id, payment_type
+      `
+      const droitParams: any[] = [targetYear, `${startYear}-06-01`, `${endYear}-08-31`]
+      if (tenantId) droitParams.push(tenantId)
+
+      const droitPayments = db.prepare(droitSql).all(...droitParams) as Array<{
+        student_id: string
+        payment_type: string
+        total_paid: number
+      }>
+
+      const droitPaymentMap = new Map<string, { enrollment: number; reenrollment: number }>()
+      droitPayments.forEach((p) => {
+        const current = droitPaymentMap.get(p.student_id) || { enrollment: 0, reenrollment: 0 }
+        if (p.payment_type === 'enrollment') {
+          current.enrollment += p.total_paid
+        } else if (p.payment_type === 'reenrollment') {
+          current.reenrollment += p.total_paid
+        }
+        droitPaymentMap.set(p.student_id, current)
+      })
+
+      // 5. Fetch Unpaid Events (scoped to target school year)
+      const eventSql = `
         SELECT ep.student_id, e.name as event_name, ep.amount_due, ep.amount_paid
         FROM event_payments ep
         JOIN parent_events e ON ep.event_id = e.id
         WHERE ep.paid = 0 AND e.deleted = 0
+          AND (e.school_year = ? OR e.school_year IS NULL)
+          ${tenantId ? 'AND (e.ecole_id = ? OR e.ecole_id IS NULL)' : ''}
       `
-        )
-        .all() as Array<{
+      const eventParams: any[] = [targetYear]
+      if (tenantId) eventParams.push(tenantId)
+
+      const unpaidEvents = db.prepare(eventSql).all(...eventParams) as Array<{
         student_id: string
         event_name: string
         amount_due: number
         amount_paid: number
       }>
 
-      // 5. Aggregate Alerts
+      // 6. Aggregate Alerts
       const alerts: any[] = []
+      const shouldExonerate = SettingsRepository.get('exonerate_personnel_children') !== false
 
       students.forEach((student) => {
-        const unpaidItems: Array<{ type: string; label: string; amount: number; month?: string }> =
-          []
-        let totalDue = 0
-        const isTerminale = student.class === 'TA' || student.class === 'TD' || student.class === 'Terminale'
+        const resolvedClass = student.class_name || student.class || ''
+        const isTerminale =
+          resolvedClass === 'TA' ||
+          resolvedClass === 'TD' ||
+          resolvedClass.toLowerCase().includes('terminale')
         const relevantMonths = isTerminale ? terminaleMonths : months
 
-        // Check Tuition
-        const rawPC = student.is_personnel_child
-        const isPC = rawPC == 1 || rawPC === '1' || rawPC === '1.0' || rawPC === true || rawPC === 'true'
-        const shouldExonerate = SettingsRepository.get('exonerate_personnel_children') !== false
+        let totalDue = 0
+        const unpaidItems: Array<{ type: string; label: string; amount: number; month?: string }> = []
 
-        if (!isPC || !shouldExonerate) {
-          const config = student.class ? StudentRepository.resolveTuitionConfig(student.class) : null
-          const monthlyTuition = config?.price || student.monthly_tuition || 0
-
-          if (monthlyTuition > 0) {
-            relevantMonths.forEach((m) => {
-              const paid = paymentMap.get(`${student.id}_tuition_${m}`) || 0
-              if (paid < monthlyTuition) {
-                const due = monthlyTuition - paid
-                totalDue += due
-                unpaidItems.push({
-                  type: 'tuition',
-                  label: `Écolage ${m}`,
-                  amount: due,
-                  month: m
-                })
-              }
-            })
-          }
-        }
-
-        // Check Bus
-        if (student.bus_subscribed && student.bus_route && prices.bus && prices.bus[student.bus_route]) {
-          const busPrice = prices.bus[student.bus_route]
+        // Helper to check monthly subscriptions (threshold at 100 Ar to prevent fractional/1 Ar residue)
+        const checkMonthlyService = (
+          type: string,
+          monthlyCost: number,
+          labelPrefix: string
+        ) => {
+          if (monthlyCost <= 0) return
           relevantMonths.forEach((m) => {
-            const paid = paymentMap.get(`${student.id}_bus_${m}`) || 0
-            if (paid < busPrice) {
-              const due = busPrice - paid
-              totalDue += due
+            if (student.departure_date && student.departure_date < `${m}-01`) return
+
+            const paidAmount = paymentMap.get(`${student.id}_${type}_${m}`) || 0
+            const balance = monthlyCost - paidAmount
+            if (balance >= 100) {
               unpaidItems.push({
-                type: 'bus',
-                label: `Transport (${student.bus_route}) ${m}`,
-                amount: due,
+                type,
+                label: `${labelPrefix} (${m})`,
+                amount: balance,
                 month: m
               })
+              totalDue += balance
             }
           })
         }
 
-        // Check Canteen
+        // --- Droits d'inscription / réinscription ---
+        const isDepartedBeforeSchoolYear =
+          student.departure_date && student.departure_date < `${startYear}-09-01`
+        if (!isDepartedBeforeSchoolYear) {
+          const studentDroits = droitPaymentMap.get(student.id) || {
+            enrollment: 0,
+            reenrollment: 0
+          }
+          const hasReenPay = studentDroits.reenrollment > 0
+          const hasEnrPay = studentDroits.enrollment > 0
+
+          let isReturning = false
+          if (hasReenPay) {
+            isReturning = true
+          } else if (hasEnrPay) {
+            isReturning = false
+          } else {
+            isReturning =
+              student.is_reenrollment === 1 ||
+              student.is_reenrollment === true ||
+              student.is_reenrollment === '1' ||
+              Number(student.past_years_count) > 0
+          }
+
+          const defaultRegPrice = Number(prices.registration) || 140000
+          const defaultReenPrice = Number(prices.reenrollment) || 115000
+          const customFee = Number(isReturning ? student.reenrollment_fee : student.enrollment_fee) || 0
+          const expectedDroit = customFee > 0 ? customFee : (isReturning ? defaultReenPrice : defaultRegPrice)
+
+          const totalPaidDroit = studentDroits.enrollment + studentDroits.reenrollment
+          const balanceDroit = expectedDroit - totalPaidDroit
+
+          if (balanceDroit >= 100) {
+            const droitType = isReturning ? 'reenrollment' : 'enrollment'
+            const label = isReturning ? 'Réinscription' : "Frais d'inscription"
+            unpaidItems.push({
+              type: droitType,
+              label,
+              amount: balanceDroit
+            })
+            totalDue += balanceDroit
+          }
+        }
+
+        // --- Tuition (Scolarité) ---
+        const rawPC = student.is_personnel_child
+        const isPC = rawPC == 1 || rawPC === '1' || rawPC === '1.0' || rawPC === true || rawPC === 'true'
+        const isExonerated = isPC && shouldExonerate
+
+        if (!isExonerated) {
+          const level = student.tuition_level || resolvedClass
+          const configTuition = level ? Number(prices?.tuition?.[level]) : undefined
+          let effectiveTuition = Number(student.monthly_tuition) || 0
+          if (configTuition !== undefined && configTuition > 0) {
+            if (effectiveTuition === 0 || Math.abs(effectiveTuition - configTuition) < 10) {
+              effectiveTuition = configTuition
+            }
+          }
+          checkMonthlyService('tuition', effectiveTuition, 'Écolage')
+        }
+
+        // --- Bus (Transport) ---
+        if (student.bus_subscribed) {
+          const customBusFee = Number(student.bus_monthly_fee) || 0
+          const standardBusFee =
+            student.bus_route && prices.bus && prices.bus[student.bus_route]
+              ? Number(prices.bus[student.bus_route]) || 0
+              : 0
+          const busCost = customBusFee > 0 ? customBusFee : standardBusFee
+          checkMonthlyService('bus', busCost, `Transport (${student.bus_route || 'Standard'})`)
+        }
+
+        // --- Canteen (Cantine) ---
         if (student.canteen_subscribed && prices.canteen) {
           let daysCount = 0
           try {
-            const days = typeof student.canteen_days === 'string' ? JSON.parse(student.canteen_days) : student.canteen_days
+            const days =
+              typeof student.canteen_days === 'string'
+                ? JSON.parse(student.canteen_days)
+                : student.canteen_days
             if (Array.isArray(days)) daysCount = days.length
           } catch (e) {}
           if (!daysCount && student.canteen_days_per_week) {
             daysCount = student.canteen_days_per_week
           }
-
-          const dailyPrice = prices.canteen.daily || 0
-          const monthlyCanteenPrice = daysCount * dailyPrice * 4 // Approximation 4 weeks/month
-
-          if (monthlyCanteenPrice > 0) {
-            relevantMonths.forEach((m) => {
-              const paid = paymentMap.get(`${student.id}_canteen_${m}`) || 0
-              if (paid < monthlyCanteenPrice) {
-                const due = monthlyCanteenPrice - paid
-                totalDue += due
-                unpaidItems.push({
-                  type: 'canteen',
-                  label: `Cantine ${m}`,
-                  amount: due,
-                  month: m
-                })
-              }
-            })
+          const effectiveDays = daysCount === 0 ? 5 : daysCount
+          const monthlyPrice = Number(prices?.canteen?.monthly) || 0
+          const dailyPrice = Number(prices?.canteen?.daily) || 0
+          let canteenCost = 0
+          if (monthlyPrice > 0 && effectiveDays >= 5) {
+            canteenCost = monthlyPrice
+          } else {
+            canteenCost = dailyPrice * effectiveDays * 4
           }
+          checkMonthlyService('canteen', canteenCost, 'Cantine')
         }
 
-        // Check Unpaid Events
+        // --- Events ---
         const studentEvents = unpaidEvents.filter((e) => e.student_id === student.id)
         studentEvents.forEach((e) => {
           const due = e.amount_due - e.amount_paid
-          if (due > 0) {
+          if (due >= 100) {
             totalDue += due
             unpaidItems.push({
               type: 'event',
@@ -910,7 +1012,7 @@ export class PaymentRepository {
             student_id: student.id,
             first_name: student.first_name,
             last_name: student.last_name,
-            class_name: student.class || '-',
+            class_name: resolvedClass || '-',
             unpaid_items: unpaidItems,
             total_due: totalDue
           })

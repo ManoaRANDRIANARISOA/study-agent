@@ -47,6 +47,9 @@ async function fetchAndSyncUserFromCloud(
     const cleanUsername = username.trim()
     const tenantId = (SettingsRepository.get('ecole_id') as string) || ''
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+
     let query = supabase
       .from('users')
       .select('*')
@@ -56,7 +59,8 @@ async function fetchAndSyncUserFromCloud(
       query = query.eq('ecole_id', tenantId)
     }
 
-    const { data, error } = await query.maybeSingle()
+    const { data, error } = (await (query.maybeSingle() as any).abortSignal(controller.signal)) as any
+    clearTimeout(timeoutId)
 
     if (error || !data) return null
 

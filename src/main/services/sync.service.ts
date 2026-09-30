@@ -150,35 +150,55 @@ export function broadcastProgress(progress: SyncProgress): void {
 }
 
 /**
- * Health check to Supabase with latency measurement and 5s timeout
+ * Health check to Supabase with latency measurement, 15s timeout and grace retry
  */
-export async function checkCloudHealth(): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
+export async function checkCloudHealth(timeoutMs: number = 15000): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
   if (!supabaseUrl || !supabaseKey) {
     return { ok: false, error: 'Identifiants Supabase absents du fichier .env' }
   }
 
-  const start = Date.now()
-  try {
-    const timeoutPromise = new Promise<{ error: Error }>((_, reject) =>
-      setTimeout(() => reject(new Error("Délai d'attente réseau dépassé (5s)")), 5000)
-    )
+  const performCheck = async (timeout: number) => {
+    const start = Date.now()
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-    const probePromise = supabase
-      .from('settings')
-      .select('key')
-      .limit(1)
+    try {
+      const { error } = (await (supabase
+        .from('settings')
+        .select('key')
+        .limit(1) as any)
+        .abortSignal(controller.signal)) as any
 
-    const result = (await Promise.race([probePromise, timeoutPromise])) as any
+      clearTimeout(timeoutId)
 
-    if (result && result.error) {
-      return { ok: false, error: result.error.message || 'Erreur retournée par Supabase' }
+      if (error) {
+        return { ok: false, error: error.message || 'Erreur retournée par Supabase' }
+      }
+
+      return { ok: true, latencyMs: Date.now() - start }
+    } catch (err: unknown) {
+      clearTimeout(timeoutId)
+      const msg = err instanceof Error ? err.message : String(err)
+      return { ok: false, error: msg }
     }
-
-    return { ok: true, latencyMs: Date.now() - start }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
-    return { ok: false, error: msg }
   }
+
+  let result = await performCheck(timeoutMs)
+  // If first check failed due to timeout/abort/fetch error on weak connection, try 1 grace retry before declaring offline
+  if (
+    !result.ok &&
+    (result.error?.toLowerCase().includes('abort') ||
+      result.error?.toLowerCase().includes('timeout') ||
+      result.error?.toLowerCase().includes('fetch'))
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    const retryResult = await performCheck(10000)
+    if (retryResult.ok) {
+      return retryResult
+    }
+  }
+
+  return result
 }
 
 /**
@@ -914,52 +934,178 @@ async function pushLocalChanges() {
           upsertError = error
         }
 
+        let autoHealed = false
         if (upsertError) {
-          // Handle Duplicate Key Error (23505) for registration_number
+          const errMsg = upsertError.message || ''
+
+          // 1. Auto-heal: Duplicate unique constraint on students (registration_number collision across stations)
           if (
             upsertError.code === '23505' &&
-            upsertError.message?.includes('registration_number')
+            item.table_name === 'students' &&
+            (errMsg.includes('registration_number') || errMsg.includes('students_registration_number_key'))
           ) {
-            console.warn(
-              `Duplicate registration_number detected for ${payload.id}. Regenerating...`
-            )
+            try {
+              console.warn(
+                `[Auto-healing sync] Registration number collision on student '${item.record_id}' (${payload.registration_number}). Resolving collision...`
+              )
+              const currentYearPrefix = new Date().getFullYear().toString()
 
-            // Fetch the real max registration number from Supabase
-            // Improved logic to avoid naive sorting issues (2024-10 > 2024-9)
-            const year = new Date().getFullYear()
-            const { data: allRegs } = await supabase
-              .from('students')
-              .select('registration_number')
-              .ilike('registration_number', `${year}-%`)
+              // Check if student with this matricule in cloud is identical (same first_name, last_name) for this tenant
+              let query = supabase
+                .from('students')
+                .select('id, first_name, last_name, registration_number')
+                .eq('registration_number', payload.registration_number)
+              if (tenantId) {
+                query = query.eq('ecole_id', tenantId)
+              }
+              const { data: cloudMatch } = await query.maybeSingle()
 
-            let nextNum = 1
-            if (allRegs && allRegs.length > 0) {
-              // Parse manually to find max
-              const nums = allRegs.map((r) => {
-                const parts = r.registration_number.split('-')
-                return parts.length === 2 ? parseInt(parts[1], 10) : 0
-              })
-              nextNum = Math.max(...nums) + 1
+              if (
+                cloudMatch &&
+                cloudMatch.first_name?.trim().toLowerCase() === payload.first_name?.trim().toLowerCase() &&
+                cloudMatch.last_name?.trim().toLowerCase() === payload.last_name?.trim().toLowerCase()
+              ) {
+                // Same student created under different UUID across stations: adopt cloud ID locally
+                console.warn(
+                  `[Auto-healing sync] Matching student found in cloud (ID: ${cloudMatch.id}). Aligning local UUID...`
+                )
+                db.prepare('UPDATE students SET id = ?, sync_status = "synced" WHERE id = ?').run(
+                  cloudMatch.id,
+                  item.record_id
+                )
+                db.prepare('UPDATE student_fees SET student_id = ? WHERE student_id = ?').run(
+                  cloudMatch.id,
+                  item.record_id
+                )
+                db.prepare('UPDATE student_payments SET student_id = ? WHERE student_id = ?').run(
+                  cloudMatch.id,
+                  item.record_id
+                )
+                db.prepare('UPDATE cash_journal SET related_student_id = ? WHERE related_student_id = ?').run(
+                  cloudMatch.id,
+                  item.record_id
+                )
+                autoHealed = true
+              } else {
+                // Distinct student: allocate next non-colliding registration number for this tenant
+                const localMaxRow = db
+                  .prepare(
+                    `
+                  SELECT MAX(CAST(SUBSTR(registration_number, 6) AS INTEGER)) as max_num 
+                  FROM students 
+                  WHERE registration_number LIKE ? ${tenantId ? 'AND (ecole_id = ? OR ecole_id IS NULL)' : ''}
+                `
+                  )
+                  .get(
+                    `${currentYearPrefix}-%`,
+                    ...(tenantId ? [tenantId] : [])
+                  ) as { max_num: number | null } | undefined
+
+                let nextNum = (localMaxRow?.max_num || 0) + 1
+
+                // Also check remote max for this tenant to be safe
+                let remoteQuery = supabase
+                  .from('students')
+                  .select('registration_number')
+                  .ilike('registration_number', `${currentYearPrefix}-%`)
+                if (tenantId) {
+                  remoteQuery = remoteQuery.eq('ecole_id', tenantId)
+                }
+                const { data: remoteMaxRows } = await remoteQuery
+                  .order('registration_number', { ascending: false })
+                  .limit(1)
+
+                if (remoteMaxRows && remoteMaxRows.length > 0) {
+                  const remoteNum = parseInt(remoteMaxRows[0].registration_number.split('-')[1]) || 0
+                  if (remoteNum >= nextNum) {
+                    nextNum = remoteNum + 1
+                  }
+                }
+
+                const newRegNum = `${currentYearPrefix}-${String(nextNum).padStart(5, '0')}`
+                console.warn(
+                  `[Auto-healing sync] Reassigning unique registration_number '${newRegNum}' to student '${item.record_id}'`
+                )
+
+                db.prepare('UPDATE students SET registration_number = ? WHERE id = ?').run(
+                  newRegNum,
+                  item.record_id
+                )
+                payload.registration_number = newRegNum
+                supabasePayload.registration_number = newRegNum
+
+                const { error: retryErr } = await supabase.from('students').upsert(supabasePayload)
+                if (!retryErr) {
+                  autoHealed = true
+                }
+              }
+            } catch (stHealErr) {
+              console.warn('[Auto-healing sync] Student registration_number collision auto-heal failed:', stHealErr)
             }
-            const newMatricule = `${year}-${String(nextNum).padStart(5, '0')}`
+          }
 
-            // Update payload with new matricule
-            payload.registration_number = newMatricule
-
-            // Update Local DB with new matricule so it stays consistent
-            db.prepare(`UPDATE students SET registration_number = ? WHERE id = ?`).run(
-              newMatricule,
-              payload.id
-            )
-
-            // Retry Upsert
-            const { error: retryError } = await supabase.from(item.table_name).upsert(payload)
-
-            if (retryError) {
-              console.error(`Retry failed for ${item.table_name}:`, retryError)
-              throw retryError
+          // 2. Auto-heal: Foreign key violation missing parent student (23503)
+          if (
+            !autoHealed &&
+            upsertError.code === '23503' &&
+            (item.table_name === 'student_payments' ||
+              item.table_name === 'cash_journal' ||
+              item.table_name === 'student_fees')
+          ) {
+            try {
+              const studentId =
+                item.table_name === 'cash_journal'
+                  ? payload.related_student_id
+                  : payload.student_id
+              if (studentId) {
+                const localStudent = db.prepare('SELECT * FROM students WHERE id = ?').get(studentId) as any
+                if (localStudent) {
+                  console.warn(
+                    `[Auto-healing sync] Pushing missing parent student '${studentId}' to Supabase before retrying '${item.table_name}'`
+                  )
+                  const studentPayload: any = { ...localStudent }
+                  if (tenantId) studentPayload.ecole_id = tenantId
+                  const { error: studentErr } = await supabase.from('students').upsert(studentPayload)
+                  if (!studentErr) {
+                    const { error: retryErr } = await supabase
+                      .from(item.table_name)
+                      .upsert(supabasePayload)
+                    if (!retryErr) {
+                      autoHealed = true
+                    }
+                  } else if (item.table_name === 'cash_journal') {
+                    // Fallback: If parent student push fails on constraint, nullify related_student_id on cash_journal so ledger is not blocked
+                    console.warn(
+                      `[Auto-healing sync] Student push failed (${studentErr.message}). Nullifying related_student_id on cash_journal '${item.record_id}'`
+                    )
+                    payload.related_student_id = null
+                    supabasePayload.related_student_id = null
+                    const { error: retryCjErr } = await supabase
+                      .from('cash_journal')
+                      .upsert(supabasePayload)
+                    if (!retryCjErr) {
+                      autoHealed = true
+                    }
+                  }
+                } else if (item.table_name === 'cash_journal') {
+                  // Orphaned student reference in cash_journal: clear foreign key so the financial transaction is recorded
+                  console.warn(
+                    `[Auto-healing sync] Nullifying orphaned related_student_id on cash_journal '${item.record_id}'`
+                  )
+                  payload.related_student_id = null
+                  supabasePayload.related_student_id = null
+                  const { error: retryErr } = await supabase.from('cash_journal').upsert(supabasePayload)
+                  if (!retryErr) {
+                    autoHealed = true
+                  }
+                }
+              }
+            } catch (fkHealErr) {
+              console.warn('[Auto-healing sync] Foreign key resolution failed:', fkHealErr)
             }
-          } else {
+          }
+
+          if (!autoHealed) {
             throw upsertError
           }
         }

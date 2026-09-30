@@ -28,7 +28,7 @@ import {
   ToggleRight
 } from 'lucide-react'
 import { getStudentPhotoUrl } from '@/lib/image-utils'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useFinanceStore } from '@/store/useFinanceStore'
 import { usePermissions } from '@/lib/usePermissions'
 import type { FeeRecord } from '@shared/types'
@@ -61,6 +61,7 @@ const formatCanteenDays = (daysJson: string | string[] | undefined, daysPerWeek:
 
 export default function StudentDetail({ studentId, onBack, onEdit }: StudentDetailProps) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const {
     currentStudent,
     currentFees,
@@ -74,10 +75,10 @@ export default function StudentDetail({ studentId, onBack, onEdit }: StudentDeta
   const [imageError, setImageError] = useState(false)
   const [isReEnrollOpen, setIsReEnrollOpen] = useState(false)
   const [isDepartureModalOpen, setIsDepartureModalOpen] = useState(false)
-  const [selectedYear, setSelectedYear] = useState<string>('')
+  const [selectedYear, setSelectedYear] = useState<string>(searchParams.get('year') || '')
   const [events, setEvents] = useState<any[]>([])
   const [personnelParent, setPersonnelParent] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState('dossier')
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dossier')
 
   const { prices: financePrices, fetchPrices } = useFinanceStore()
   const { canWrite } = usePermissions()
@@ -128,17 +129,34 @@ export default function StudentDetail({ studentId, onBack, onEdit }: StudentDeta
     }
   }, [currentStudent?.is_personnel_child, currentStudent?.parent_personnel_id])
 
-  // Set default selected year to the latest enrollment or current fees year
+  // Set default selected year to URL param, latest enrollment or current fees year
   useEffect(() => {
+    const tabFromUrl = searchParams.get('tab')
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl)
+    }
+    const yearFromUrl = searchParams.get('year')
+    if (yearFromUrl) {
+      setSelectedYear(yearFromUrl)
+      return
+    }
+    const globalYear = useAppStore.getState().currentYear
     if (currentFeesHistory && currentFeesHistory.length > 0) {
       // Assuming history is sorted DESC by year (from repository)
       setSelectedYear(currentFeesHistory[0].school_year)
     } else if (currentFees?.school_year) {
       setSelectedYear(currentFees.school_year)
+    } else if (globalYear) {
+      setSelectedYear(globalYear)
     } else {
-      setSelectedYear(useAppStore.getState().currentYear) // Fallback
+      const now = new Date()
+      const yearStr =
+        now.getMonth() >= 7
+          ? `${now.getFullYear()}-${now.getFullYear() + 1}`
+          : `${now.getFullYear() - 1}-${now.getFullYear()}`
+      setSelectedYear(yearStr)
     }
-  }, [currentFees, currentFeesHistory])
+  }, [currentFees, currentFeesHistory, searchParams])
 
   const handleDelete = async () => {
     if (confirm('Êtes-vous sûr de vouloir supprimer cet élève ?')) {
@@ -342,12 +360,23 @@ export default function StudentDetail({ studentId, onBack, onEdit }: StudentDeta
                   getStudent(studentId, e.target.value)
                 }}
               >
-                {currentFeesHistory?.map((fee) => (
-                  <option key={fee.id} value={fee.school_year}>
-                    {fee.school_year}
+                {currentFeesHistory
+                  ?.filter((fee) => !fee.deleted)
+                  .map((fee) => (
+                    <option key={fee.id} value={fee.school_year.replace(/['"]/g, '')}>
+                      {fee.school_year.replace(/['"]/g, '')}
+                    </option>
+                  ))}
+                {!currentFeesHistory?.some(
+                  (f) =>
+                    !f.deleted &&
+                    f.school_year.replace(/['"]/g, '') ===
+                      (useAppStore.getState().currentYear || '2026-2027')
+                ) && (
+                  <option value={useAppStore.getState().currentYear || '2026-2027'}>
+                    {useAppStore.getState().currentYear || '2026-2027'}
                   </option>
-                ))}
-                {!currentFeesHistory?.length && <option value="2025-2026">2025-2026</option>}
+                )}
               </select>
             </div>
 

@@ -1,6 +1,6 @@
 {
   "name": "study-agent",
-  "version": "1.0.7",
+  "version": "2.2.4",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "author": "Study Agent",

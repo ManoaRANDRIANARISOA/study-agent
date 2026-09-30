@@ -245,6 +245,8 @@ export default function CashClosureModal({
       first_receipt: summary.first_receipt,
       last_receipt: summary.last_receipt,
       expected_cash: summary.expected_cash,
+      expected_cash_income: summary.expected_cash_income,
+      expected_cash_expense: summary.expected_cash_expense,
       expected_check: summary.expected_check,
       expected_mobile: summary.expected_mobile,
       expected_transfer: summary.expected_transfer,
@@ -426,7 +428,7 @@ export default function CashClosureModal({
             1. Données Comptables Théoriques (Logiciel)
           </h4>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
             <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
               <div className="text-xs text-gray-500 font-medium">Nombre de Tickets</div>
               <div className="text-xl font-bold text-gray-900 mt-1">
@@ -448,16 +450,23 @@ export default function CashClosureModal({
               </div>
             </div>
 
-            <div className="bg-white p-3 rounded-lg border border-purple-200 bg-purple-50/30 shadow-sm">
+            <div className="bg-white p-2.5 rounded-lg border border-purple-200 bg-purple-50/30 shadow-sm">
               <div className="text-xs text-purple-800 font-medium">Mobile Money</div>
-              <div className="text-base font-bold text-purple-700 mt-1">
+              <div className="text-sm font-bold text-purple-700 mt-0.5">
                 {formatMGA(summary?.expected_mobile || 0)}
+              </div>
+            </div>
+
+            <div className="bg-white p-2.5 rounded-lg border border-indigo-200 bg-indigo-50/30 shadow-sm">
+              <div className="text-xs text-indigo-800 font-medium">Virements</div>
+              <div className="text-sm font-bold text-indigo-700 mt-0.5">
+                {formatMGA(summary?.expected_transfer || 0)}
               </div>
             </div>
           </div>
 
           <div className="mt-2.5 flex items-center justify-between px-3.5 py-2 bg-gray-100 rounded-lg border border-gray-200 text-xs">
-            <span className="font-semibold text-gray-700">Total Général Théorique Encaissé :</span>
+            <span className="font-semibold text-gray-700">Total Général Net (Recettes - Dépenses) :</span>
             <span className="font-extrabold text-sm text-gray-900">
               {formatMGA(summary?.expected_total || 0)}
             </span>

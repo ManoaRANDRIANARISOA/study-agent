@@ -271,6 +271,10 @@ export default function FinanceJournal() {
 
   const [selectedEntryIds, setSelectedEntryIds] = useState<string[]>([])
 
+  // ── Pagination State ──
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+
   const [form, setForm] = useState({
     transaction_date: today,
     type: 'expense' as 'income' | 'expense',
@@ -297,6 +301,7 @@ export default function FinanceJournal() {
   }, [])
 
   useEffect(() => {
+    setCurrentPage(1)
     const activeFilters = {
       ...filters,
       schoolYear: currentYear,
@@ -442,6 +447,13 @@ export default function FinanceJournal() {
   const expense = monthlyBalance?.total_expense || 0
 
   const enriched = entries as EnrichedEntry[]
+
+  // ── Pagination computation ──
+  const totalPages = Math.max(1, Math.ceil(enriched.length / pageSize))
+  const paginatedEntries = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return enriched.slice(start, start + pageSize)
+  }, [enriched, currentPage, pageSize])
   const summary = {
     totalIncome: enriched.filter((e) => e.type === 'income').reduce((s, e) => s + e.amount, 0),
     totalExpense: enriched.filter((e) => e.type === 'expense').reduce((s, e) => s + e.amount, 0)
@@ -1284,7 +1296,7 @@ export default function FinanceJournal() {
                   </td>
                 </tr>
               ) : (
-                enriched.map((entry) => {
+                paginatedEntries.map((entry) => {
                   const studentName = entry.first_name
                     ? `${entry.last_name || ''} ${entry.first_name || ''}`.trim()
                     : ''
@@ -1599,6 +1611,106 @@ export default function FinanceJournal() {
             </tbody>
           </table>
         </div>
+
+        {/* ── Barre de Pagination ── */}
+        {enriched.length > 0 && (
+          <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-card border-t border-border flex-wrap gap-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>
+                Affichage de <strong>{Math.min((currentPage - 1) * pageSize + 1, enriched.length)}</strong> à{' '}
+                <strong>{Math.min(currentPage * pageSize, enriched.length)}</strong> sur{' '}
+                <strong>{enriched.length}</strong> entrées
+              </span>
+              <span className="text-muted-foreground/40">|</span>
+              <span>Par page :</span>
+              <select
+                className="h-7 text-xs border border-input rounded px-1.5 bg-background text-foreground focus:outline-hidden focus:ring-1 focus:ring-primary"
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value))
+                  setCurrentPage(1)
+                }}
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+                <option value={500}>500</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                title="Première page"
+              >
+                «
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2.5 text-xs"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                Précédent
+              </Button>
+
+              <div className="flex items-center gap-1 px-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum = i + 1
+                  if (totalPages > 5) {
+                    if (currentPage <= 3) {
+                      pageNum = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i
+                    } else {
+                      pageNum = currentPage - 2 + i
+                    }
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={cn(
+                        'h-7 min-w-[28px] px-1.5 text-xs rounded font-medium transition-colors',
+                        currentPage === pageNum
+                          ? 'bg-primary text-primary-foreground font-bold'
+                          : 'text-foreground hover:bg-muted'
+                      )}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2.5 text-xs"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Suivant
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(totalPages)}
+                title="Dernière page"
+              >
+                »
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modals */}
