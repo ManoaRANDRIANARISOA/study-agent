@@ -702,10 +702,10 @@
 
         /* BON POUR ACCORD (PAGE 3 BOTTOM) */
         .bon-box {
-            margin-top: 10px;
+            margin-top: 8px;
             border: 1.5px solid var(--rust);
             border-radius: 6px;
-            padding: 10px 14px;
+            padding: 8px 12px;
             background: var(--rust-light);
         }
 
@@ -719,45 +719,90 @@
         }
 
         .bon-header h4 {
-            font-size: 12.5px;
+            font-size: 12px;
             color: var(--rust);
             font-weight: 700;
         }
 
-        .bon-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-            font-size: 11px;
+        .bon-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 12px;
             margin-bottom: 6px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--border-light);
+            border-radius: 4px;
+            padding: 6px 10px;
+        }
+
+        .bon-col {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .bon-col-title {
+            font-size: 9.5px;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: var(--rust);
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .bon-check-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10.5px;
+            color: var(--text-dark);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .bon-check-item input[type="checkbox"] {
+            width: 13px;
+            height: 13px;
+            accent-color: var(--rust);
+            margin: 0;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .bon-setup-fee {
+            font-size: 10px;
+            color: var(--rust-dark);
+            font-weight: 700;
+            margin-top: 1px;
+            white-space: nowrap;
         }
 
         .bon-signatures {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            gap: 12px;
         }
 
         .sig-card {
             background: white;
             border: 1px solid var(--border);
             border-radius: 4px;
-            padding: 6px 10px;
-            min-height: 48px;
-            font-size: 10.5px;
+            padding: 5px 8px;
+            min-height: 44px;
+            font-size: 10px;
         }
 
         .sig-card strong {
             display: block;
             color: var(--text-dark);
             margin-bottom: 2px;
+            font-size: 10px;
         }
 
         .sig-card span {
             color: var(--text-light);
-            font-size: 9.5px;
+            font-size: 9px;
+            display: block;
         }
 
         /* FOOTER */
@@ -931,6 +976,7 @@
                 </div>
             </div>
             <ul class="pricing-list">
+                <li><svg class="li-check" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Mono-poste Secrétariat / Caisse dédié</li>
                 <li><svg class="li-check" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Dossiers & Inscriptions Élèves (Matricule auto)</li>
                 <li><svg class="li-check" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Pointage d'Assiduité quotidien (Présence, Cantine)</li>
                 <li><svg class="li-check" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Carnet de notes numérique & Moyennes automatiques</li>
@@ -1137,15 +1183,27 @@
                 <span style="font-size: 9.5px; color: var(--text-gray); text-transform: uppercase; letter-spacing: 0.5px;">Document Contractuel Engageant</span>
             </div>
             
-            <div class="bon-options">
-                <div>
-                    <strong>Formule choisie :</strong> &nbsp;
-                    <label style="cursor: pointer; margin-right: 10px;"><input type="checkbox" style="accent-color: var(--rust); vertical-align: -1px;"> Formule 1 — Starter (69 000 Ar/mois)</label>
-                    <label style="cursor: pointer; margin-right: 10px;"><input type="checkbox" style="accent-color: var(--rust); vertical-align: -1px;"> <strong>Formule 2 — Sérénité Caisse (119 000 Ar/mois)</strong></label>
-                    <label style="cursor: pointer;"><input type="checkbox" style="accent-color: var(--rust); vertical-align: -1px;"> Option Pack Imprimante 80 mm (+450 000 Ar)</label>
+            <div class="bon-grid">
+                <div class="bon-col">
+                    <div class="bon-col-title">1. Formule d'abonnement retenue :</div>
+                    <label class="bon-check-item">
+                        <input type="checkbox">
+                        <span>Formule 1 : Starter (69 000 Ar/mois)</span>
+                    </label>
+                    <label class="bon-check-item">
+                        <input type="checkbox">
+                        <span><strong>Formule 2 : Sérénité Caisse (119 000 Ar/mois)</strong></span>
+                    </label>
                 </div>
-                <div style="font-size: 10.5px; color: var(--rust); font-weight: 700;">
-                    + Frais de déploiement initial : 200 000 Ar (One-shot)
+                <div class="bon-col">
+                    <div class="bon-col-title">2. Équipement &amp; Frais de mise en service :</div>
+                    <label class="bon-check-item">
+                        <input type="checkbox">
+                        <span>Option Pack Imprimante 80 mm (+450 000 Ar)</span>
+                    </label>
+                    <div class="bon-setup-fee">
+                        + Frais de mise en service : 200 000 Ar (One-shot)
+                    </div>
                 </div>
             </div>
 
