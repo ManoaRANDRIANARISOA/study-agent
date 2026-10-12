@@ -10,19 +10,26 @@
 
 ---
 
-## PHASE A — Avant d'envoyer le prompt à Antigravity (1 à 2 heures)
+## PHASE A — Avant d'envoyer le prompt à Antigravity
+
+> **Priorités (mise à jour) — à lire d'abord**
+> - **Obligatoire avant l'agent : A1 seulement** (5 minutes). A2 se réduit à ajouter une ligne dans `.env`.
+> - **A3** : recommandé, 1 minute (le projet est-il actif ?).
+> - **A4, A5, A6** : **ne bloquent pas le Lot 1.** À faire avant le Lot 2, à votre rythme. A4 peut même attendre le Lot 2.
+> - **A7, A8, A9** : faits par l'agent grâce au *prompt préparatoire*, pas par vous.
+> - Les phases **B** (pendant le Lot 1) et **C** (décisions) viennent **après** : elles ne se font jamais avant d'envoyer le prompt.
 
 | # | Qui | Action | Fait quand… |
 |---|---|---|---|
-| A1 | P | Retirer la ligne `SUPABASE_SERVICE_ROLE_KEY` du `.env` du dépôt. Conserver sa valeur dans un gestionnaire de mots de passe (elle sert à vous, pas à l'agent). | ✅ FAIT (.env assaini, 0 occurrence) |
-| A2 | P | Préparer le fichier d'environnement **de l'agent** : URL du projet, clé **anon**, identifiants du compte de synchronisation, et `STAGING_SUPABASE_URL` (l'URL exacte du projet actuel, qui sert de garde dans les tests). | ✅ FAIT (STAGING_SUPABASE_URL configuré) |
-| A3 | P | Ouvrir le tableau de bord Supabase : le projet est-il **actif** ou en pause ? Noter la **région**, le **plan**, le nom du projet et de l'organisation. | ✅ FAIT (Healthy, West EU Ireland eu-west-1, FREE, ProjectOne / StudyProject) |
-| A4 | P | Sauvegarder le projet actuel : `supabase db dump` (schéma) et `supabase db dump --data-only` (données) avec la CLI Supabase, ou un export équivalent. Stocker **hors du dépôt**. | ✅ Dispensé (projet dev/démo vide, 0 client réel) |
-| A5 | P | Exécuter les **requêtes SQL en lecture seule** de l'annexe 1 dans l'éditeur SQL de Supabase, et enregistrer les résultats dans `docs/diagnostic_supabase_2026-10.md`. Ce sont les preuves que les audits n'ont pas pu exporter. | ✅ FAIT (consigné dans docs/diagnostic_supabase_2026-10.md) |
-| A6 | P | Identifier la **seconde adresse Supabase** de la CSP (`src/renderer/index.html`, ligne 9, hôte commençant par `onxn`). Est-ce un autre projet à vous ? Contient-il des données réelles (par exemple celles du projet LMS) ? **Ne rien modifier.** | ✅ FAIT (Résidu initial commit 3310a10, aucun flux actif) |
-| A7 | P | Archiver dans `docs/archive/` : `audit_technique_et_qa_complet.md` (ancien rapport d'Antigravity) et `rapport_maitre_consolide_study_agent.md` (v2). Tout leur contenu est repris dans la v3. | ✅ FAIT (archivés dans docs/archive/) |
-| A8 | P | Placer dans `audit/` du dépôt : le rapport v3, `AGENT_PACK_LOT1.md` et ce fichier. | ✅ FAIT (audit/ contient les 3 fichiers) |
-| A9 | AG | Créer un tag git `pre-audit-2026-10-11` et une branche `audit/lot1` (déjà prévu dans le prompt). | ✅ FAIT (tag et branche audit/lot1 créés et pushés) |
+| A1 | P | Retirer la ligne `SUPABASE_SERVICE_ROLE_KEY` du `.env` du dépôt. Conserver sa valeur dans un gestionnaire de mots de passe (elle sert à vous, pas à l'agent). | `.env` ne contient plus le mot `SERVICE_ROLE` |
+| A2 | P | Préparer le fichier d'environnement **de l'agent** : URL du projet, clé **anon**, identifiants du compte de synchronisation, et `STAGING_SUPABASE_URL` (l'URL exacte du projet actuel, qui sert de garde dans les tests). | fichier créé, hors dépôt git |
+| A3 | P | Ouvrir le tableau de bord Supabase : le projet est-il **actif** ou en pause ? Noter la **région**, le **plan**, le nom du projet et de l'organisation. | les 4 informations sont notées |
+| A4 | P | Sauvegarder le projet actuel : `supabase db dump` (schéma) et `supabase db dump --data-only` (données) avec la CLI Supabase, ou un export équivalent. Stocker **hors du dépôt**. | 2 fichiers `.sql` sauvegardés |
+| A5 | P | Exécuter les **requêtes SQL en lecture seule** de l'annexe 1 dans l'éditeur SQL de Supabase, et enregistrer les résultats dans `docs/diagnostic_supabase_2026-10.md`. Ce sont les preuves que les audits n'ont pas pu exporter. | fichier de diagnostic rempli |
+| A6 | P | Identifier la **seconde adresse Supabase** de la CSP (`src/renderer/index.html`, ligne 9, hôte commençant par `onxn`). Est-ce un autre projet à vous ? Contient-il des données réelles (par exemple celles du projet LMS) ? **Ne rien modifier.** | réponse écrite en 2 lignes |
+| A7 | P | Archiver dans `docs/archive/` : `audit_technique_et_qa_complet.md` (ancien rapport d'Antigravity) et `rapport_maitre_consolide_study_agent.md` (v2). Tout leur contenu est repris dans la v3. | fichiers déplacés |
+| A8 | P | Placer dans `audit/` du dépôt : le rapport v3, `AGENT_PACK_LOT1.md` et ce fichier. | 3 fichiers présents |
+| A9 | AG | Créer un tag git `pre-audit-2026-10-11` et une branche `audit/lot1` (déjà prévu dans le prompt). | tag et branche existent |
 
 ---
 
