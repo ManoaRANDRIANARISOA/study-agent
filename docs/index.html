@@ -3,663 +3,1637 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portail de Documentation & Ressources — Study Agent Pro</title>
+  <title>Missi Innovation — Catalogue Officiel des Progiciels Métiers & Propositions Commerciales</title>
+  <link rel="icon" type="image/svg+xml" href="img/missi_logo.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    /* ==========================================================================
+       MISSI INNOVATION — CHARTE PRESTIGE ÉDITORIALE (AMBRE & CUIVRE CHAUD)
+       Design épuré, typographique, chaleureux et haut de gamme.
+       ========================================================================== */
     :root {
-      --primary: #1e1b4b;
-      --primary-accent: #4338ca;
-      --primary-light: #eef2ff;
-      --primary-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+      /* Fondations nobles & papier chaud */
+      --canvas: #FAF9F5;
+      --surface: #FFFFFF;
+      --surface-warm: #F6F4ED;
+      --surface-subtle: #FBFBF9;
       
-      --emerald-dark: #065f46;
-      --emerald-base: #059669;
-      --emerald-light: #ecfdf5;
+      --border: #E8E5DD;
+      --border-subtle: #F2EFE8;
+      --border-accent: #E8D3BF;
       
-      --amber-dark: #92400e;
-      --amber-base: #d97706;
-      --amber-light: #fffbeb;
+      --text: #1C1917;
+      --text-muted: #57534E;
+      --text-soft: #78716C;
+      --text-light: #A8A29E;
+      
+      /* Couleur Signature : Ambre Cuivré & Bronze Chaud */
+      --brand-primary: #1C1917;
+      --brand-charcoal: #292524;
+      --brand-copper: #C2672B;
+      --brand-copper-dark: #9A4C1B;
+      --brand-copper-light: #FDF6F0;
+      --brand-copper-border: #F5D6C1;
+      
+      --brand-amber: #D97706;
+      --brand-amber-light: #FEF3C7;
+      
+      /* Statut discret */
+      --status-emerald: #059669;
+      --status-bg: #ECFDF5;
+      --status-border: #A7F3D0;
 
-      --bg: #f8fafc;
-      --surface: #ffffff;
-      --surface-subtle: #f1f5f9;
-      --border: #e2e8f0;
-      --border-accent: #cbd5e1;
+      /* Ombres douces aux tons chauds */
+      --shadow-sm: 0 1px 3px 0 rgba(28, 25, 23, 0.04);
+      --shadow-md: 0 4px 10px -1px rgba(28, 25, 23, 0.06), 0 2px 4px -2px rgba(28, 25, 23, 0.03);
+      --shadow-lg: 0 14px 28px -4px rgba(28, 25, 23, 0.08), 0 4px 10px -2px rgba(28, 25, 23, 0.03);
       
-      --text: #0f172a;
-      --text-muted: #475569;
-      --text-soft: #64748b;
-      
-      --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-      --shadow-lg: 0 12px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
-      --shadow-xl: 0 20px 35px -6px rgba(30, 27, 75, 0.12), 0 10px 15px -3px rgba(30, 27, 75, 0.04);
-      
-      --radius-sm: 8px;
-      --radius-md: 14px;
-      --radius-lg: 20px;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
       --radius-full: 9999px;
-    }
-
-    [data-theme="dark"] {
-      --bg: #090d16;
-      --surface: #111827;
-      --surface-subtle: #1e293b;
-      --border: #1e293b;
-      --border-accent: #334155;
-      --text: #f8fafc;
-      --text-muted: #cbd5e1;
-      --text-soft: #94a3b8;
-      --primary-light: #1e1b4b;
-      --shadow-lg: 0 14px 28px -4px rgba(0, 0, 0, 0.5);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: var(--bg);
+      background-color: var(--canvas);
       color: var(--text);
-      line-height: 1.65;
-      font-size: 15px;
+      line-height: 1.6;
+      font-size: 14.5px;
       -webkit-font-smoothing: antialiased;
+      position: relative;
+    }
+
+    /* Halo ambient ambré très subtil en tête de page */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 520px;
+      background: radial-gradient(circle at 50% -25%, rgba(194, 103, 43, 0.06) 0%, rgba(250, 249, 245, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
     }
 
     h1, h2, h3, h4, .font-heading {
       font-family: 'Outfit', sans-serif;
       letter-spacing: -0.02em;
-      font-weight: 700;
+      color: var(--text);
     }
 
-    /* Top Navigation Bar */
+    .serif {
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ==========================================================================
+       BARRE DE NAVIGATION SUPÉRIEURE
+       ========================================================================== */
     .top-nav {
       position: sticky;
       top: 0;
       z-index: 100;
       backdrop-filter: blur(16px);
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.94);
       border-bottom: 1px solid var(--border);
-      padding: 0.75rem 2rem;
+      padding: 0.85rem 1.5rem;
+      transition: all 0.2s ease;
     }
-    [data-theme="dark"] .top-nav {
-      background: rgba(17, 24, 39, 0.9);
-    }
+
     .nav-inner {
-      max-width: 1200px;
+      max-width: 1240px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
     }
+
     .brand-link {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.85rem;
       text-decoration: none;
       color: var(--text);
+    }
+
+    .brand-logo-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 9px;
+      background: var(--brand-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(28, 25, 23, 0.2);
+      flex-shrink: 0;
+      border: 1px solid #443E3A;
+    }
+
+    .brand-title-wrap {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-name {
       font-family: 'Outfit', sans-serif;
       font-weight: 800;
-      font-size: 1.25rem;
+      font-size: 1.18rem;
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
     }
-    .brand-badge {
-      font-size: 0.7rem;
-      padding: 0.2rem 0.6rem;
-      background: var(--primary-light);
-      color: var(--primary-accent);
-      border-radius: var(--radius-full);
-      font-weight: 700;
+
+    .brand-name-accent {
+      font-weight: 600;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      color: var(--brand-copper);
     }
 
-    /* Container */
+    .brand-tagline {
+      font-size: 0.7rem;
+      color: var(--text-soft);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .nav-badges {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      background: var(--brand-copper-light);
+      color: var(--brand-copper-dark);
+      border: 1px solid var(--brand-copper-border);
+      border-radius: var(--radius-full);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--brand-copper);
+      box-shadow: 0 0 0 2px rgba(194, 103, 43, 0.2);
+    }
+
+    /* ==========================================================================
+       CONTENEUR GLOBAL
+       ========================================================================== */
     .page-container {
-      max-width: 1160px;
+      max-width: 1240px;
       margin: 0 auto;
-      padding: 3rem 1.5rem 6rem;
+      padding: 2.75rem 1.5rem 5rem;
+      position: relative;
+      z-index: 1;
     }
 
-    /* Hero Banner */
-    .hero-banner {
-      background: var(--primary-gradient);
-      color: white;
+    /* ==========================================================================
+       HERO PRINCIPAL PRESTIGE — IDENTITÉ MISSI INNOVATION
+       ========================================================================== */
+    .hero-missi {
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 3.5rem 3rem;
-      margin-bottom: 3rem;
-      box-shadow: var(--shadow-xl);
+      padding: 3.5rem 3rem 2.75rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--shadow-sm);
       position: relative;
       overflow: hidden;
     }
-    .hero-pill {
+
+    /* Liseré supérieur cuivre signature */
+    .hero-missi::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--brand-copper) 0%, #EAB308 50%, var(--brand-copper) 100%);
+    }
+
+    .hero-top-badge {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: white;
-      font-size: 0.75rem;
+      background: var(--brand-copper-light);
+      border: 1px solid var(--brand-copper-border);
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-size: 0.73rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      padding: 0.4rem 0.9rem;
-      border-radius: var(--radius-full);
+      color: var(--brand-copper-dark);
       margin-bottom: 1.25rem;
     }
-    .hero-title {
-      font-size: 2.75rem;
-      line-height: 1.15;
-      font-weight: 900;
-      color: #ffffff;
-      margin-bottom: 1rem;
-      max-width: 840px;
+
+    .hero-top-badge svg {
+      color: var(--brand-copper);
     }
-    .hero-subtitle {
-      font-size: 1.15rem;
-      line-height: 1.6;
-      color: rgba(255, 255, 255, 0.88);
-      max-width: 760px;
-      margin-bottom: 2rem;
+
+    .hero-title {
+      font-size: 2.65rem;
+      line-height: 1.15;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      max-width: 920px;
+      color: var(--text);
+    }
+
+    .hero-title .copper-word {
+      color: var(--brand-copper);
+      position: relative;
+    }
+
+    .hero-desc {
+      font-size: 1.05rem;
+      line-height: 1.65;
+      color: var(--text-muted);
+      max-width: 820px;
+      margin-bottom: 2.25rem;
       font-weight: 400;
     }
-    .hero-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
+
+    .hero-desc strong {
+      color: var(--text);
+      font-weight: 700;
     }
-    .hero-badge {
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      padding: 0.35rem 0.85rem;
-      border-radius: var(--radius-full);
-      font-size: 0.8rem;
+
+    /* RUBAN DES ENGAGEMENTS PRESTIGE */
+    .hero-metrics-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .metric-col {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .metric-val {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .metric-val .metric-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--brand-copper);
+    }
+
+    .metric-sub {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      line-height: 1.35;
+    }
+
+    /* ==========================================================================
+       ONGLETS DE NAVIGATION PAR SECTEUR (PRESTIGE)
+       ========================================================================== */
+    .sector-tabs {
+      display: flex;
+      gap: 0.6rem;
+      margin-bottom: 2.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sector-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.15rem;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
       font-weight: 600;
+      text-decoration: none;
+      color: var(--text-muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .sector-tab:hover {
+      border-color: var(--brand-copper);
+      color: var(--brand-copper-dark);
+    }
+
+    .sector-tab.active {
+      background: var(--brand-primary);
+      color: white;
+      border-color: var(--brand-primary);
+    }
+
+    .sector-tab.active .tab-count {
+      background: rgba(255, 255, 255, 0.2);
       color: white;
     }
 
-    /* Pillars Grid */
-    .pillars-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-      gap: 2rem;
-      margin-bottom: 3.5rem;
-    }
-    .pillar-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 2.25rem;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-      box-shadow: var(--shadow-sm);
-    }
-    .pillar-card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-lg);
-      border-color: var(--primary-accent);
-    }
-    .pillar-icon-box {
-      width: 52px;
-      height: 52px;
-      border-radius: var(--radius-md);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 1.5rem;
-    }
-    .pillar-tag {
+    .tab-count {
       font-size: 0.7rem;
-      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: var(--radius-full);
+      background: var(--surface-warm);
+      color: var(--text-soft);
+      font-weight: 700;
+    }
+
+    /* ==========================================================================
+       STRUCTURE DES SECTIONS
+       ========================================================================== */
+    .section-block {
+      margin-bottom: 4rem;
+    }
+
+    .section-header {
+      margin-bottom: 1.75rem;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sec-kicker {
+      font-size: 0.72rem;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      padding: 0.25rem 0.65rem;
+      padding: 3px 10px;
       border-radius: var(--radius-full);
-      width: fit-content;
-      margin-bottom: 0.75rem;
+      background: var(--brand-copper-light);
+      color: var(--brand-copper-dark);
+      border: 1px solid var(--brand-copper-border);
+      display: inline-block;
+      margin-bottom: 6px;
     }
-    .pillar-title {
-      font-size: 1.4rem;
+
+    .sec-title {
+      font-size: 1.65rem;
       font-weight: 800;
       color: var(--text);
-      margin-bottom: 0.75rem;
-      line-height: 1.3;
     }
-    .pillar-desc {
+
+    .sec-desc {
       font-size: 0.9rem;
       color: var(--text-muted);
-      line-height: 1.6;
-      margin-bottom: 1.75rem;
-      flex-grow: 1;
+      margin-top: 4px;
+      max-width: 850px;
     }
-    .pillar-features {
+
+    /* ==========================================================================
+       BOUTONS UNIFIÉS
+       ========================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.15rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    /* Bouton cuivre de prestige */
+    .btn-copper {
+      background: var(--brand-copper);
+      color: white;
+      border-color: var(--brand-copper);
+      box-shadow: 0 2px 6px rgba(194, 103, 43, 0.25);
+    }
+    .btn-copper:hover {
+      background: var(--brand-copper-dark);
+      border-color: var(--brand-copper-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(194, 103, 43, 0.35);
+    }
+
+    /* Bouton sombre sobre */
+    .btn-dark {
+      background: var(--brand-primary);
+      color: white;
+      border-color: var(--brand-primary);
+      box-shadow: 0 1px 3px rgba(28, 25, 23, 0.15);
+    }
+    .btn-dark:hover {
+      background: var(--brand-charcoal);
+      transform: translateY(-1px);
+    }
+
+    /* Bouton secondaire sur fond blanc */
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover {
+      border-color: var(--brand-copper);
+      color: var(--brand-copper-dark);
+      background: var(--brand-copper-light);
+    }
+
+    /* Bouton contour épuré */
+    .btn-outline {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+    .btn-outline:hover {
+      border-color: var(--text);
+      color: var(--text);
+    }
+
+    /* ==========================================================================
+       SPOTLIGHT : DOSSIER DE PRÉSENTATION VISUELLE (11 ÉCRANS)
+       ========================================================================== */
+    .spotlight-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      padding: 2.25rem;
+      margin-bottom: 2.25rem;
+      box-shadow: var(--shadow-md);
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 2.5rem;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .spotlight-badge {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      background: var(--brand-copper);
+      color: white;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      letter-spacing: 0.06em;
+      box-shadow: 0 2px 6px rgba(194, 103, 43, 0.3);
+    }
+
+    .spotlight-preview {
+      position: relative;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+      background: var(--surface-warm);
+    }
+
+    .spotlight-preview img {
+      width: 100%;
+      height: auto;
+      display: block;
+      transition: transform 0.25s ease;
+    }
+
+    .spotlight-preview:hover img {
+      transform: scale(1.02);
+    }
+
+    .preview-pill {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(28, 25, 23, 0.88);
+      backdrop-filter: blur(4px);
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* ==========================================================================
+       GRILLES DE PROPOSITIONS COMMERCIALES
+       ========================================================================== */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .proposal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      position: relative;
+    }
+
+    .proposal-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-accent);
+    }
+
+    /* Card mise en avant (bordure cuivre) */
+    .proposal-card.featured {
+      border: 2px solid var(--brand-copper);
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-top {
+      margin-bottom: 1.25rem;
+    }
+
+    .card-kicker-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.65rem;
+    }
+
+    .card-badge-top {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2.5px 7px;
+      border-radius: 9999px;
+      background: var(--brand-copper);
+      color: #FFFFFF;
+      white-space: nowrap;
+      box-shadow: 0 1px 4px rgba(194, 103, 43, 0.25);
+    }
+
+    .card-formula-title {
+      font-size: 0.75rem;
+      color: var(--text-soft);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .card-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      background: var(--brand-copper-light);
+      color: var(--brand-copper-dark);
+      border: 1px solid var(--brand-copper-border);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 0.45rem;
+      line-height: 1.3;
+    }
+
+    .card-desc {
+      font-size: 0.86rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 1.25rem;
+    }
+
+    .price-box {
+      background: var(--surface-warm);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.9rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+    }
+
+    .price-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+
+    .price-row strong {
+      font-size: 0.95rem;
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .price-highlight {
+      color: var(--brand-copper);
+      font-weight: 800;
+    }
+
+    .price-setup {
+      font-size: 0.75rem;
+      color: var(--text-soft);
+      border-top: 1px dashed var(--border);
+      padding-top: 5px;
+      margin-top: 4px;
+    }
+
+    .features-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
-      margin-bottom: 2rem;
-      padding-top: 1.25rem;
-      border-top: 1px solid var(--border);
-    }
-    .pillar-features li {
-      font-size: 0.85rem;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 500;
-    }
-    .btn-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.85rem 1.25rem;
-      border-radius: var(--radius-md);
-      font-size: 0.9rem;
-      font-weight: 700;
-      text-decoration: none;
-      transition: all 0.15s ease;
-    }
-    .btn-primary {
-      background: var(--primary-accent);
-      color: white;
-    }
-    .btn-primary:hover {
-      background: #3730a3;
-      transform: translateY(-1px);
-    }
-    .btn-secondary {
-      background: var(--surface-subtle);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-    .btn-secondary:hover {
-      border-color: var(--primary-accent);
-      color: var(--primary-accent);
+      gap: 0.45rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
     }
 
-    /* Spec Sheet Box */
-    .spec-card {
+    .features-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      line-height: 1.4;
+    }
+
+    .features-list svg {
+      flex-shrink: 0;
+      color: var(--brand-copper);
+      margin-top: 2px;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* ==========================================================================
+       CARTE LARGE POUR RESIPRO ET WEB VITRINE
+       ========================================================================== */
+    .card-wide-layout {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    /* ==========================================================================
+       BLOC SPÉCIFICATIONS TECHNIQUES
+       ========================================================================== */
+    .specs-box {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       padding: 2.25rem;
       box-shadow: var(--shadow-sm);
+      margin-top: 2rem;
     }
-    .spec-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1rem;
-      padding-bottom: 1.25rem;
-      margin-bottom: 1.5rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .spec-grid {
+
+    .specs-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1.5rem;
+      margin-top: 1.5rem;
     }
+
     .spec-item {
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
+      gap: 3px;
     }
+
     .spec-label {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-soft);
     }
+
     .spec-val {
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 700;
       color: var(--text);
+    }
+
+    /* ==========================================================================
+       PIED DE PAGE (FOOTER)
+       ========================================================================== */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-soft);
+      margin-top: 4rem;
+    }
+
+    .footer-brand {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: var(--text);
+      font-weight: 700;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* ==========================================================================
+       RESPONSIVE ADAPTATIONS
+       ========================================================================== */
+    @media (max-width: 960px) {
+      .hero-missi {
+        padding: 2.25rem 1.75rem;
+      }
+      .hero-title {
+        font-size: 2rem;
+      }
+      .hero-metrics-strip {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+      }
+      .spotlight-card {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        padding: 1.75rem;
+      }
+      .card-wide-layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-container {
+        padding: 1.5rem 1rem 3rem;
+      }
+      .hero-title {
+        font-size: 1.65rem;
+      }
+      .hero-desc {
+        font-size: 0.92rem;
+      }
+      .hero-metrics-strip {
+        grid-template-columns: 1fr;
+      }
+      .nav-inner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .card-actions .btn {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- Top Nav -->
+  <!-- ==========================================================================
+       BARRE DE NAVIGATION SUPÉRIEURE
+       ========================================================================== -->
   <header class="top-nav">
     <div class="nav-inner">
       <a href="index.html" class="brand-link">
-        <svg style="width: 24px; height: 24px; color: var(--primary-accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-        </svg>
-        <span>Study Agent Pro</span>
-        <span class="brand-badge">Documentation & Hub</span>
+        <!-- Logo minimaliste vectoriel Missi Innovation (Accents Ambre & Cuivre) -->
+        <div class="brand-logo-mark">
+          <svg width="22" height="22" viewBox="0 0 48 48" fill="none">
+            <defs>
+              <linearGradient id="navGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#F59E0B"/>
+                <stop offset="100%" stop-color="#C2672B"/>
+              </linearGradient>
+            </defs>
+            <path d="M12 34V17.5C12 16.1 13.6 15.3 14.7 16.2L24 23.5L33.3 16.2C34.4 15.3 36 16.1 36 17.5V34" stroke="#FAF8F5" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="24" cy="12.5" r="2.5" fill="url(#navGlow)"/>
+            <path d="M24 25.5V34" stroke="url(#navGlow)" stroke-width="3.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="brand-title-wrap">
+          <div class="brand-name">
+            MISSI <span class="brand-name-accent">INNOVATION</span>
+          </div>
+          <div class="brand-tagline">Solutions Logicielles &bull; Madagascar</div>
+        </div>
       </a>
 
-      <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">
-        Release Officielle <span style="color: var(--primary-accent); font-weight: 800;">v2.2.4</span>
+      <div class="nav-badges">
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          <span>Système Opérationnel &bull; v2.4</span>
+        </div>
+        <button onclick="window.print()" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.85rem;">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          Imprimer le Catalogue
+        </button>
       </div>
     </div>
   </header>
 
-  <!-- Page Body -->
+  <!-- ==========================================================================
+       CONTENEUR PRINCIPAL
+       ========================================================================== -->
   <div class="page-container">
 
-    <!-- Hero Header -->
-    <section class="hero-banner">
-      <div class="hero-pill">
-        <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-        Centre de Ressources Unifié 2026-2027
+    <!-- ==========================================================================
+         HERO PRESTIGE ÉDITORIAL — IDENTITÉ MISSI INNOVATION
+         ========================================================================== -->
+    <section class="hero-missi">
+      <div class="hero-top-badge">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Missi Innovation &bull; Éditeur de Progiciels Métiers &bull; Madagascar 2026-2027
       </div>
+
       <h1 class="hero-title">
-        Portail Officiel : Guides d'Exploitation, Architecture & Stratégie
+        Catalogue Officiel des <span class="copper-word">Solutions Métiers</span> &amp; Dossiers Commerciaux
       </h1>
-      <p class="hero-subtitle">
-        Accédez à l'ensemble de la documentation technique, au manuel de déploiement terrain et à la proposition commerciale pour les directeurs et promoteurs d'établissements scolaires.
+      
+      <p class="hero-desc">
+        Progiciels de gestion tout-en-un certifiés <strong>100% hors-ligne</strong> (tolérance native aux délestages JIRAMA et coupures réseau) avec synchronisation Cloud chiffrée. Accédez à l'ensemble de nos dossiers d'ingénierie, présentations visuelles haute définition et offres tarifaires pour l'<strong>Éducation</strong>, l'<strong>Hôtellerie-Restauration</strong> et le <strong>Web</strong>.
       </p>
 
-      <div class="hero-badges">
-        <span class="hero-badge">Architecture Multi-Tenant</span>
-        <span class="hero-badge">100% Offline-First</span>
-        <span class="hero-badge">Ticket Z & Billetage</span>
-        <span class="hero-badge">Auto-Healing Multi-Postes</span>
-        <span class="hero-badge">Impression ESC/POS 80mm</span>
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2.25rem;">
+        <a href="https://missi-inovation.web.app/prospectus_presentation_visuelle.html" target="_blank" rel="noopener" class="btn btn-copper" style="padding: 0.75rem 1.45rem;">
+          <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          Consulter le Prospectus Visuel (12 Écrans &bull; 5 Pages)
+        </a>
+        <a href="#scolaire" class="btn btn-secondary">
+          Parcourir les Solutions
+        </a>
+      </div>
+
+      <!-- RUBAN DES ENGAGEMENTS PRESTIGE -->
+      <div class="hero-metrics-strip">
+        <div class="metric-col">
+          <div class="metric-val"><span class="metric-dot"></span> 100% Hors-Ligne</div>
+          <div class="metric-sub">Moteur SQLite local résilient aux pannes JIRAMA</div>
+        </div>
+        <div class="metric-col">
+          <div class="metric-val"><span class="metric-dot"></span> Zéro Écart Caisse</div>
+          <div class="metric-sub">Billetage physique de 20k à 100 Ar &amp; Ticket Z scellé</div>
+        </div>
+        <div class="metric-col">
+          <div class="metric-val"><span class="metric-dot"></span> Marque Blanche</div>
+          <div class="metric-sub">Personnalisation complète du logo et des coordonnées</div>
+        </div>
+        <div class="metric-col">
+          <div class="metric-val"><span class="metric-dot"></span> Déploiement 48h</div>
+          <div class="metric-sub">Installation technique, paramétrage et formation sur site</div>
+        </div>
       </div>
     </section>
 
-    
-    
-    <!-- SECTION BOÎTE À OUTILS COMMERCIALE : LES 3 PROSPECTUS A4 -->
-    <div style="background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; margin-bottom: 3rem; box-shadow: var(--shadow-sm);">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+    <!-- ==========================================================================
+         ONGLETS DE NAVIGATION PAR SECTEUR (SOBRES)
+         ========================================================================== -->
+    <nav class="sector-tabs" aria-label="Filtres sectoriels">
+      <a href="#scolaire" class="sector-tab active">
+        <span>Éducation (Study Agent Pro)</span>
+        <span class="tab-count">4</span>
+      </a>
+      <a href="#ameliorations" class="sector-tab" style="background: rgba(194, 103, 43, 0.08); border-color: rgba(194, 103, 43, 0.3);">
+        <span style="color: #9A4C1B; font-weight: 700;">✨ Perspectives d'Avenir (3D &amp; Bento)</span>
+        <span class="tab-count" style="background: #C2672B; color: white;">2</span>
+      </a>
+      <a href="#entreprises" class="sector-tab">
+        <span>Entreprises &amp; PME (ERP)</span>
+        <span class="tab-count">1</span>
+      </a>
+      <a href="#hotellerie" class="sector-tab">
+        <span>Hôtellerie &amp; Restauration (ResiPro)</span>
+        <span class="tab-count">2</span>
+      </a>
+      <a href="#web" class="sector-tab">
+        <span>Site Vitrine &amp; Web</span>
+        <span class="tab-count">1</span>
+      </a>
+      <a href="#technique" class="sector-tab">
+        <span>Manuels &amp; Architecture</span>
+        <span class="tab-count">2</span>
+      </a>
+    </nav>
+
+
+    <!-- ==========================================================================
+         SECTION 1 : ÉDUCATION & SCOLARITÉ (STUDY AGENT PRO)
+         ========================================================================== -->
+    <section id="scolaire" class="section-block">
+      <div class="section-header">
+        <span class="sec-kicker">Pôle Éducation &bull; Collèges, Lycées &amp; Écoles Privées</span>
+        <h2 class="sec-title">Study Agent Pro — ERP Scolaire &amp; Forteresse Financière</h2>
+        <p class="sec-desc">
+          Gestion intégrée des effectifs, scolarité, traque active des impayés, pointage bus/cantine et clôture de caisse scellée avec ticket 80 mm.
+        </p>
+      </div>
+
+      <!-- SPOTLIGHT : NOUVEAU PROSPECTUS PRÉSENTATIF VISUEL (11 ÉCRANS) -->
+      <div class="spotlight-card">
+        <span class="spotlight-badge">★ Recommandé en Rendez-Vous</span>
         <div>
-          <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; background: #F8EFEA; color: #A45A3D; padding: 4px 10px; border-radius: 9999px;">Boîte à Outils Prospectrice &amp; Commercial</span>
-          <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text); margin-top: 6px;">Les 3 Propositions Commerciales A4 (Prêtes à Imprimer)</h2>
-          <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">Choisissez et imprimez le prospectus calibré au standing de votre établissement cible avant votre rendez-vous.</p>
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span class="card-tag">Démonstration Haute Définition</span>
+            <span style="font-size: 0.78rem; color: var(--brand-copper-dark); font-weight: 600;">
+              ✓ Marque Blanche : (Votre Logo Ici)
+            </span>
+          </div>
+          <h3 style="font-size: 1.45rem; font-weight: 800; color: var(--text); margin-bottom: 8px; line-height: 1.25;">
+            Dossier de Présentation Visuelle &amp; Démonstration Écrans
+          </h3>
+          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 1.25rem;">
+            Le dossier commercial conçu pour <strong>convaincre les directeurs et fondateurs dès le premier regard</strong>. Intègre 12 captures d'écran réelles du logiciel (Cockpit Directeur, Fiches Élèves, Suivi des Écolages, Journal Financier, Alertes Impayés de 51M Ar, Billetage 80 mm, Pointage Bus/Cantine, Paie RH), visualisables en plein écran avec zoom interactif.
+          </p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="https://missi-inovation.web.app/prospectus_presentation_visuelle.html" target="_blank" rel="noopener" class="btn btn-copper">
+              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              Ouvrir le Dossier Visuel (5 Pages A4)
+            </a>
+            <button onclick="window.open('prospectus_presentation_visuelle.html?print=1')" class="btn btn-secondary">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+              Imprimer Format A4
+            </button>
+          </div>
         </div>
-        <div style="font-size: 0.85rem; color: #A45A3D; font-weight: 700; background: #F8EFEA; padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(164, 90, 61, 0.2);">
-          ✓ Calibré Format 3 Pages A4 &bull; Zéro Emoji &bull; Prêt pour Signature
+        <div class="spotlight-preview">
+          <img src="img/02_tableau_de_bord_directeur.png" alt="Tableau de bord directeur Study Agent Pro">
+          <div class="preview-pill">12 Écrans Réels &bull; Zoom HD</div>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+      <!-- LES 3 PROPOSITIONS COMMERCIALES A4 CALIBRÉES -->
+      <div class="cards-grid">
         
-        <!-- PROSPECTUS 1 -->
-        <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; background: #FFFDFB; display: flex; flex-direction: column; justify-content: space-between; border-left: 4px solid #D97706;">
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; background: #FEF3C7; color: #92400E; padding: 3px 8px; border-radius: 4px;">Cible : &lt; 300 élèves</span>
-              <span style="font-size: 0.75rem; color: var(--text-soft); font-weight: 600;">CA &lt; 15M Ar/mois</span>
+        <!-- PROSPECTUS 1 : < 300 ÉLÈVES -->
+        <div class="proposal-card">
+          <div class="card-top">
+            <div class="card-kicker-row">
+              <span class="card-tag">Petite Structure</span>
+              <span style="font-size: 0.75rem; color: var(--text-soft); font-weight: 600;">Formule Essentielle</span>
             </div>
-            <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem;">1. Édition Émergence &amp; Quartier</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
-              Pour écoles primaires et collèges de quartier. Priorité : suppression des carnets papier, suivi écolages et zéro coupure JIRAMA.
+            <h3 class="card-title">1. Édition Essentielle &amp; Autonomie</h3>
+            <p class="card-desc">
+              Pour écoles primaires, collèges et établissements privilégiant l'autonomie. Priorité absolue : suppression des carnets papier, suivi clair des écolages et zéro coupure JIRAMA.
             </p>
-            <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                <span>Formule 1 (Starter) :</span>
+            <div class="price-box">
+              <div class="price-row">
+                <span>Formule Opérationnelle :</span>
                 <strong>69 000 Ar / mois</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; color: #A45A3D; font-weight: 700;">
-                <span>Formule 2 (Sérénité Caisse) :</span>
-                <strong>119 000 Ar / mois</strong>
+              <div class="price-row">
+                <span>Formule Sérénité Caisse :</span>
+                <strong class="price-highlight">119 000 Ar / mois</strong>
               </div>
-              <div style="font-size: 0.75rem; color: var(--text-soft); margin-top: 4px; border-top: 1px dashed var(--border); padding-top: 4px;">
-                Frais d'installation : 200 000 Ar (One-shot)
-              </div>
+              <div class="price-setup">Frais d'installation sur site : 200 000 Ar (One-shot)</div>
             </div>
+            <ul class="features-list">
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Dossiers élèves, fratries &amp; gestion des classes</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Journal de caisse quotidien &amp; alertes impayés</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Certificats de scolarité PDF générés en 1 clic</li>
+            </ul>
           </div>
-          <a href="proposition_commerciale_petite_structure.html" class="btn-link btn-secondary" style="font-size: 0.85rem; padding: 0.65rem 1rem; width: 100%;">
-            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-            Ouvrir Prospectus 1 (&lt; 300 élèves)
-          </a>
+          <div class="card-actions">
+            <a href="https://missi-inovation.web.app/proposition_commerciale_petite_structure.html" target="_blank" rel="noopener" class="btn btn-secondary" style="flex: 1;">
+              Consulter le Dossier
+            </a>
+            <button onclick="window.open('proposition_commerciale_petite_structure.html')" class="btn btn-outline" title="Imprimer">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            </button>
+          </div>
         </div>
 
-        <!-- PROSPECTUS 2 -->
-        <div style="border: 2px solid #A45A3D; border-radius: var(--radius-md); padding: 1.5rem; background: #FFF; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-md); position: relative;">
-          <span style="position: absolute; top: -11px; right: 16px; background: #A45A3D; color: white; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; padding: 2px 10px; border-radius: 9999px; letter-spacing: 0.05em;">L'Offre Vedette la Plus Vendue</span>
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; background: #F8EFEA; color: #A45A3D; padding: 3px 8px; border-radius: 4px;">Cible : 300 à 1 000 élèves + Chères</span>
-              <span style="font-size: 0.75rem; color: var(--text-soft); font-weight: 600;">CA 15M à 60M Ar</span>
+        <!-- PROSPECTUS 2 : 300 À 1000 ÉLÈVES (VEDETTE) -->
+        <div class="proposal-card featured">
+          <div class="card-top">
+            <div class="card-kicker-row">
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span class="card-tag">Moyenne Structure</span>
+                <span class="card-badge-top">★ Recommandé</span>
+              </div>
+              <span class="card-formula-title">Formule Performance</span>
             </div>
-            <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem;">2. Édition Performance &amp; Maîtrise</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
-              Pour collèges-lycées de référence (ex: Manjary Soa) et écoles bilingues/privées à écolage élevé. Clôture billetage, ticket Z 80mm et paie légale.
+            <h3 class="card-title">2. Édition Performance &amp; Maîtrise</h3>
+            <p class="card-desc">
+              Pour collèges, lycées et écoles bilingues privées exigeants. Clôture avec billetage physique, ticket Z 80 mm, traque des impayés et paie légale Malagasy.
             </p>
-            <div style="background: #F8EFEA; border: 1px solid rgba(164, 90, 61, 0.2); border-radius: 6px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                <span>Formule 1 (Opérationnelle) :</span>
+            <div class="price-box" style="background: var(--brand-copper-light); border-color: var(--brand-copper-border);">
+              <div class="price-row">
+                <span>Formule Opérationnelle :</span>
                 <strong>119 000 Ar / mois</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; color: #A45A3D; font-weight: 800; font-size: 0.95rem;">
-                <span>Formule 2 (Excellence VIP) :</span>
-                <strong>149 000 Ar / mois</strong>
+              <div class="price-row">
+                <span>Formule Excellence VIP :</span>
+                <strong class="price-highlight" style="font-size: 1.05rem;">149 000 Ar / mois</strong>
               </div>
-              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; border-top: 1px dashed rgba(164, 90, 61, 0.2); padding-top: 4px;">
-                Frais de déploiement : 250 000 Ar &bull; Option Licence Définitive / Code Source sur devis en entretien
-              </div>
+              <div class="price-setup" style="border-color: var(--brand-copper-border);">Frais de déploiement : 250 000 Ar &bull; Option Licence Définitive</div>
+            </div>
+            <ul class="features-list">
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Multi-postes en réseau local (Caisse 1, Caisse 2)</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Billetage physique de 20 000 à 100 Ar &amp; Ticket Z</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Paie légale Malagasy (IRSA, CNaPS &amp; Fiches PDF)</li>
+            </ul>
+          </div>
+          <!-- SÉLECTEUR DE STYLE COMPARATIF A/B -->
+          <div style="background: var(--brand-copper-light); border: 1px solid var(--brand-copper-border); border-radius: 8px; padding: 7px 10px; margin-top: 10px; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+              <span style="font-size: 0.68rem; font-weight: 700; color: var(--brand-copper-dark); text-transform: uppercase; letter-spacing: 0.05em;">
+                ✨ 2 Éditions Visuelles Disponibles (A/B)
+              </span>
+              <span style="font-size: 0.65rem; background: var(--brand-copper); color: white; padding: 1.5px 6px; border-radius: 999px; font-weight: 700;">Nouveau</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+              <a href="https://missi-inovation.web.app/proposition_commerciale.html" target="_blank" rel="noopener" style="background: white; border: 1px solid var(--brand-copper); color: var(--brand-copper-dark); font-size: 0.72rem; font-weight: 700; padding: 5px 6px; border-radius: 6px; text-decoration: none; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s ease;">
+                📜 Style 1 : Papier d'Art
+              </a>
+              <a href="https://missi-inovation.web.app/proposition_commerciale_bento_glass.html" target="_blank" rel="noopener" style="background: var(--brand-copper); border: 1px solid var(--brand-copper); color: white; font-size: 0.72rem; font-weight: 700; padding: 5px 6px; border-radius: 6px; text-decoration: none; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 2px 6px rgba(194, 103, 43, 0.25); transition: all 0.15s ease;">
+                💎 Style 2 : Bento Glass
+              </a>
             </div>
           </div>
-          <a href="proposition_commerciale.html" class="btn-link btn-primary" style="background: #A45A3D; font-size: 0.85rem; padding: 0.65rem 1rem; width: 100%;">
-            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-            Ouvrir Prospectus 2 (300 - 1000 élèves)
-          </a>
+
+          <div class="card-actions" style="gap: 6px;">
+            <a href="https://missi-inovation.web.app/proposition_commerciale.html" target="_blank" rel="noopener" class="btn btn-secondary" style="flex: 1; font-size: 0.78rem;" title="Ouvrir Version 1 (Papier d'Art & Flow)">
+              Ouvrir Style 1
+            </a>
+            <a href="https://missi-inovation.web.app/proposition_commerciale_bento_glass.html" target="_blank" rel="noopener" class="btn btn-copper" style="flex: 1; font-size: 0.78rem;" title="Ouvrir Version 2 (Bento Glass & Widgets)">
+              Ouvrir Style 2 →
+            </a>
+          </div>
         </div>
 
-        <!-- PROSPECTUS 3 -->
-        <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; background: #FFFDFB; display: flex; flex-direction: column; justify-content: space-between; border-left: 4px solid #1E1B4B;">
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-              <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; background: #EEF2FF; color: #4338CA; padding: 3px 8px; border-radius: 4px;">Cible : &gt; 1 000 élèves &amp; Élite</span>
-              <span style="font-size: 0.75rem; color: var(--text-soft); font-weight: 600;">CA &gt; 80M Ar/mois</span>
+        <!-- PROSPECTUS 3 : > 1000 ÉLÈVES & ÉLITE -->
+        <div class="proposal-card">
+          <div class="card-top">
+            <div class="card-kicker-row">
+              <span class="card-tag">Grands Complexes</span>
+              <span style="font-size: 0.75rem; color: var(--text-soft); font-weight: 600;">Formule Prestige</span>
             </div>
-            <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem;">3. Édition Prestige Institutionnel</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
-              Pour grands complexes scolaires, réseaux multi-campus et écoles internationales homologuées (AEFE, Cambridge). Postes illimités &amp; SLA dédié.
+            <h3 class="card-title">3. Édition Prestige &amp; Multi-Campus</h3>
+            <p class="card-desc">
+              Pour grands complexes scolaires, campus multi-sites et écoles internationales d'élite. Postes illimités en réseau local, haute sécurité &amp; SLA dédié.
             </p>
-            <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                <span>Formule 1 (Multi-Postes 5) :</span>
+            <div class="price-box">
+              <div class="price-row">
+                <span>Formule Multi-Postes (5 postes) :</span>
                 <strong>290 000 Ar / mois</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; color: #1E1B4B; font-weight: 800; font-size: 0.95rem;">
-                <span>Formule 2 (Prestige VIP) :</span>
-                <strong>490 000 Ar / mois</strong>
+              <div class="price-row">
+                <span>Formule Prestige VIP :</span>
+                <strong class="price-highlight">490 000 Ar / mois</strong>
               </div>
-              <div style="font-size: 0.75rem; color: var(--text-soft); margin-top: 4px; border-top: 1px dashed var(--border); padding-top: 4px;">
-                Audit &amp; Setup : 450 000 Ar &bull; Option Licence Groupe / Code Source sur devis en entretien
+              <div class="price-setup">Audit &amp; Setup : 450 000 Ar &bull; Option Licence Groupe</div>
+            </div>
+            <ul class="features-list">
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Postes caisse &amp; secrétariat illimités</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Journal d'audit complet &amp; RBAC cloisonné</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Support prioritaire 7j/7 avec astreinte technique</li>
+            </ul>
+          </div>
+          <div class="card-actions">
+            <a href="https://missi-inovation.web.app/proposition_commerciale_grande_structure.html" target="_blank" rel="noopener" class="btn btn-secondary" style="flex: 1;">
+              Consulter le Dossier
+            </a>
+            <button onclick="window.open('proposition_commerciale_grande_structure.html')" class="btn btn-outline" title="Imprimer">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    
+    <!-- ==========================================================================
+         SECTION DÉDIÉE : PERSPECTIVES D'AVENIR & OFFRES D'AMÉLIORATIONS (2 RENDUS INDÉPENDANTS)
+         ========================================================================== -->
+    <section id="ameliorations" class="section-block" style="background: linear-gradient(180deg, rgba(253, 246, 240, 0.6) 0%, rgba(250, 248, 245, 0.95) 100%); border: 1.5px solid #F0DEC8; border-radius: var(--radius-lg); padding: 2.5rem 2rem; margin-bottom: 3.5rem; box-shadow: 0 4px 20px rgba(44, 30, 20, 0.04);">
+      <div class="section-header" style="text-align: center; max-width: 820px; margin: 0 auto 2.5rem auto;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; background: #C2672B; color: white; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 14px; border-radius: 999px; margin-bottom: 1rem; box-shadow: 0 2px 8px rgba(194, 103, 43, 0.25);">
+          <span>✦ SÉPARATION CLAIRE &bull; 2 VISIONS INDÉPENDANTES ✦</span>
+        </div>
+        <h2 class="sec-title serif" style="font-size: 2.2rem; color: #1D1A17; margin-bottom: 0.75rem; letter-spacing: -0.01em;">
+          Perspectives d'Avenir &amp; Améliorations Modulaires
+        </h2>
+        <p class="sec-desc" style="font-size: 0.98rem; color: #5E5852; line-height: 1.6;">
+          Découvrez les <strong>deux nouveaux formats d'exception</strong> spécialement dédiés à la présentation des évolutions futures de Study Agent Pro (Badges RFID, Portail Mobile Familles, SMS/WhatsApp en direct, Clôture Scellée, Décentralisation Professeurs). La 3D, la disposition et l'espace sont scrupuleusement conservés selon vos références visuelles.
+        </p>
+      </div>
+
+      <!-- 2 GRANDS RENDUS INDÉPENDANTS CÔTE À CÔTE -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 2rem;">
+
+        <!-- CARTE 1 : STYLE ATELIER 3D TACTILE (IMAGE 1) -->
+        <div style="background: #FFFFFF; border: 2px solid #EADBCE; border-radius: var(--radius-md); padding: 2rem; box-shadow: 0 10px 30px rgba(44, 30, 20, 0.08); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #C2672B, #EADBCE);"></div>
+          
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <span style="font-size: 0.72rem; font-weight: 800; color: #9A4C1B; background: #FDF6F0; border: 1px solid #F0DFC8; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;">
+                🎨 Style 1 &bull; Planche Atelier 3D
+              </span>
+              <span style="font-size: 0.72rem; color: #8C7D6B; font-weight: 600;">Inspiration Réf. 1</span>
+            </div>
+
+            <h3 class="serif" style="font-size: 1.55rem; color: #1D1A17; margin-bottom: 0.65rem; line-height: 1.3;">
+              Atelier 3D &amp; Flow Tactile
+            </h3>
+            
+            <p style="font-size: 0.88rem; color: #5E5852; line-height: 1.55; margin-bottom: 1.25rem;">
+              Fidélité absolue à l'<strong>Image 1</strong> : artboard physique en perspective, feuilles volantes aux ombres portées douces multi-couches, câblage filaire doré schématique, sceau or « ✦ » en relief, tasses en céramique vues d'en haut, branche végétale d'eucalyptus et les <strong>3 cartes verticales d'avenir</strong>.
+            </p>
+
+            <div style="background: #FAF8F5; border: 1px solid #EFE8DD; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: #9A4C1B; margin-bottom: 0.5rem; text-transform: uppercase;">
+                Éléments Réalisés à l'Identique :
+              </div>
+              <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.82rem; color: #443E3A; display: flex; flex-direction: column; gap: 0.4rem;">
+                <li style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #C2672B; font-weight: bold;">✔</span> Tasse céramique avec cuillère &amp; tasse thé ambré
+                </li>
+                <li style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #C2672B; font-weight: bold;">✔</span> Parchemin central recourbé avec clips 3D
+                </li>
+                <li style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #C2672B; font-weight: bold;">✔</span> Relief topographique &amp; nuage en volume
+                </li>
+                <li style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #C2672B; font-weight: bold;">✔</span> 3 Piliers verticaux (RFID, Inscriptions, Sécurité)
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <a href="perspectives_ameliorations_atelier_3d.html" class="btn btn-copper" style="flex: 1; text-align: center; justify-content: center; padding: 0.75rem 1rem;">
+              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              Ouvrir l'Atelier 3D (Style 1)
+            </a>
+            <button onclick="window.open('perspectives_ameliorations_atelier_3d.html')" class="btn btn-outline" title="Plein Écran">
+              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- CARTE 2 : STYLE BENTO UI BOARD (IMAGE 2) -->
+        <div style="background: #FFFFFF; border: 2px solid #D9CEBF; border-radius: var(--radius-md); padding: 2rem; box-shadow: 0 10px 30px rgba(44, 30, 20, 0.08); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden;">
+          <div style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #191613, #C2672B);"></div>
+          
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <span style="font-size: 0.72rem; font-weight: 800; color: #191613; background: #EFEBE4; border: 1px solid #DDD3C5; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;">
+                🍱 Style 2 &bull; Bento UI Board
+              </span>
+              <span style="font-size: 0.72rem; color: #8C7D6B; font-weight: 600;">Inspiration Réf. 2</span>
+            </div>
+
+            <h3 class="serif" style="font-size: 1.55rem; color: #1D1A17; margin-bottom: 0.65rem; line-height: 1.3;">
+              Bento Board &amp; Widgets Neumorphiques
+            </h3>
+            
+            <p style="font-size: 0.88rem; color: #5E5852; line-height: 1.55; margin-bottom: 1.25rem;">
+              Fidélité absolue à l'<strong>Image 2</strong> : grille maîtresse en 5 colonnes de widgets aux coins très arrondis (24px), horloge analogique 18:00 temps réel, ticket thermique 80 mm scannable, KPI 1500, cadran circulaire 133, mini player audio et interrupteurs toggle.
+            </p>
+
+            <div style="background: #FAF8F5; border: 1px solid #EFE8DD; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: #191613; margin-bottom: 0.5rem; text-transform: uppercase;">
+                Éléments Réalisés à l'Identique :
+              </div>
+              <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.82rem; color: #443E3A; display: flex; flex-direction: column; gap: 0.4rem;">
+                <li style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #059669; font-weight: bold;">✔</span> Horloge analogique animée &amp; ticket caisse scellé
+                </li>
+                <li style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #059669; font-weight: bold;">✔</span> KPI 1500+ élèves &amp; Cadran d'inscriptions 133
+                </li>
+                <li style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #059669; font-weight: bold;">✔</span> Portail circulaire RFID pour bornes cantine
+                </li>
+                <li style="display: flex; align-items: center; gap: 8px;">
+                  <span style="color: #059669; font-weight: bold;">✔</span> Player vocal &amp; Toggles à bascule néumorphiques
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <a href="perspectives_ameliorations_bento_ui.html" class="btn btn-secondary" style="flex: 1; text-align: center; justify-content: center; padding: 0.75rem 1rem; background: #191613; color: white; border-color: #191613;">
+              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              Ouvrir le Bento Board (Style 2)
+            </a>
+            <button onclick="window.open('perspectives_ameliorations_bento_ui.html')" class="btn btn-outline" title="Plein Écran">
+              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         SECTION 2 : ENTREPRISES & PME (ERP COMMERCIAL, STOCKS & CAISSE)
+         ========================================================================== -->
+    <section id="entreprises" class="section-block">
+      <div class="section-header">
+        <span class="sec-kicker">Pôle Entreprises &bull; PME, Commerces, Sociétés de Services &amp; Négoce</span>
+        <h2 class="sec-title">Missi Innovation Enterprise — ERP Commercial &amp; Forteresse Administrative</h2>
+        <p class="sec-desc">
+          Système tout-en-un certifié 100% hors-ligne (tolérance aux coupures JIRAMA) : facturation légale NIF &amp; STAT, stocks multi-dépôts (PMP/FIFO), caisse POS, rapprochement Mobile Money (MVola, Orange, Airtel) et paie légale (IRSA, CNaPS).
+        </p>
+      </div>
+
+      <div class="cards-grid">
+        <div class="proposal-card featured card-wide-layout">
+          <div>
+            <div class="card-kicker-row">
+              <span class="card-tag">ERP Entreprise &bull; Format 3 Pages A4</span>
+              <span style="font-size: 0.75rem; color: var(--text-soft); font-weight: 600;">
+                ✓ Conformité Fiscale &bull; NIF/STAT &bull; Backup Cloud
+              </span>
+            </div>
+
+            <h3 style="font-size: 1.45rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem; line-height: 1.25;">
+              Proposition Commerciale ERP Société — Gestion Commerciale, Stocks &amp; RH
+            </h3>
+
+            <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 1rem;">
+              Système complet de pilotage d'entreprise : devis proforma transformables en factures officielles avec mentions légales Madagascar (NIF, STAT, RCS), suivi précis des stocks multi-dépôts et alertes ruptures, caisse tactile point de vente, journal de trésorerie inaltérable et calcul automatisé des salaires avec bulletins PDF conformes au Code du Travail.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+              <div class="price-box" style="background: var(--brand-copper-light); border-color: var(--brand-copper-border);">
+                <div class="price-row">
+                  <span>Abonnement Pack Entreprise Intégral :</span>
+                  <strong class="price-highlight" style="font-size: 1.15rem;">199 000 Ar / mois</strong>
+                </div>
+                <div class="price-setup" style="border-color: var(--brand-copper-border);">
+                  Tarif 1er trimestre (-33% promo) &bull; Déploiement &amp; formation : 350 000 Ar (One-shot)
+                </div>
+              </div>
+
+              <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--text); margin-bottom: 4px;">Atouts Clés Entreprise :</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+                  • Multi-postes en réseau local sans ralentissement<br>
+                  • Double sécurité : 100% hors-ligne + Backup Cloud discret<br>
+                  • Pointage biométrique &amp; journal d'audit des actions
+                </div>
+              </div>
+            </div>
+
+            <div class="features-grid-3col">
+              <div class="feature-item">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Facturation NIF / STAT (Proforma &amp; Finale)</span>
+              </div>
+              <div class="feature-item">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Gestion des Stocks Multi-Dépôts &amp; PMP/FIFO</span>
+              </div>
+              <div class="feature-item">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Rapprochement Mobile Money (MVola, Airtel, Orange)</span>
+              </div>
+              <div class="feature-item">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Module RH &amp; Paie Légale (IRSA, CNaPS, Fiches PDF)</span>
+              </div>
+              <div class="feature-item">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Planning Réservations &amp; Affectation Ressources</span>
+              </div>
+              <div class="feature-item">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <span>Mise en Service sous 48h &amp; Support Prioritaire</span>
               </div>
             </div>
           </div>
-          <a href="proposition_commerciale_grande_structure.html" class="btn-link btn-secondary" style="font-size: 0.85rem; padding: 0.65rem 1rem; width: 100%;">
-            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-            Ouvrir Prospectus 3 (&gt; 1 000 élèves)
+
+          <div class="card-actions" style="margin-top: 1.25rem;">
+            <a href="https://missi-inovation.web.app/proposition_commerciale_societe.html" target="_blank" rel="noopener" class="btn btn-copper">
+              <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              Consulter la Proposition Entreprise (A4)
+            </a>
+            <button onclick="window.open('proposition_commerciale_societe.html')" class="btn btn-outline" title="Imprimer">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+              Imprimer le Dossier
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         SECTION 3 : HÔTELLERIE & RESTAURATION (RESIPRO)
+         ========================================================================== -->
+    <section id="hotellerie" class="section-block">
+      <div class="section-header">
+        <span class="sec-kicker">Pôle Hôtellerie &bull; Lodges, Hôtels, Bars &amp; Restaurants</span>
+        <h2 class="sec-title">ResiPro Suite — Hébergement, Restauration &amp; Caisse</h2>
+        <p class="sec-desc">
+          Gestion intégrée des chambres, planning visuel, point de vente bar/restaurant avec fiches techniques, stocks et clôture financière aveugle.
+        </p>
+      </div>
+
+      <div class="cards-grid">
+
+        <!-- RESIPRO PROPOSITION COMPLETE -->
+        <div class="proposal-card card-wide-layout">
+          <div>
+            <div class="card-kicker-row">
+              <span class="card-tag">Dossier Officiel Hôtellerie &bull; Les 2 Offres Incluses</span>
+              <span style="font-size: 0.75rem; color: var(--text-soft); font-weight: 600;">
+                ✓ Format A4 Prêt à Imprimer
+              </span>
+            </div>
+
+            <h3 style="font-size: 1.45rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem; line-height: 1.25;">
+              Plateforme ResiPro — Proposition Commerciale Établissements Hôteliers
+            </h3>
+
+            <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 1.25rem;">
+              Conçu pour résoudre définitivement les fuites de stocks (bouteilles, ingrédients) et les écarts de caisse nocturnes. Deux options calibrées selon votre organisation :
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+              <div class="price-box" style="margin-bottom: 0;">
+                <div style="font-size: 0.73rem; font-weight: 700; text-transform: uppercase; color: var(--text-soft); margin-bottom: 3px;">
+                  Offre 1 : Module au Choix
+                </div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: var(--text); font-family: 'Outfit', sans-serif;">
+                  120 000 Ar <span style="font-size: 0.75rem; font-weight: 500; color: var(--text-soft);">/ mois</span>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                  Planning Chambres <em>OU</em> Caisse Bar/Restaurant. Idéal pour démarrer sans complexité.
+                </div>
+              </div>
+
+              <div class="price-box" style="margin-bottom: 0; background: var(--brand-copper-light); border: 1.5px solid var(--brand-copper);">
+                <div style="font-size: 0.73rem; font-weight: 700; text-transform: uppercase; color: var(--brand-copper-dark); margin-bottom: 3px;">
+                  Offre 2 : Pack Intégral ★
+                </div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: var(--brand-copper-dark); font-family: 'Outfit', sans-serif;">
+                  190 000 Ar <span style="font-size: 0.75rem; font-weight: 500; color: var(--brand-copper);">/ mois</span>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--brand-copper-dark); margin-top: 4px;">
+                  Chambres + Resto + Stocks + Clôtures Z synchronisées. Maîtrise totale de l'établissement.
+                </div>
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <a href="https://missi-inovation.web.app/resipro_proposition_commerciale.html" target="_blank" rel="noopener" class="btn btn-copper">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                Ouvrir la Proposition ResiPro
+              </a>
+              <button onclick="window.open('resipro_proposition_commerciale.html')" class="btn btn-outline">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                Imprimer Format A4
+              </button>
+            </div>
+          </div>
+
+          <div style="background: var(--surface-warm); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem;">
+            <div style="font-size: 0.8rem; font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.85rem;">
+              ✦ Atouts Clés ResiPro
+            </div>
+            <ul class="features-list" style="margin-bottom: 0;">
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Planning interactif avec statuts (Occupée, Réservée, Nettoyage)</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Transfert automatique des notes de table sur la note de chambre</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Décompte en temps réel des stocks bar &amp; ingrédients cuisine</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Clôture Ticket Z 80 mm scellée et export comptable PDF</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>100% Hors-Ligne : encaissements ininterrompus jour &amp; nuit</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ==========================================================================
+         SECTION 3 : PRÉSENCE DIGITALE & SITE VITRINE (ONE-PAGE)
+         ========================================================================== -->
+    <section id="web" class="section-block">
+      <div class="section-header">
+        <span class="sec-kicker">Pôle Visibilité Web &bull; Sites Vitrines &amp; Réservation</span>
+        <h2 class="sec-title">Site Vitrine Prestige &bull; Réservation Directe sans Commission</h2>
+        <p class="sec-desc">
+          Pour tout hôtel, lodge, établissement scolaire ou entreprise souhaitant une vitrine numérique haut de gamme, rapide et optimisée pour smartphone.
+        </p>
+      </div>
+
+      <div class="cards-grid">
+
+        <div class="proposal-card card-wide-layout">
+          <div>
+            <div class="card-kicker-row">
+              <span class="card-tag">Étude Stratégique &amp; Offre Web Partenaire</span>
+              <span style="font-size: 0.75rem; color: var(--text-soft); font-weight: 600;">
+                ✓ Version Universelle Neutre
+              </span>
+            </div>
+
+            <h3 style="font-size: 1.45rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem; line-height: 1.25;">
+              Proposition Commerciale — Site Vitrine One-Page Haute Conversion
+            </h3>
+
+            <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 1.25rem;">
+              90% des clients consultent Google Maps et recherchent un site web avant de réserver. Notre conception One-Page garantit une expérience ultra-rapide sur mobile, un repérage GPS sans faille et des réservations directes via WhatsApp ou Email sans commission Booking / Airbnb.
+            </p>
+
+            <div class="price-box" style="margin-bottom: 1.25rem;">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--text);">Pack Création Site Vitrine Clés en Main :</span>
+                <strong style="font-size: 1.1rem; color: var(--brand-copper-dark); font-family: 'Outfit', sans-serif;">Tarif Partenaire &bull; Forfait Unique</strong>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">
+                Hébergement ultra-rapide inclus &bull; Nom de domaine officiel &bull; Version multilingue (FR/EN)
+              </div>
+            </div>
+
+            <div class="card-actions">
+              <a href="https://missi-inovation.web.app/onepage_site_vitrine_commerciale.html" target="_blank" rel="noopener" class="btn btn-copper">
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                Consulter l'Offre Site Vitrine
+              </a>
+              <button onclick="window.open('onepage_site_vitrine_commerciale.html')" class="btn btn-outline">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                Imprimer le Dossier
+              </button>
+            </div>
+          </div>
+
+          <div style="background: var(--surface-warm); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem;">
+            <div style="font-size: 0.8rem; font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.85rem;">
+              ✦ Éléments du Site Vitrine
+            </div>
+            <ul class="features-list" style="margin-bottom: 0;">
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Design épuré et visuel prestige adapté à votre identité</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Module interactif « Localisez-nous » avec repère GPS Google Maps</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Boutons d'action directs : Réservation WhatsApp &amp; Appel en 1 clic</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Chargement instantané (&lt; 1,5s même sur connexion mobile 3G/4G)</li>
+              <li><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>Certificat SSL HTTPS sécurisé et référencement naturel local (SEO)</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ==========================================================================
+         SECTION 4 : MANUELS D'EXPLOITATION & ARCHITECTURE
+         ========================================================================== -->
+    <section id="technique" class="section-block">
+      <div class="section-header">
+        <span class="sec-kicker">Documentation Technique &bull; Exploitation &amp; Infrastructure</span>
+        <h2 class="sec-title">Manuels Opérationnels &amp; Architecture SaaS</h2>
+        <p class="sec-desc">
+          Documentation complète pour les techniciens, formateurs et administrateurs d'infrastructures informatiques.
+        </p>
+      </div>
+
+      <div class="cards-grid">
+
+        <!-- MANUEL INTEGRAL -->
+        <div class="proposal-card">
+          <div class="card-top">
+            <span class="card-tag" style="margin-bottom: 0.65rem; display: inline-block;">
+              Guide Opérationnel Terrain
+            </span>
+            <h3 class="card-title">Manuel Utilisateur Intégral v2.2.4</h3>
+            <p class="card-desc">
+              Guide complet de 2 349 lignes couvrant le paramétrage des imprimantes thermiques 80 mm POS, le billetage physique, les tickets Z, et les fiches pratiques de dépannage 8.1 à 8.8.
+            </p>
+          </div>
+          <a href="guide_utilisateur_et_avantages_pro.html" class="btn btn-secondary" style="width: 100%;">
+            Consulter le Manuel Complet
+          </a>
+        </div>
+
+        <!-- GUIDE SAAS MULTI-TENANT -->
+        <div class="proposal-card">
+          <div class="card-top">
+            <span class="card-tag" style="margin-bottom: 0.65rem; display: inline-block;">
+              Architecture Hybride Résiliente
+            </span>
+            <h3 class="card-title">Guide SaaS Multi-Tenant &amp; Auto-Guérison</h3>
+            <p class="card-desc">
+              Explication de l'isolation des données : mode SQLite WAL local avec 64 Mo de cache, réconciliation LWW vers PostgreSQL Supabase et sécurité RLS par établissement.
+            </p>
+          </div>
+          <a href="multi-tenant-guide.html" class="btn btn-secondary" style="width: 100%;">
+            Lire le Guide Architecture
           </a>
         </div>
 
       </div>
-    </div>
-
-    <!-- 4 PILLARS DOCUMENTATION -->
-    <div class="pillars-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
-
-      <!-- PILLAR 1: PROPOSITION SCOLAIRE -->
-      <div class="pillar-card" style="border-top: 4px solid var(--amber-base);">
-        <div class="pillar-icon-box" style="background: var(--amber-light); color: var(--amber-dark);">
-          <svg style="width: 26px; height: 26px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-        </div>
-        <span class="pillar-tag" style="background: var(--amber-light); color: var(--amber-dark);">Écoles, Collèges & Lycées</span>
-        <h2 class="pillar-title">Proposition Scolaire (Format 3 Pages A4)</h2>
-        <p class="pillar-desc">
-          Offre d'abonnement calibrée pour les établissements scolaires : traçabilité des écolages, 100% hors-ligne, zéro litige et bon pour accord.
-        </p>
-
-        <ul class="pillar-features">
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            89 000 Ar / 149 000 Ar / mois
-          </li>
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Frais d'installation : 250 000 Ar
-          </li>
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Design d'édition Playfair / Rust
-          </li>
-        </ul>
-
-        <a href="proposition_commerciale.html" class="btn-link btn-primary" style="background: #A45A3D;">
-          <span>Ouvrir l'Offre Scolaire</span>
-          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-        </a>
-      </div>
-
-      <!-- PILLAR 2: PROPOSITION ENTREPRISE -->
-      <div class="pillar-card" style="border-top: 4px solid #B45309;">
-        <div class="pillar-icon-box" style="background: #FEF3C7; color: #92400E;">
-          <svg style="width: 26px; height: 26px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-        </div>
-        <span class="pillar-tag" style="background: #FEF3C7; color: #92400E;">Sociétés, Commerces & PME</span>
-        <h2 class="pillar-title">Proposition Entreprise (Format 3 Pages A4)</h2>
-        <p class="pillar-desc">
-          Solution intégrale pour entreprises : gestion financière multi-caisses, suivi des stocks, planning des réservations et paie biométrique RH.
-        </p>
-
-        <ul class="pillar-features">
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            199 000 Ar / mois (Trimestre 1)
-          </li>
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Frais d'installation : 350 000 Ar
-          </li>
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Stocks, Réservations & BI
-          </li>
-        </ul>
-
-        <a href="proposition_commerciale_societe.html" class="btn-link btn-secondary">
-          <span>Ouvrir l'Offre Entreprise</span>
-          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-        </a>
-      </div>
-
-      <!-- PILLAR 3: MANUEL UTILISATEUR & DEPLOIEMENT -->
-      <div class="pillar-card" style="border-top: 4px solid var(--primary-accent);">
-        <div class="pillar-icon-box" style="background: var(--primary-light); color: var(--primary-accent);">
-          <svg style="width: 26px; height: 26px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        </div>
-        <span class="pillar-tag" style="background: var(--primary-light); color: var(--primary-accent);">Guide Opérationnel Terrain</span>
-        <h2 class="pillar-title">Manuel Utilisateur Intégral v2.2.4</h2>
-        <p class="pillar-desc">
-          Document exhaustif (2 349 lignes) : guides des modules, installation Xprinter POS-80, billetage physique, ticket Z, et toutes les Fiches Pratiques 8.1 à 8.8.
-        </p>
-
-        <ul class="pillar-features">
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Installation Xprinter USB/ESC-POS
-          </li>
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Fiches Dépannage Spooler & USB 8.1-8.8
-          </li>
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Billetage 20 000 à 100 Ar & Ticket Z
-          </li>
-        </ul>
-
-        <a href="guide_utilisateur_et_avantages_pro.html" class="btn-link btn-secondary">
-          <span>Consulter le Manuel Complet</span>
-          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-        </a>
-      </div>
-
-      <!-- PILLAR 4: ARCHITECTURE SAAS -->
-      <div class="pillar-card" style="border-top: 4px solid var(--emerald-base);">
-        <div class="pillar-icon-box" style="background: var(--emerald-light); color: var(--emerald-base);">
-          <svg style="width: 26px; height: 26px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-        </div>
-        <span class="pillar-tag" style="background: var(--emerald-light); color: var(--emerald-base);">Architecture & Cloud</span>
-        <h2 class="pillar-title">Guide SaaS Multi-Tenant</h2>
-        <p class="pillar-desc">
-          Modèle d'isolation des données : base Supabase partagée avec RLS, cloisonnement SQLite local par établissement et synchronisation bidirectionnelle.
-        </p>
-
-        <ul class="pillar-features">
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Cloisonnement PostgreSQL RLS
-          </li>
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Base SQLite locale dédiée par école
-          </li>
-          <li>
-            <svg style="width: 16px; height: 16px; color: var(--emerald-base);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-            Moteur d'Auto-Guérison sans conflit
-          </li>
-        </ul>
-
-        <a href="multi-tenant-guide.html" class="btn-link btn-secondary">
-          <span>Lire le Guide Architecture</span>
-          <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-        </a>
-      </div>
-
-    </div>
+    </section>
 
 
-    <!-- TECHNICAL SPECIFICATION SUMMARY -->
-    <section class="spec-card">
-      <div class="spec-header">
+    <!-- ==========================================================================
+         SPÉCIFICATIONS TECHNIQUES SUMMARY (PRESTIGE)
+         ========================================================================== -->
+    <section class="specs-box">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
         <div>
-          <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text);">Spécifications Techniques Officielles</h3>
-          <p style="font-size: 0.85rem; color: var(--text-soft);">Résumé de conformité aux normes d'ingénierie logicielle ESN</p>
+          <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text);">Normes d'Ingénierie &amp; Infrastructure Globale</h3>
+          <p style="font-size: 0.85rem; color: var(--text-soft); margin-top: 2px;">Standard d'excellence appliqué à l'ensemble de nos progiciels et plateformes</p>
         </div>
-        <div style="font-size: 0.85rem; font-weight: 700; color: var(--emerald-base); background: var(--emerald-light); padding: 0.35rem 0.85rem; border-radius: var(--radius-full);">
-          ✓ Conforme Normes Bancaires & ESN
+        <div style="font-size: 0.8rem; font-weight: 600; color: var(--brand-copper-dark); background: var(--brand-copper-light); padding: 4px 12px; border-radius: var(--radius-full); border: 1px solid var(--brand-copper-border);">
+          ✓ Conforme Normes ESN &amp; Banque
         </div>
       </div>
 
-      <div class="spec-grid">
+      <div class="specs-grid">
         <div class="spec-item">
-          <span class="spec-label">Version Système</span>
-          <span class="spec-val">v2.2.4 (Septembre 2026)</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-label">Base de Données Locale</span>
+          <span class="spec-label">Moteur Base Locale</span>
           <span class="spec-val">SQLite 3 (Mode WAL + 64 Mo Cache)</span>
         </div>
         <div class="spec-item">
-          <span class="spec-label">Protocole Impression Caisse</span>
-          <span class="spec-val">ESC/POS Natif (winspool.Drv 80/58 mm)</span>
+          <span class="spec-label">Synchronisation Cloud</span>
+          <span class="spec-val">Supabase PostgreSQL + RLS Cloisonné</span>
         </div>
         <div class="spec-item">
-          <span class="spec-label">Sécurité & Cloisonnement</span>
-          <span class="spec-val">Row Level Security (RLS) PostgreSQL</span>
+          <span class="spec-label">Impression Directe</span>
+          <span class="spec-val">ESC/POS 80 mm Natif (winspool.drv)</span>
         </div>
         <div class="spec-item">
-          <span class="spec-label">Relais E-mails</span>
-          <span class="spec-val">SMTP Transactionnel Brevo (Port 587)</span>
+          <span class="spec-label">Résilience Électrique</span>
+          <span class="spec-val">100% Hors-Ligne (Tolérance JIRAMA)</span>
         </div>
         <div class="spec-item">
-          <span class="spec-label">Résilience Réseau</span>
-          <span class="spec-val">100% Autonome Hors-Ligne</span>
+          <span class="spec-label">Hébergement Web &amp; CDN</span>
+          <span class="spec-val">Firebase Hosting (Global SSD Edge)</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-label">Sécurité Réseau</span>
+          <span class="spec-val">Chiffrement SSL/TLS HTTPS Automatique</span>
         </div>
       </div>
     </section>
 
   </div>
+
+  <!-- ==========================================================================
+       PIED DE PAGE (FOOTER)
+       ========================================================================== -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+        <rect width="48" height="48" rx="10" fill="#1C1917"/>
+        <path d="M12 34V17.5C12 16.1 13.6 15.3 14.7 16.2L24 23.5L33.3 16.2C34.4 15.3 36 16.1 36 17.5V34" stroke="#FAF8F5" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="24" cy="12.5" r="2.5" fill="#F59E0B"/>
+        <path d="M24 25.5V34" stroke="#F59E0B" stroke-width="3.5" stroke-linecap="round"/>
+      </svg>
+      MISSI INNOVATION &bull; Progiciels Métiers &amp; Ingénierie Numérique
+    </div>
+    <p>
+      Éditeur de solutions informatiques de gestion &bull; Madagascar 2026-2027
+    </p>
+    <p style="margin-top: 4px; font-size: 0.78rem; color: var(--text-light);">
+      Dossiers et prospectus calibrés pour affichage web réactif et impression papier officielle format A4.
+    </p>
+  </footer>
 
 </body>
 </html>

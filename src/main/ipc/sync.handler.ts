@@ -10,7 +10,13 @@ import {
   getSyncQueueErrors,
   retrySyncErrors,
   quarantineAndUnblockQueue,
-  getIsSyncing
+  getIsSyncing,
+  getReconciliationItems,
+  reconcileAttachStudent,
+  reconcileCreateMissingStudent,
+  reconcileConvertToGeneralCash,
+  reconcileDiscardOrphan,
+  runDeepConvergence
 } from '../services/sync.service'
 import { TelemetryService } from '../services/telemetry.service'
 
@@ -19,7 +25,7 @@ export function registerSyncHandlers(): void {
   // App version (Dynamic)
   // --------------------------------------------
   ipcMain.handle('app:getVersion', () => {
-    return app.getVersion() || '2.2.4'
+    return app.getVersion() || '2.3.6'
   })
 
   // --------------------------------------------
@@ -34,6 +40,7 @@ export function registerSyncHandlers(): void {
         success: true,
         isSyncing: getIsSyncing(),
         isOnline: health.ok,
+        isInternetOk: health.isInternetOk ?? true,
         latencyMs: health.latencyMs,
         healthError: health.error,
         ...queueStatus
@@ -44,12 +51,22 @@ export function registerSyncHandlers(): void {
         success: false,
         isSyncing: false,
         isOnline: false,
+        isInternetOk: false,
         pendingCount: 0,
         errorCount: 0,
+        failedCount: 0,
+        quarantinedCount: 0,
         lastSyncTime: null,
         error: message
       }
     }
+  })
+
+  // --------------------------------------------
+  // CHECK CLOUD HEALTH EXPLICIT
+  // --------------------------------------------
+  ipcMain.handle('sync:checkHealth', async () => {
+    return checkCloudHealth()
   })
 
   // --------------------------------------------
@@ -127,4 +144,49 @@ export function registerSyncHandlers(): void {
       return TelemetryService.reportError(context, message, details)
     }
   )
+
+  // --------------------------------------------
+  // CROSS-STATION HEARTBEATS & CONVERGENCE
+  // --------------------------------------------
+  ipcMain.handle('telemetry:fetchWorkstationHeartbeats', async () => {
+    return TelemetryService.fetchWorkstationHeartbeats()
+  })
+
+  // --------------------------------------------
+  // BROADCAST REMOTE COMMAND TO ALL WORKSTATIONS
+  // --------------------------------------------
+  ipcMain.handle('telemetry:broadcastRemoteCommand', async (_, command: string, params?: any) => {
+    return TelemetryService.broadcastRemoteCommand(command, params)
+  })
+
+  // --------------------------------------------
+  // RUN DEEP CONVERGENCE (SNAPSHOT RECONCILIATION)
+  // --------------------------------------------
+  ipcMain.handle('sync:runDeepConvergence', async () => {
+    return runDeepConvergence()
+  })
+
+  // --------------------------------------------
+  // RECONCILIATION ASSISTANT (ORPHAN/FAILED RECORDS)
+  // --------------------------------------------
+  ipcMain.handle('sync:getReconciliationItems', async () => {
+    const items = getReconciliationItems()
+    return { success: true, items }
+  })
+
+  ipcMain.handle('sync:reconcileAttachStudent', async (_, queueId: number, targetStudentId: string) => {
+    return reconcileAttachStudent(queueId, targetStudentId)
+  })
+
+  ipcMain.handle('sync:reconcileCreateMissingStudent', async (_, queueId: number, studentData: any) => {
+    return reconcileCreateMissingStudent(queueId, studentData)
+  })
+
+  ipcMain.handle('sync:reconcileConvertToGeneralCash', async (_, queueId: number) => {
+    return reconcileConvertToGeneralCash(queueId)
+  })
+
+  ipcMain.handle('sync:reconcileDiscardOrphan', async (_, queueId: number, reason: string) => {
+    return reconcileDiscardOrphan(queueId, reason)
+  })
 }

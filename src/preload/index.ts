@@ -53,7 +53,17 @@ const api = {
       studentId: string,
       schoolYear: string,
       newType: 'enrollment' | 'reenrollment'
-    ) => ipcRenderer.invoke('student:rectifyEnrollmentType', studentId, schoolYear, newType)
+    ) => ipcRenderer.invoke('student:rectifyEnrollmentType', studentId, schoolYear, newType),
+    getPendingEnrollmentRectifications: (schoolYear?: string) =>
+      ipcRenderer.invoke('student:getPendingEnrollmentRectifications', schoolYear),
+    batchRectifyEnrollmentType: (
+      studentIds: string[],
+      schoolYear: string,
+      targetType: 'reenrollment' | 'enrollment'
+    ) =>
+      ipcRenderer.invoke('student:batchRectifyEnrollmentType', studentIds, schoolYear, targetType),
+    syncFeesWithPricing: (schoolYear?: string) =>
+      ipcRenderer.invoke('student:syncFeesWithPricing', schoolYear)
   },
 
   // --------------------------------------------
@@ -433,10 +443,21 @@ const api = {
   // --------------------------------------------
   sync: {
     getStatus: () => ipcRenderer.invoke('sync:getStatus'),
+    checkHealth: () => ipcRenderer.invoke('sync:checkHealth'),
     start: (forceFullSync?: boolean) => ipcRenderer.invoke('sync:start', forceFullSync),
     getErrors: () => ipcRenderer.invoke('sync:getErrors'),
     retryErrors: () => ipcRenderer.invoke('sync:retryErrors'),
     quarantineAndUnblock: () => ipcRenderer.invoke('sync:quarantineAndUnblock'),
+    getReconciliationItems: () => ipcRenderer.invoke('sync:getReconciliationItems'),
+    reconcileAttachStudent: (queueId: number, targetStudentId: string) =>
+      ipcRenderer.invoke('sync:reconcileAttachStudent', queueId, targetStudentId),
+    reconcileCreateMissingStudent: (queueId: number, studentData: any) =>
+      ipcRenderer.invoke('sync:reconcileCreateMissingStudent', queueId, studentData),
+    reconcileConvertToGeneralCash: (queueId: number) =>
+      ipcRenderer.invoke('sync:reconcileConvertToGeneralCash', queueId),
+    reconcileDiscardOrphan: (queueId: number, reason: string) =>
+      ipcRenderer.invoke('sync:reconcileDiscardOrphan', queueId, reason),
+    runDeepConvergence: () => ipcRenderer.invoke('sync:runDeepConvergence'),
     onProgress: (callback: (data: any) => void) => {
       const listener = (_: any, data: any) => callback(data)
       ipcRenderer.on('sync:progress', listener)
@@ -452,6 +473,9 @@ const api = {
   telemetry: {
     fetchStationErrors: (hours?: number) => ipcRenderer.invoke('telemetry:fetchStationErrors', hours),
     clearStationErrors: () => ipcRenderer.invoke('telemetry:clearStationErrors'),
+    fetchWorkstationHeartbeats: () => ipcRenderer.invoke('telemetry:fetchWorkstationHeartbeats'),
+    broadcastRemoteCommand: (command: string, params?: any) =>
+      ipcRenderer.invoke('telemetry:broadcastRemoteCommand', command, params),
     reportError: (context: string, error: unknown, metadata?: Record<string, unknown>) =>
       ipcRenderer.invoke(
         'telemetry:reportError',
@@ -459,6 +483,45 @@ const api = {
         typeof error === 'string' ? error : (error as Error)?.message || String(error),
         metadata
       )
+  },
+
+  // --------------------------------------------
+  // Remote Application Updater
+  // --------------------------------------------
+  updater: {
+    check: () => ipcRenderer.invoke('updater:check'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    getDownloadedInfo: () => ipcRenderer.invoke('updater:getDownloadedInfo'),
+    onChecking: (callback: () => void) => {
+      const listener = () => callback()
+      ipcRenderer.on('updater:checking', listener)
+      return () => ipcRenderer.removeListener('updater:checking', listener)
+    },
+    onUpdateAvailable: (callback: (info: any) => void) => {
+      const listener = (_: any, info: any) => callback(info)
+      ipcRenderer.on('updater:update-available', listener)
+      return () => ipcRenderer.removeListener('updater:update-available', listener)
+    },
+    onUpdateNotAvailable: (callback: (info: any) => void) => {
+      const listener = (_: any, info: any) => callback(info)
+      ipcRenderer.on('updater:update-not-available', listener)
+      return () => ipcRenderer.removeListener('updater:update-not-available', listener)
+    },
+    onDownloadProgress: (callback: (progress: any) => void) => {
+      const listener = (_: any, progress: any) => callback(progress)
+      ipcRenderer.on('updater:download-progress', listener)
+      return () => ipcRenderer.removeListener('updater:download-progress', listener)
+    },
+    onUpdateDownloaded: (callback: (info: any) => void) => {
+      const listener = (_: any, info: any) => callback(info)
+      ipcRenderer.on('updater:update-downloaded', listener)
+      return () => ipcRenderer.removeListener('updater:update-downloaded', listener)
+    },
+    onError: (callback: (err: any) => void) => {
+      const listener = (_: any, err: any) => callback(err)
+      ipcRenderer.on('updater:error', listener)
+      return () => ipcRenderer.removeListener('updater:error', listener)
+    }
   }
 }
 

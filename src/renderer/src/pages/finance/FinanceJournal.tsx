@@ -71,72 +71,105 @@ function DetailedFinanceChart({ data }: { data: { date: string; total: number }[
   const minVal = Math.min(...filledData.map((d) => d.total), 0)
   const maxVal = Math.max(...filledData.map((d) => d.total), 0)
   const range = Math.max(maxVal - minVal, 1)
-  const zeroPercent = (Math.abs(minVal) / range) * 100
+
+  // Zero position ratio in [0, 1]
+  const zeroRatio = Math.abs(minVal) / range
 
   return (
     <div className="bg-card rounded-xl border border-border shadow-sm p-5 flex flex-col h-[340px]">
-      <h3 className="text-base font-semibold mb-4 flex items-center gap-2 flex-shrink-0 text-foreground">
-        <TrendingUp className="w-5 h-5 text-primary" />
-        Évolution Journalière (30 derniers jours)
-      </h3>
-      <div className="flex-1 overflow-x-auto custom-scrollbar">
-        <div className="flex justify-start gap-1 px-1 relative h-full min-w-full pt-6">
-          <div
-            className="absolute left-0 right-0 border-t border-dashed border-border z-0"
-            style={{ bottom: `calc(${zeroPercent}% * 0.8 + 30px)` }}
-          />
+      <div className="flex items-center justify-between mb-2 flex-shrink-0">
+        <h3 className="text-base font-semibold flex items-center gap-2 text-foreground">
+          <TrendingUp className="w-5 h-5 text-primary" />
+          Évolution Journalière (30 derniers jours)
+        </h3>
+        <span className="text-[11px] text-muted-foreground flex items-center gap-2">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-primary/70" /> Recettes nettes
+          <span className="inline-block w-2.5 h-2.5 rounded-sm bg-destructive/70 ml-2" /> Déficit net
+        </span>
+      </div>
 
+      <div className="flex-1 overflow-x-auto custom-scrollbar flex flex-col">
+        {/* Zone de tracé des barres avec repère de coordonnées unifié */}
+        <div className="flex-1 relative min-w-[700px] w-full">
+          {/* Surface graphique protégée par des marges pour les étiquettes */}
+          <div className="absolute inset-x-0 top-7 bottom-6">
+            {/* Ligne Zéro en pointillés, parfaitement alignée sur l'axe des barres */}
+            <div
+              className="absolute left-0 right-0 border-t border-dashed border-gray-400 pointer-events-none z-0 flex items-center"
+              style={{ bottom: `${zeroRatio * 100}%` }}
+            >
+              <span className="text-[9px] font-semibold text-muted-foreground bg-card/95 px-1 rounded absolute right-1 -translate-y-1/2 shadow-xs">
+                0 Ar
+              </span>
+            </div>
+
+            {/* Colonnes de barres */}
+            <div className="flex justify-between items-stretch h-full w-full gap-1 z-10 relative">
+              {filledData.map((item, i) => {
+                const isNegative = item.total < 0
+                const barHeightPct = (Math.abs(item.total) / range) * 100
+                const d = new Date(item.date)
+                const shortDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
+                const compactVal = new Intl.NumberFormat('fr-MG', { notation: 'compact' }).format(
+                  item.total
+                )
+                const effectiveHeight = item.total === 0 ? 0 : Math.max(barHeightPct, 1.5)
+
+                return (
+                  <div
+                    key={i}
+                    className="flex-1 flex flex-col items-center h-full relative group min-w-[20px]"
+                  >
+                    {/* Info-bulle précise au survol */}
+                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[11px] font-semibold py-1 px-2 rounded whitespace-nowrap z-50 pointer-events-none shadow-md">
+                      {shortDate} : {formatMGA(item.total)}
+                    </div>
+
+                    {/* Barre calibrée exactement sur l'axe zéro */}
+                    <div className="w-full h-full relative">
+                      {item.total !== 0 && (
+                        <div
+                          className="absolute w-full flex flex-col items-center"
+                          style={{
+                            height: `${effectiveHeight}%`,
+                            bottom: isNegative
+                              ? `calc(${zeroRatio * 100}% - ${effectiveHeight}%)`
+                              : `${zeroRatio * 100}%`
+                          }}
+                        >
+                          {!isNegative ? (
+                            <>
+                              <span className="text-[9px] text-primary font-bold whitespace-nowrap absolute -top-4 hidden group-hover:block md:block pointer-events-none">
+                                {compactVal}
+                              </span>
+                              <div className="bg-primary/60 group-hover:bg-primary transition-colors rounded-t-sm w-[75%] max-w-[28px] h-full cursor-pointer shadow-xs" />
+                            </>
+                          ) : (
+                            <>
+                              <div className="bg-destructive/60 group-hover:bg-destructive transition-colors rounded-b-sm w-[75%] max-w-[28px] h-full cursor-pointer shadow-xs" />
+                              <span className="text-[9px] text-destructive font-bold whitespace-nowrap absolute -bottom-4 hidden group-hover:block md:block pointer-events-none">
+                                {compactVal}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Axe des dates dédié et complètement isolé en bas */}
+        <div className="h-[26px] border-t border-border flex justify-between items-center min-w-[700px] w-full px-1 flex-shrink-0">
           {filledData.map((item, i) => {
-            const barHeightPct = (Math.abs(item.total) / range) * 80
-            const isNegative = item.total < 0
             const d = new Date(item.date)
             const shortDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
-            const compactVal = new Intl.NumberFormat('fr-MG', { notation: 'compact' }).format(
-              item.total
-            )
-
             return (
-              <div
-                key={i}
-                className="flex flex-col h-full flex-1 max-w-[50px] min-w-[35px] group relative z-10 flex-shrink-0"
-              >
-                <div className="flex-1 relative w-full">
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-secondary text-secondary-foreground text-xs font-semibold py-1 px-2 rounded-md whitespace-nowrap z-50 pointer-events-none shadow-md">
-                    {formatMGA(item.total)}
-                  </div>
-
-                  <div
-                    className="absolute w-full flex flex-col items-center"
-                    style={{
-                      height: `${Math.max(barHeightPct, 1)}%`,
-                      bottom: isNegative
-                        ? `calc(${zeroPercent * 0.8}% - ${Math.max(barHeightPct, 1)}%)`
-                        : `${zeroPercent * 0.8}%`
-                    }}
-                  >
-                    {!isNegative ? (
-                      <>
-                        {item.total > 0 && (
-                          <span className="text-[9px] text-primary/80 font-bold whitespace-nowrap absolute -top-4 hidden group-hover:block md:block">
-                            {compactVal}
-                          </span>
-                        )}
-                        <div className="bg-primary/50 group-hover:bg-primary transition-colors rounded-t-sm w-[80%] h-full cursor-pointer" />
-                      </>
-                    ) : (
-                      <>
-                        <div className="bg-destructive/50 group-hover:bg-destructive transition-colors rounded-b-sm w-[80%] h-full cursor-pointer" />
-                        <span className="text-[9px] text-destructive/80 font-bold whitespace-nowrap absolute -bottom-4 hidden group-hover:block md:block">
-                          {compactVal}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="h-[30px] flex items-center justify-center flex-shrink-0">
-                  <span className="text-[9px] text-muted-foreground font-medium">{shortDate}</span>
-                </div>
+              <div key={i} className="flex-1 text-center">
+                <span className="text-[9px] text-muted-foreground font-medium">{shortDate}</span>
               </div>
             )
           })}

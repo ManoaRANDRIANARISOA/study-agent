@@ -627,11 +627,12 @@ export class PaymentRepository {
     // Fetch global settings for dynamic pricing
     let globalMonthlyTuition: number | null = null
     try {
-      if (feeRecord && feeRecord.tuition_level) {
+      if (feeRecord) {
         if (isPersonnelChild) {
           globalMonthlyTuition = 0
         } else {
-          const config = StudentRepository.resolveTuitionConfig(feeRecord.tuition_level as string)
+          const level = (feeRecord.tuition_level as string) || (feeRecord.class_name as string) || ''
+          const config = StudentRepository.resolveTuitionConfig(level)
           if (config && config.price > 0) {
             globalMonthlyTuition = config.price
           }
@@ -870,7 +871,13 @@ export class PaymentRepository {
         const relevantMonths = isTerminale ? terminaleMonths : months
 
         let totalDue = 0
-        const unpaidItems: Array<{ type: string; label: string; amount: number; month?: string }> = []
+        const unpaidItems: Array<{
+          type: string
+          description: string
+          label: string
+          amount: number
+          month?: string
+        }> = []
 
         // Helper to check monthly subscriptions (threshold at 100 Ar to prevent fractional/1 Ar residue)
         const checkMonthlyService = (
@@ -885,9 +892,11 @@ export class PaymentRepository {
             const paidAmount = paymentMap.get(`${student.id}_${type}_${m}`) || 0
             const balance = monthlyCost - paidAmount
             if (balance >= 100) {
+              const desc = `${labelPrefix} (${m})`
               unpaidItems.push({
                 type,
-                label: `${labelPrefix} (${m})`,
+                description: desc,
+                label: desc,
                 amount: balance,
                 month: m
               })
@@ -933,6 +942,7 @@ export class PaymentRepository {
             const label = isReturning ? 'Réinscription' : "Frais d'inscription"
             unpaidItems.push({
               type: droitType,
+              description: label,
               label,
               amount: balanceDroit
             })
@@ -947,12 +957,12 @@ export class PaymentRepository {
 
         if (!isExonerated) {
           const level = student.tuition_level || resolvedClass
-          const configTuition = level ? Number(prices?.tuition?.[level]) : undefined
+          const config = StudentRepository.resolveTuitionConfig(level)
           let effectiveTuition = Number(student.monthly_tuition) || 0
-          if (configTuition !== undefined && configTuition > 0) {
-            if (effectiveTuition === 0 || Math.abs(effectiveTuition - configTuition) < 10) {
-              effectiveTuition = configTuition
-            }
+          if (config.price > 0) {
+            effectiveTuition = config.price
+          } else if (effectiveTuition === 0 && prices?.tuition?.[level]) {
+            effectiveTuition = Number(prices.tuition[level]) || 0
           }
           checkMonthlyService('tuition', effectiveTuition, 'Écolage')
         }
@@ -999,9 +1009,11 @@ export class PaymentRepository {
           const due = e.amount_due - e.amount_paid
           if (due >= 100) {
             totalDue += due
+            const evDesc = `Événement: ${e.event_name}`
             unpaidItems.push({
               type: 'event',
-              label: `Événement: ${e.event_name}`,
+              description: evDesc,
+              label: evDesc,
               amount: due
             })
           }

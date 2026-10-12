@@ -1,10 +1,12 @@
 /**
- * email.service.ts — Email Automation Service
+ * email.service.ts — Automated Email Service with Brevo REST API v3 & SMTP Resilience
  *
- * Supports Brevo SMTP Relay (STARTTLS on port 587) and Gmail SMTP (App Password).
- * Stores configuration in SQLite settings table (scoped per tenant).
+ * Sends emails via Brevo REST API (HTTPS/443, bypassing ISP SMTP blocks) or Gmail SMTP.
  * Multi-tenant safe: dynamic school name, dynamic sender, dynamic recipient, and zero hardcoding.
- * Automatically generates executive daily financial report with PDF attachment and sends at 18:00 on working days.
+ * Scoped by ecole_id across all database queries and cloud operations.
+ * Pulls consolidated multi-workstation financial records from Supabase / local SQLite.
+ * Uses distributed cloud idempotency locks in Supabase `audit_logs` to prevent duplicate emails across multiple PCs.
+ * Features early closing trigger (16h30+) and next-morning automatic catch-up for missed reports.
  *
  * @module EmailService
  */
@@ -14,6 +16,10 @@ import db from '../database/db'
 import { CashJournalRepository } from '../database/repositories/cashjournal.repository'
 import { SettingsRepository } from '../database/repositories/settings.repository'
 import { PdfService } from './pdf.service'
+import { supabase, syncWithCloud, getActiveEcoleId } from './sync.service'
+import { TelemetryService } from './telemetry.service'
+import * as fs from 'fs'
+import * as path from 'path'
 
 export interface EmailConfig {
   enabled: boolean
@@ -87,7 +93,8 @@ function saveConfig(config: EmailConfig): void {
 
 function initTransporter(config: EmailConfig): boolean {
   if (config.provider === 'brevo') {
-    const user = config.smtp_user?.trim() || config.sender_email?.trim() || config.gmail_address?.trim()
+    const user =
+      config.smtp_user?.trim() || config.sender_email?.trim() || config.gmail_address?.trim()
     const pass = config.smtp_key?.trim() || config.gmail_app_password?.replace(/\s+/g, '')
     if (!user || !pass) return false
     transporter = nodemailer.createTransport({
@@ -145,17 +152,131 @@ export function translateEmailError(raw: string): string {
     raw.includes('535') ||
     raw.includes('BadCredentials') ||
     raw.includes('Username and Password not accepted') ||
-    raw.includes('Authentication failed')
+    raw.includes('Authentication failed') ||
+    raw.includes('Key not found') ||
+    raw.includes('unauthorized')
   ) {
-    return "Identifiants SMTP non reconnus (Erreur 535) : Vérifiez votre identifiant de connexion et votre mot de passe d'application Gmail ou clé SMTP Brevo."
+    return "Identifiants Brevo / SMTP non reconnus : Vérifiez votre clé API Brevo (v3) ou mot de passe d'application dans les paramètres."
+  }
+  if (
+    raw.includes('not valid or not whitelisted') ||
+    raw.includes('sender') ||
+    raw.includes('unverified') ||
+    raw.includes('must be a valid email')
+  ) {
+    return "L'adresse email d'expéditeur n'est pas autorisée sur votre compte Brevo. Rendez-vous sur Brevo.com > 'Expéditeurs & Domaines' pour la valider."
   }
   if (raw.includes('ENOTFOUND') || raw.includes('EAI_AGAIN')) {
-    return 'Serveurs SMTP inaccessibles (ENOTFOUND) : Vérifiez la connexion Internet du poste ou vos paramètres DNS.'
+    return 'Serveurs Brevo / SMTP inaccessibles (ENOTFOUND) : Vérifiez la connexion Internet du poste ou vos paramètres DNS.'
   }
   if (raw.includes('ETIMEDOUT') || raw.includes('ECONNREFUSED')) {
-    return 'Délai de connexion dépassé vers le serveur SMTP (Port 587/465 bloqué par votre réseau ou connexion trop lente).'
+    return 'Délai de connexion dépassé vers le serveur SMTP (Port 587 bloqué par votre réseau 4G / FAI). La passerelle HTTPS Brevo (Port 443) est recommandée.'
   }
   return raw
+}
+
+/**
+ * Validates a Brevo API key via official Brevo REST v3 API (port 443 HTTPS)
+ */
+async function validateBrevoApiKey(
+  apiKey: string
+): Promise<{ valid: boolean; email?: string; error?: string }> {
+  try {
+    const res = await fetch('https://api.brevo.com/v3/account', {
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        'api-key': apiKey
+      }
+    })
+    if (res.ok) {
+      const data = (await res.json()) as any
+      return { valid: true, email: data?.email }
+    } else {
+      const err = (await res.json().catch(() => null)) as any
+      return { valid: false, error: err?.message || `Erreur Brevo HTTP ${res.status}` }
+    }
+  } catch (err: any) {
+    return { valid: false, error: err.message || String(err) }
+  }
+}
+
+/**
+ * Sends an email directly via Brevo v3 REST API (HTTPS on standard port 443)
+ * Completely bypasses ISP port 587/465 blocks on mobile dongles / Malagasy networks.
+ */
+async function sendViaBrevoApi(
+  apiKey: string,
+  fromEmail: string,
+  fromName: string,
+  toEmail: string,
+  subject: string,
+  htmlContent: string,
+  attachments?: string[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const formattedAttachments: Array<{ name: string; content: string }> = []
+    if (attachments && attachments.length > 0) {
+      for (const attPath of attachments) {
+        if (fs.existsSync(attPath)) {
+          const fileBuf = fs.readFileSync(attPath)
+          formattedAttachments.push({
+            name: path.basename(attPath),
+            content: fileBuf.toString('base64')
+          })
+        }
+      }
+    }
+
+    const payload: any = {
+      sender: {
+        name: fromName || 'Direction de l’établissement',
+        email: fromEmail
+      },
+      to: [
+        {
+          email: toEmail
+        }
+      ],
+      subject,
+      htmlContent
+    }
+
+    if (formattedAttachments.length > 0) {
+      payload.attachment = formattedAttachments
+    }
+
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!res.ok) {
+      const errJson = (await res.json().catch(() => null)) as any
+      const errMsg = errJson?.message || `HTTP ${res.status} ${res.statusText}`
+      return { success: false, error: errMsg }
+    }
+
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message || String(err) }
+  }
+}
+
+/**
+ * Returns previous working day string (YYYY-MM-DD), skipping Sundays
+ */
+function getPreviousWorkingDay(currentDate: Date): string {
+  const d = new Date(currentDate)
+  do {
+    d.setDate(d.getDate() - 1)
+  } while (d.getDay() === 0) // Skip Sunday
+  return d.toISOString().split('T')[0]
 }
 
 export class EmailService {
@@ -179,7 +300,10 @@ export class EmailService {
     const isConfigured =
       config?.provider === 'gmail'
         ? !!(config?.gmail_address && config?.gmail_app_password)
-        : !!((config?.smtp_user || config?.gmail_address) && (config?.smtp_key || config?.gmail_app_password))
+        : !!(
+            (config?.smtp_user || config?.gmail_address || config?.sender_email) &&
+            (config?.smtp_key || config?.gmail_app_password)
+          )
     return {
       configured: isConfigured,
       enabled: config?.enabled || false,
@@ -214,6 +338,7 @@ export class EmailService {
     smtp_port?: number
     smtp_user?: string
     smtp_key?: string
+    sender_email?: string
     gmail_address?: string
     gmail_app_password?: string
   }): Promise<{ success: boolean; error?: string }> {
@@ -224,6 +349,8 @@ export class EmailService {
       const user =
         credentials?.smtp_user?.trim() ||
         config?.smtp_user?.trim() ||
+        credentials?.sender_email?.trim() ||
+        config?.sender_email?.trim() ||
         credentials?.gmail_address?.trim() ||
         config?.gmail_address?.trim()
       const pass =
@@ -234,29 +361,48 @@ export class EmailService {
       const host = credentials?.smtp_host?.trim() || config?.smtp_host?.trim() || 'smtp-relay.brevo.com'
       const port = Number(credentials?.smtp_port || config?.smtp_port || 587)
 
-      if (!user || !pass) {
+      if (!pass) {
         return {
           success: false,
-          error: 'Configuration Brevo incomplète : identifiant de connexion (Login) ou clé SMTP manquante.'
+          error: 'Configuration Brevo incomplète : clé API ou mot de passe SMTP manquant.'
         }
       }
 
+      // 1. Test via Brevo REST API (HTTPS port 443) first
+      const apiCheck = await validateBrevoApiKey(pass)
+      if (apiCheck.valid) {
+        addEmailLog({
+          sent_at: new Date().toISOString(),
+          recipient: apiCheck.email || user || 'Compte Brevo',
+          subject: 'Test de connexion Brevo API (HTTPS/443)',
+          success: true
+        })
+        return { success: true }
+      }
+
+      // 2. If REST API returned an error, attempt SMTP verification fallback
       try {
         const testTransporter = nodemailer.createTransport({
           host,
           port,
           secure: false,
-          auth: { user, pass }
+          auth: { user: user || apiCheck.email || '', pass }
         })
         await testTransporter.verify()
+        addEmailLog({
+          sent_at: new Date().toISOString(),
+          recipient: user || 'Brevo SMTP',
+          subject: 'Test de connexion Brevo SMTP (Port 587)',
+          success: true
+        })
         return { success: true }
       } catch (error: unknown) {
         const raw = error instanceof Error ? error.message : String(error)
-        const message = translateEmailError(raw)
+        const message = translateEmailError(apiCheck.error || raw)
         addEmailLog({
           sent_at: new Date().toISOString(),
-          recipient: user,
-          subject: 'Test de connexion Brevo SMTP',
+          recipient: user || 'Brevo',
+          subject: 'Test de connexion Brevo',
           success: false,
           error: message
         })
@@ -284,6 +430,7 @@ export class EmailService {
     } catch (error: unknown) {
       const raw = error instanceof Error ? error.message : String(error)
       const message = translateEmailError(raw)
+
       addEmailLog({
         sent_at: new Date().toISOString(),
         recipient: user,
@@ -291,6 +438,7 @@ export class EmailService {
         success: false,
         error: message
       })
+
       return { success: false, error: message }
     }
   }
@@ -305,27 +453,55 @@ export class EmailService {
     if (!config?.enabled) {
       return { success: false, error: 'Service email désactivé' }
     }
+
+    const schoolName = (SettingsRepository.get('school_name') as string) || 'Study Agent'
+    const schoolEmail = (SettingsRepository.get('school_email') as string) || ''
+    const isBrevo = config.provider === 'brevo'
+    const apiKeyOrPass =
+      config.smtp_key?.trim() || config.gmail_app_password?.replace(/\s+/g, '')
+    const senderEmail =
+      config.sender_email?.trim() || config.smtp_user?.trim() || config.gmail_address?.trim() || schoolEmail
+    const senderName = config.sender_name?.trim() || schoolName
+
+    // 1. For Brevo, prioritize HTTPS REST API (Port 443 - zero ISP blocks)
+    if (isBrevo && apiKeyOrPass && senderEmail) {
+      const apiRes = await sendViaBrevoApi(
+        apiKeyOrPass,
+        senderEmail,
+        senderName,
+        to,
+        subject,
+        body,
+        attachments
+      )
+
+      if (apiRes.success) {
+        addEmailLog({ sent_at: new Date().toISOString(), recipient: to, subject, success: true })
+        return { success: true }
+      }
+
+      console.warn('[EmailService] Brevo REST API failed, attempting SMTP fallback:', apiRes.error)
+    }
+
+    // 2. SMTP Fallback or Gmail
     if (!transporter) {
       if (!config || !initTransporter(config)) {
         return { success: false, error: 'Configuration email invalide' }
       }
     }
+
     try {
-      const schoolName = (SettingsRepository.get('school_name') as string) || 'Study Agent'
-      const senderName = config!.sender_name || schoolName
-      const senderAddress =
-        config!.provider === 'brevo'
-          ? config!.sender_email || config!.smtp_user || config!.gmail_address
-          : config!.gmail_address
+      const senderAddress = isBrevo ? senderEmail : config.gmail_address
 
       const mailOptions: nodemailer.SendMailOptions = {
         from: `"${senderName}" <${senderAddress}>`,
+        replyTo: `"${senderName}" <${config.recipient_email || schoolEmail || senderAddress}>`,
         to,
         subject,
         html: body
       }
       if (attachments && attachments.length > 0) {
-        mailOptions.attachments = attachments.map((path) => ({ path }))
+        mailOptions.attachments = attachments.map((p) => ({ path: p }))
       }
       await transporter!.sendMail(mailOptions)
       addEmailLog({ sent_at: new Date().toISOString(), recipient: to, subject, success: true })
@@ -357,6 +533,47 @@ export class EmailService {
     }
 
     const dateStr = targetDate || new Date().toISOString().split('T')[0]
+    const tenantId = getActiveEcoleId()
+    const lockRecordId = `${tenantId}_${dateStr}`
+
+    // 1. Sync with cloud first so we gather transactions from all workstations
+    try {
+      await syncWithCloud()
+    } catch (syncErr) {
+      console.warn('[EmailService] Pre-report cloud sync warning:', syncErr)
+    }
+
+    // 2. Distributed Cloud Lock: check if ANY workstation has already sent the report for dateStr
+    if (supabase) {
+      try {
+        const { data: existingReport } = await supabase
+          .from('audit_logs')
+          .select('id, record_id, created_at')
+          .eq('action', 'daily_report_sent')
+          .eq('record_id', lockRecordId)
+          .limit(1)
+          .maybeSingle()
+
+        if (existingReport) {
+          console.log(`[EmailService] Rapport du ${dateStr} déjà envoyé au cloud par un autre poste (${tenantId}).`)
+          // Mark locally as sent
+          try {
+            db.prepare(`
+              INSERT INTO settings (key, value, updated_at)
+              VALUES ('email_last_sent_date', ?, CURRENT_TIMESTAMP)
+              ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+            `).run(JSON.stringify(dateStr))
+          } catch {}
+          return {
+            success: true,
+            message: `Le rapport du ${dateStr} a déjà été transmis avec succès par un autre poste.`
+          }
+        }
+      } catch (lockCheckErr) {
+        console.warn('[EmailService] Cloud lock check warning:', lockCheckErr)
+      }
+    }
+
     const dateObj = new Date(dateStr)
     const formattedDate = dateObj.toLocaleDateString('fr-FR', {
       weekday: 'long',
@@ -365,13 +582,14 @@ export class EmailService {
       day: 'numeric'
     })
 
+    // 3. Gather consolidated financial data from local synchronized store (scoped per tenant)
     const dailyBalance = CashJournalRepository.getDailyBalance(dateStr) || {
       total_income: 0,
       total_expense: 0,
       balance: 0
     }
 
-    const tenantId = (SettingsRepository.get('ecole_id') as string) || ''
+    // Initial opening balance before dateStr
     const initialRow = db
       .prepare(
         `SELECT COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END), 0) as initial_balance
@@ -382,11 +600,13 @@ export class EmailService {
     const openingBalance = initialRow?.initial_balance || 0
     const closingBalance = openingBalance + dailyBalance.balance
 
+    // Entries for that day
     const entries = CashJournalRepository.list({
       startDate: dateStr,
       endDate: dateStr
     }) as any[]
 
+    // Categories breakdown
     const incomeByCategory: Record<string, number> = {}
     const expenseByCategory: Record<string, number> = {}
 
@@ -400,6 +620,7 @@ export class EmailService {
       }
     }
 
+    // 4. Generate official attached PDF
     let pdfFilePath = customPdfPath
     if (!pdfFilePath) {
       try {
@@ -436,6 +657,7 @@ export class EmailService {
       }
     }
 
+    // 5. Build executive HTML email body
     const formatAr = (val: number) => Math.round(val).toLocaleString('fr-FR') + ' Ar'
     const schoolName = (SettingsRepository.get('school_name') as string) || 'Study Agent'
     const schoolAddress = (SettingsRepository.get('school_address') as string) || ''
@@ -449,7 +671,7 @@ export class EmailService {
       categoriesHtml = `
         <div style="margin-top: 20px; padding: 16px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
           <h3 style="margin: 0 0 12px 0; font-size: 13px; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">
-            Ventilation par Catégorie
+            Ventilation par Poste
           </h3>
           <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             ${
@@ -555,14 +777,16 @@ export class EmailService {
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 20px 10px; background-color: #f1f5f9;">
         <div style="max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
           
+          <!-- Header Banner -->
           <div style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff; padding: 22px; text-align: center;">
             <h1 style="margin: 0; font-size: 19px; font-weight: 700; letter-spacing: 0.5px;">${schoolName.toUpperCase()}</h1>
-            <p style="margin: 4px 0 12px 0; font-size: 12px; opacity: 0.85;">${[schoolAddress, schoolCity].filter(Boolean).join(', ')} — Rapport Financier Quotidien</p>
+            <p style="margin: 4px 0 12px 0; font-size: 12px; opacity: 0.85;">${[schoolAddress, schoolCity].filter(Boolean).join(', ')} — Système de Gestion Scolaire</p>
             <div style="display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;">
-              RAPPORT DE CAISSE DU ${formattedDate.toUpperCase()}
+              📊 RAPPORT FINANCIER CONSOLIDÉ DU ${formattedDate.toUpperCase()}
             </div>
           </div>
 
+          <!-- KPI Summary Cards -->
           <div style="padding: 16px 16px 8px 16px;">
             <table style="width: 100%; border-collapse: separate; border-spacing: 6px 0;">
               <tr>
@@ -586,9 +810,12 @@ export class EmailService {
             </table>
           </div>
 
+          <!-- Content Padding -->
           <div style="padding: 10px 16px 20px 16px;">
+            
             ${categoriesHtml}
 
+            <!-- Itemized Movements Table -->
             <div style="margin-top: 20px;">
               <h3 style="margin: 0 0 8px 0; font-size: 13px; font-weight: bold; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">
                 Mouvements de Caisse (${entries.length} opération${entries.length > 1 ? 's' : ''})
@@ -609,13 +836,16 @@ export class EmailService {
               </table>
             </div>
 
+            <!-- PDF Attachment Callout -->
             <div style="margin-top: 20px; padding: 12px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px;">
               <div style="font-size: 12px; color: #065f46;">
-                📎 <strong>Rapport PDF officiel joint :</strong> Le bilan journalier complet est annexé à cet email (<code>bilan_${dateStr}.pdf</code>).
+                📎 <strong>Rapport PDF officiel joint :</strong> Le bilan journalier complet consolidé avec émargements est annexé à cet email (<code>bilan_${dateStr}.pdf</code>).
               </div>
             </div>
+
           </div>
 
+          <!-- Footer -->
           <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 14px 16px; text-align: center; font-size: 11px; color: #64748b;">
             <p style="margin: 0 0 3px 0;">Ce courriel a été généré automatiquement par le Système de Gestion Scolaire de ${schoolName}.</p>
             <p style="margin: 0;">Destinataire officiel : <strong>${recipient}</strong></p>
@@ -629,54 +859,128 @@ export class EmailService {
     const subject = `[Rapport Financier] Bilan Caisse du ${formattedDate} — ${schoolName}`
     const attachments = pdfFilePath ? [pdfFilePath] : undefined
 
-    return EmailService.sendEmail(recipient, subject, htmlBody, attachments)
+    const sendRes = await EmailService.sendEmail(recipient, subject, htmlBody, attachments)
+
+    if (sendRes.success) {
+      // 6. Record distributed lock in Supabase audit_logs so no other workstation resends this report
+      if (supabase) {
+        try {
+          const stationCode = TelemetryService.getStationCode()
+          await supabase.from('audit_logs').insert({
+            ecole_id: tenantId,
+            action: 'daily_report_sent',
+            table_name: 'email',
+            record_id: lockRecordId,
+            new_value: JSON.stringify({
+              sent_by: stationCode,
+              ecole_id: tenantId,
+              recipient,
+              date: dateStr,
+              income: dailyBalance.total_income,
+              expense: dailyBalance.total_expense,
+              closing_balance: closingBalance,
+              movements_count: entries.length,
+              timestamp: new Date().toISOString()
+            })
+          })
+        } catch (logErr) {
+          console.warn('[EmailService] Cloud audit_logs notification warning:', logErr)
+        }
+      }
+
+      // Mark locally
+      try {
+        db.prepare(`
+          INSERT INTO settings (key, value, updated_at)
+          VALUES ('email_last_sent_date', ?, CURRENT_TIMESTAMP)
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP
+        `).run(JSON.stringify(dateStr))
+      } catch {}
+    }
+
+    return sendRes
   }
 
+  /**
+   * Starts resilient scheduler:
+   * - Trigger 1 (Evening): 16h30 to 22h00 on working days (Mon-Sat).
+   * - Trigger 2 (Morning catch-up): 07h00 to 15h30 on working days for missed reports from previous working day.
+   */
   static startScheduler(): void {
     if (schedulerInterval) return
-    schedulerInterval = setInterval(() => {
+
+    const checkAndTrigger = async () => {
       const config = getConfig()
       if (!config?.enabled || !config?.auto_send_daily) return
+
       const now = new Date()
+      const currentHour = now.getHours()
+      const currentMinute = now.getMinutes()
       const isWorkingDay = now.getDay() >= 1 && now.getDay() <= 6
-      if (now.getHours() >= 18 && isWorkingDay) {
-        const today = now.toISOString().split('T')[0]
-        let lastSent = ''
+      const today = now.toISOString().split('T')[0]
+      const tenantId = getActiveEcoleId()
+
+      const isDateSent = async (dStr: string): Promise<boolean> => {
         try {
           const row = db
             .prepare("SELECT value FROM settings WHERE key = 'email_last_sent_date'")
             .get() as { value: string } | undefined
-          if (row) lastSent = JSON.parse(row.value)
-        } catch {
-          /* ignore */
-        }
+          if (row && JSON.parse(row.value) === dStr) return true
+        } catch {}
 
-        if (lastSent !== today) {
-          EmailService.sendDailyReport(today)
-            .then((res) => {
-              if (res.success) {
-                try {
-                  const exists = db
-                    .prepare("SELECT key FROM settings WHERE key = 'email_last_sent_date'")
-                    .get()
-                  if (exists) {
-                    db.prepare(
-                      "UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = 'email_last_sent_date'"
-                    ).run(JSON.stringify(today))
-                  } else {
-                    db.prepare(
-                      "INSERT INTO settings (key, value, sync_status) VALUES (?, ?, 'synced')"
-                    ).run('email_last_sent_date', JSON.stringify(today))
-                  }
-                } catch {
-                  /* silent */
-                }
-              }
-            })
-            .catch(() => {})
+        if (supabase) {
+          try {
+            const lockKey = `${tenantId}_${dStr}`
+            const { data } = await supabase
+              .from('audit_logs')
+              .select('id')
+              .eq('action', 'daily_report_sent')
+              .eq('record_id', lockKey)
+              .limit(1)
+              .maybeSingle()
+            if (data?.id) return true
+          } catch {}
+        }
+        return false
+      }
+
+      // 1. EVENING WINDOW: 16:30 to 22:00 on working days
+      const isEveningWindow =
+        isWorkingDay &&
+        ((currentHour === 16 && currentMinute >= 30) || (currentHour >= 17 && currentHour <= 22))
+
+      if (isEveningWindow) {
+        const alreadySent = await isDateSent(today)
+        if (!alreadySent) {
+          console.log(`[EmailService] Déclenchement automatique du rapport du jour (${today})...`)
+          try {
+            await EmailService.sendDailyReport(today)
+          } catch (e) {
+            console.error('[EmailService] Auto daily report error:', e)
+          }
+          return
         }
       }
-    }, 60 * 1000)
+
+      // 2. MORNING CATCH-UP: 07:00 to 15:30 on working days
+      // If previous working day's report was missed (early shutdown / power cut), send it now!
+      const isMorningWindow = isWorkingDay && currentHour >= 7 && currentHour < 16
+      if (isMorningWindow) {
+        const prevWorkDay = getPreviousWorkingDay(now)
+        const prevSent = await isDateSent(prevWorkDay)
+        if (!prevSent) {
+          console.log(`[EmailService] Rattrapage automatique du rapport manqué (${prevWorkDay})...`)
+          try {
+            await EmailService.sendDailyReport(prevWorkDay)
+          } catch (e) {
+            console.error('[EmailService] Auto catch-up report error:', e)
+          }
+        }
+      }
+    }
+
+    schedulerInterval = setInterval(checkAndTrigger, 2 * 60 * 1000) // check every 2 min
+    setTimeout(checkAndTrigger, 10000) // initial check after 10s
   }
 
   static stopScheduler(): void {

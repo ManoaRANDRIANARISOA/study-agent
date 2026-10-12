@@ -9,6 +9,7 @@
  */
 
 import os from 'os'
+import { app } from 'electron'
 import db from '../database/db'
 import { supabase } from './sync.service'
 import { LoggerService } from './logger.service'
@@ -325,6 +326,286 @@ export class TelemetryService {
         return { success: false, error: error.message }
       }
       return { success: true }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return { success: false, error: msg }
+    }
+  }
+
+  /**
+   * Broadcasts an administrative command to all workstations via Supabase audit_logs
+   */
+  static async broadcastRemoteCommand(
+    command: string,
+    params: any = {}
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const ecoleId = getActiveEcoleId()
+      const payload = {
+        command,
+        params,
+        issued_at: new Date().toISOString(),
+        issued_by: os.hostname(),
+        ecole_id: ecoleId
+      }
+      const { error } = await supabase.from('audit_logs').insert({
+        action: 'station_command',
+        table_name: 'telemetry',
+        record_id: 'ALL',
+        ecole_id: ecoleId,
+        new_value: JSON.stringify(payload)
+      })
+      if (error) {
+        return { success: false, error: error.message }
+      }
+      return { success: true }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return { success: false, error: msg }
+    }
+  }
+
+  /**
+   * Publishes a workstation status heartbeat to Supabase with local row counts and queue status
+   */
+  static async publishWorkstationHeartbeat(): Promise<boolean> {
+    try {
+      const stationCode = this.getStationCode()
+      const hostname = os.hostname()
+      const platform = `${process.platform} ${os.release()}`
+      const ecoleId = getActiveEcoleId()
+      let appVersion = '2.3.6'
+      try {
+        appVersion = app.getVersion() || '2.3.6'
+      } catch {}
+
+      // Count local active records strictly partitioned by ecole_id
+      const counts: Record<string, number> = {
+        students:
+          (
+            db
+              .prepare(
+                "SELECT count(*) as c FROM students WHERE deleted = 0 AND (ecole_id = ? OR (? = 'ecole_dev' AND (ecole_id IS NULL OR ecole_id = 'ecole_dev')))"
+              )
+              .get(ecoleId, ecoleId) as any
+          )?.c || 0,
+        student_payments:
+          (
+            db
+              .prepare(
+                "SELECT count(*) as c FROM student_payments WHERE deleted = 0 AND (ecole_id = ? OR (? = 'ecole_dev' AND (ecole_id IS NULL OR ecole_id = 'ecole_dev')))"
+              )
+              .get(ecoleId, ecoleId) as any
+          )?.c || 0,
+        cash_journal:
+          (
+            db
+              .prepare(
+                "SELECT count(*) as c FROM cash_journal WHERE deleted = 0 AND (ecole_id = ? OR (? = 'ecole_dev' AND (ecole_id IS NULL OR ecole_id = 'ecole_dev')))"
+              )
+              .get(ecoleId, ecoleId) as any
+          )?.c || 0,
+        users:
+          (
+            db
+              .prepare(
+                "SELECT count(*) as c FROM users WHERE deleted = 0 AND (ecole_id = ? OR (? = 'ecole_dev' AND (ecole_id IS NULL OR ecole_id = 'ecole_dev')))"
+              )
+              .get(ecoleId, ecoleId) as any
+          )?.c || 0
+      }
+
+      // Auto-purge structural tables and false quarantines from sync_queue
+      try {
+        db.prepare("DELETE FROM sync_queue WHERE table_name IN ('class_subjects', 'subjects')").run()
+        db.prepare("UPDATE class_subjects SET sync_status = 'synced'").run()
+        db.prepare("UPDATE subjects SET sync_status = 'synced'").run()
+        db.prepare(
+          "DELETE FROM sync_queue WHERE status = 'quarantined' AND table_name NOT IN ('student_payments', 'cash_journal')"
+        ).run()
+      } catch {}
+
+      // Count sync_queue states
+      const queueCounts = db
+        .prepare(
+          `
+        SELECT 
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+          SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as errors,
+          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+          SUM(CASE WHEN status = 'quarantined' THEN 1 ELSE 0 END) as quarantined
+        FROM sync_queue
+      `
+        )
+        .get() as any
+
+      const queue = {
+        pending: queueCounts?.pending || 0,
+        errors: queueCounts?.errors || 0,
+        failed: queueCounts?.failed || 0,
+        quarantined: queueCounts?.quarantined || 0
+      }
+
+      let blocked_summary: any[] = []
+      if (queue.errors > 0 || queue.failed > 0 || queue.quarantined > 0) {
+        try {
+          blocked_summary = db
+            .prepare(
+              `SELECT table_name, record_id, status, error_message, created_at 
+               FROM sync_queue 
+               WHERE status IN ('error', 'failed', 'quarantined') 
+               ORDER BY id DESC LIMIT 5`
+            )
+            .all()
+        } catch {}
+      }
+
+      const payload = {
+        station: stationCode,
+        hostname,
+        platform,
+        app_version: appVersion,
+        counts,
+        queue,
+        blocked_summary,
+        last_sync: new Date().toISOString(),
+        ecole_id: ecoleId
+      }
+
+      const { error } = await supabase.from('audit_logs').insert({
+        action: 'station_heartbeat',
+        table_name: 'telemetry',
+        record_id: stationCode,
+        ecole_id: ecoleId,
+        new_value: JSON.stringify(payload)
+      })
+
+      return !error
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Fetches latest heartbeat for all workstations along with cloud row counts for cross-station convergence comparison
+   */
+  static async fetchWorkstationHeartbeats(): Promise<{
+    success: boolean
+    cloudCounts?: Record<string, number>
+    stations?: Array<{
+      station: string
+      hostname: string
+      platform: string
+      app_version: string
+      last_seen: string
+      counts: Record<string, number>
+      queue: { pending: number; errors: number; failed: number; quarantined: number }
+      queue_pending?: number
+      queue_failed?: number
+      queue_quarantined?: number
+      blocked_summary?: any[]
+      station_error_count?: number
+      last_sync?: string
+    }>
+    error?: string
+  }> {
+    try {
+      const ecoleId = getActiveEcoleId()
+
+      // 1. Fetch Cloud active counts filtered by ecole_id
+      let stQuery = supabase.from('students').select('*', { count: 'exact', head: true }).eq('deleted', false)
+      let payQuery = supabase.from('student_payments').select('*', { count: 'exact', head: true }).eq('deleted', false)
+      let cjQuery = supabase.from('cash_journal').select('*', { count: 'exact', head: true }).eq('deleted', false)
+      let usrQuery = supabase.from('users').select('*', { count: 'exact', head: true }).eq('deleted', false)
+
+      if (ecoleId && ecoleId !== 'ecole_dev') {
+        stQuery = stQuery.eq('ecole_id', ecoleId)
+        payQuery = payQuery.eq('ecole_id', ecoleId)
+        cjQuery = cjQuery.eq('ecole_id', ecoleId)
+        usrQuery = usrQuery.eq('ecole_id', ecoleId)
+      }
+
+      const [stRes, payRes, cjRes, usrRes] = await Promise.all([stQuery, payQuery, cjQuery, usrQuery])
+
+      const cloudCounts: Record<string, number> = {
+        students: stRes.count ?? 0,
+        student_payments: payRes.count ?? 0,
+        cash_journal: cjRes.count ?? 0,
+        users: usrRes.count ?? 0
+      }
+
+      // 2. Fetch recent station_heartbeat entries from audit_logs
+      let hbQuery = supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('action', 'station_heartbeat')
+        .eq('table_name', 'telemetry')
+
+      if (ecoleId && ecoleId !== 'ecole_dev') {
+        hbQuery = hbQuery.eq('ecole_id', ecoleId)
+      }
+
+      const { data: logs, error } = await hbQuery.order('id', { ascending: false }).limit(100)
+
+      if (error) {
+        return { success: false, cloudCounts, error: error.message }
+      }
+
+      const latestByMachine = new Map<string, any>()
+      for (const row of logs || []) {
+        try {
+          const parsed = JSON.parse(row.new_value)
+          const machineKey = parsed.hostname || row.record_id || 'UNKNOWN'
+          if (!latestByMachine.has(machineKey)) {
+            const queueObj = parsed.queue || {}
+            latestByMachine.set(machineKey, {
+              ...parsed,
+              station: parsed.station || row.record_id || machineKey,
+              last_seen: parsed.last_sync || row.timestamp,
+              server_recorded_at: row.timestamp,
+              queue: queueObj,
+              queue_pending: queueObj.pending ?? parsed.queue_pending ?? 0,
+              queue_failed:
+                (queueObj.failed ?? 0) + (queueObj.errors ?? 0) + (parsed.queue_failed ?? 0),
+              queue_quarantined: queueObj.quarantined ?? parsed.queue_quarantined ?? 0,
+              blocked_summary: parsed.blocked_summary || []
+            })
+          }
+        } catch {
+          // ignore malformed
+        }
+      }
+
+      // 3. Count recent station_error incidents per station
+      let errQuery = supabase
+        .from('audit_logs')
+        .select('record_id')
+        .eq('action', 'station_error')
+        .limit(300)
+
+      if (ecoleId && ecoleId !== 'ecole_dev') {
+        errQuery = errQuery.eq('ecole_id', ecoleId)
+      }
+
+      const { data: errorRows } = await errQuery
+
+      const errorCountByStation: Record<string, number> = {}
+      for (const eRow of errorRows || []) {
+        const st = eRow.record_id || 'UNKNOWN'
+        errorCountByStation[st] = (errorCountByStation[st] || 0) + 1
+      }
+
+      for (const obj of latestByMachine.values()) {
+        obj.station_error_count =
+          (errorCountByStation[obj.station] || 0) +
+          (obj.hostname && obj.hostname !== obj.station
+            ? errorCountByStation[obj.hostname] || 0
+            : 0)
+      }
+
+      const stations = Array.from(latestByMachine.values())
+
+      return { success: true, cloudCounts, stations }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       return { success: false, error: msg }

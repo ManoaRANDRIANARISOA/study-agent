@@ -62,8 +62,15 @@ function applyTheme(primaryHsl: string) {
   root.style.setProperty('--input', `${h} ${s}% 85%`)
 }
 
+export function getDynamicSchoolYear(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1
+  return month >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`
+}
+
 export const useAppStore = create<AppState>((set) => ({
-  currentYear: '',
+  currentYear: getDynamicSchoolYear(),
   stationCode: 'C1',
   schoolConfig: {},
   setCurrentYear: (year: string) => set({ currentYear: year }),
@@ -72,7 +79,7 @@ export const useAppStore = create<AppState>((set) => ({
     try {
       const all = (await window.api.settings.getAll()) as Record<string, unknown>
 
-      const year = cleanString(all.school_year)
+      const year = cleanString(all.school_year) || getDynamicSchoolYear()
       if (year) {
         set({ currentYear: year })
       }

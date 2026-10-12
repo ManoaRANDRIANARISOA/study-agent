@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { Sparkles, X, Banknote, RefreshCw, AlertTriangle, FileText, Lock, ArrowRight } from 'lucide-react'
+import { Sparkles, X, Banknote, RefreshCw, AlertTriangle, Lock, ArrowRight } from 'lucide-react'
 
 interface WhatsNewModalProps {
   isOpen: boolean
@@ -18,54 +18,63 @@ export default function WhatsNewModal({ isOpen, onClose }: WhatsNewModalProps): 
 
   if (!isOpen) return null
 
-  const releaseVersion = 'v2.2.4'
-  const releaseDate = 'Septembre 2026'
+  const releaseVersion = 'v2.3.8'
+  const releaseDate = 'Octobre 2026'
 
   const updates = [
     {
+      category: 'Nouveau',
+      type: 'feature',
+      icon: Sparkles,
+      iconBg: 'bg-rose-50 text-rose-600 border-rose-200',
+      badgeBg: 'bg-rose-50 text-rose-700 border-rose-200/80',
+      title: 'Filtrage Mensuel des Impayés & Export Modulaire Standard',
+      description: 'Ciblage précis des retards par mois (écolage, bus, cantine) avec recalcul automatique des montants et export multi-formats (Excel, CSV, PDF, JSON) avec préréglages de recouvrement.'
+    },
+    {
       category: 'Majeur',
       type: 'feature',
-      icon: Banknote,
+      icon: RefreshCw,
       iconBg: 'bg-emerald-50 text-emerald-600 border-emerald-200',
       badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200/80',
-      title: 'Clôture de Caisse, Billetage Physique & Ticket Z (80 mm)',
-      description: 'Pointage physique du tiroir-caisse (100 à 20 000 Ar), calcul automatique des écarts, visa contradictoire et impression thermique native ESC/POS.'
+      title: 'Sécurisation Industrielle LWW & Auto-Guérison Outbox',
+      description: 'Protection anti-régression Last-Write-Wins, respect strict des suppressions cloud, déduplication active de la file d’attente et assainissement automatique.'
     },
     {
       category: 'Nouveau',
       type: 'feature',
-      icon: RefreshCw,
+      icon: Sparkles,
       iconBg: 'bg-blue-50 text-blue-600 border-blue-200',
       badgeBg: 'bg-blue-50 text-blue-700 border-blue-200/80',
-      title: 'Auto-Healing Multi-Postes & Résilience Cloud',
-      description: 'Détection et résolution autonome des conflits de matricules hors-ligne par établissement, sans blocage du grand livre ni interruption du secrétariat.'
+      title: 'Passerelle Brevo REST v3 (Port 443 HTTPS) & Verrou Cloud',
+      description: 'Envoi garanti des bilans de caisse journaliers contournant les blocages SMTP des FAI/4G avec synchronisation préalable et verrouillage distribué multi-tenant.'
     },
     {
-      category: 'Amélioration',
+      category: 'Harmonisation',
+      type: 'feature',
+      icon: Banknote,
+      iconBg: 'bg-indigo-50 text-indigo-600 border-indigo-200',
+      badgeBg: 'bg-indigo-50 text-indigo-700 border-indigo-200/80',
+      title: 'Harmonisation Inscriptions & Grille Écolages',
+      description: 'Module de requalification en lot des réinscriptions, bouton d’encaissement "Payer le solde" et alignement dynamique de la grille tarifaire sans manipulation manuelle.'
+    },
+    {
+      category: 'Fiabilité',
       type: 'improvement',
       icon: AlertTriangle,
       iconBg: 'bg-amber-50 text-amber-600 border-amber-200',
       badgeBg: 'bg-amber-50 text-amber-700 border-amber-200/80',
-      title: 'Moteur d’Alertes Impayés & Distinction Inscription',
-      description: 'Distinction dynamique entre nouvelle inscription et réinscription avec seuil intelligent (100 Ar) et lien direct vers le dossier financier de l’élève.'
+      title: 'Safeguards Anti-Collision & Journal Recalibré',
+      description: 'Protection stricte des acomptes échelonnés et ventes d’articles multiples, avec axe zéro continu et isolé sur le graphique des flux financiers.'
     },
     {
-      category: 'Performance',
-      type: 'performance',
-      icon: FileText,
-      iconBg: 'bg-indigo-50 text-indigo-600 border-indigo-200',
-      badgeBg: 'bg-indigo-50 text-indigo-700 border-indigo-200/80',
-      title: 'Grand Livre & Pagination Haute Vitesse',
-      description: 'Nouvelle pagination fluide (25 à 500 écritures) sur le journal financier, accélération SQLite WAL et relais transactionnel Brevo SMTP.'
-    },
-    {
-      category: 'Sécurité & RBAC',
-      type: 'security',
+      category: 'Système',
+      type: 'feature',
       icon: Lock,
-      iconBg: 'bg-rose-50 text-rose-600 border-rose-200',
-      badgeBg: 'bg-rose-50 text-rose-700 border-rose-200/80',
-      title: 'Gouvernance & Protection des Données Financières',
-      description: 'Accès aux paramètres financiers strictement réservé à la Direction et aux Administrateurs avec traçabilité intégrale des audits.'
+      iconBg: 'bg-purple-50 text-purple-600 border-purple-200',
+      badgeBg: 'bg-purple-50 text-purple-700 border-purple-200/80',
+      title: 'Mises à Jour Automatiques Officielles',
+      description: 'Auto-Updater intégré et sécurisé pointant vers les publications officielles GitHub Releases de ManoaRANDRIANARISOA/study-agent.'
     }
   ]
 

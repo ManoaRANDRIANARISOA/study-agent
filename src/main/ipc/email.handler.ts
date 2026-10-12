@@ -42,6 +42,7 @@ export function registerEmailHandlers(): void {
         smtp_port?: number
         smtp_user?: string
         smtp_key?: string
+        sender_email?: string
         gmail_address?: string
         gmail_app_password?: string
       }

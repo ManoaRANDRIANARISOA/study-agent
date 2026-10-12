@@ -161,6 +161,7 @@ import defaultLogo from '@/assets/logo.png'
 import WhatsNewModal from '@/components/WhatsNewModal'
 import { SyncStatusWidget } from '@/components/sync/SyncStatusWidget'
 import { SyncProgressModal } from '@/components/sync/SyncProgressModal'
+import { ReconciliationModal } from '@/components/sync/ReconciliationModal'
 import { Sparkles } from 'lucide-react'
 
 // --------------------------------------------
@@ -306,10 +307,13 @@ export default function Sidebar(): React.JSX.Element {
             <span>Nouveautés v{appVersion}</span>
           </button>
         </div>
-
-        {/* Modal de progression et détails de synchronisation */}
-        <SyncProgressModal />
       </aside>
+
+      {/* Modal de progression et détails de synchronisation */}
+      <SyncProgressModal />
+
+      {/* Assistant de réconciliation des écritures orphelines */}
+      <ReconciliationModal />
     </>
   )
 }

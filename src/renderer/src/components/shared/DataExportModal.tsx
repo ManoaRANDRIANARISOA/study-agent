@@ -1,379 +1,550 @@
 import { useState } from 'react'
 import {
-  X,
-  Download,
   FileSpreadsheet,
   FileText,
   Code,
+  Download,
+  Check,
+  X,
+  Filter,
   CheckSquare,
   Square,
-  Loader2,
-  CheckCircle,
-  AlertCircle
+  Sparkles,
+  Settings2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { toast } from 'sonner'
 import { useAppStore } from '@/store/useAppStore'
 
-export interface ExportColumn {
+export type ExportFormat = 'xlsx' | 'csv' | 'pdf' | 'json'
+
+export interface ExportColumnDef {
   key: string
   label: string
+  category?: string
   width?: number
   defaultSelected?: boolean
+}
+
+// Backward-compatibility alias for existing components
+export type ExportColumn = ExportColumnDef
+
+export interface ExportPresetDef {
+  name: string
+  icon?: string
+  keys: string[]
+}
+
+export interface ExportScopeDef {
+  id: string
+  label: string
+  description?: string
+  count?: number
 }
 
 export interface DataExportModalProps {
   isOpen: boolean
   onClose: () => void
-  data: Record<string, unknown>[]
-  columns?: ExportColumn[]
-  availableColumns?: ExportColumn[]
-  defaultFilename?: string
   title?: string
+  defaultFilename?: string
   subtitle?: string
+  schoolYear?: string
+  columns?: ExportColumnDef[]
+  availableColumns?: ExportColumnDef[]
+  presets?: Record<string, ExportPresetDef>
+  defaultSelectedKeys?: string[]
+  data?: Record<string, unknown>[]
+  fetchData?: (scopeId?: string) => Promise<Record<string, unknown>[]>
+  scopes?: ExportScopeDef[]
+  defaultScope?: string
 }
-
-type ExportFormat = 'xlsx' | 'csv' | 'pdf' | 'json'
 
 export default function DataExportModal({
   isOpen,
   onClose,
-  data,
+  title = 'Exportation de données',
+  defaultFilename = 'export',
+  subtitle,
+  schoolYear,
   columns,
   availableColumns,
-  defaultFilename = 'export',
-  title = 'Exportation de données',
-  subtitle = ''
+  presets,
+  defaultSelectedKeys,
+  data,
+  fetchData,
+  scopes,
+  defaultScope
 }: DataExportModalProps) {
   const effectiveColumns = columns || availableColumns || []
-  const schoolConfig = useAppStore((s) => s.schoolConfig)
-  const currentYear = useAppStore((s) => s.currentYear)
+  const { schoolConfig, currentYear } = useAppStore()
 
   const [format, setFormat] = useState<ExportFormat>('xlsx')
-  const [filename, setFilename] = useState<string>(defaultFilename)
-  const [csvDelimiter, setCsvDelimiter] = useState<';' | ','>(';')
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => {
-    const initial = new Set<string>()
-    effectiveColumns.forEach((c) => {
-      if (c.defaultSelected !== false) {
-        initial.add(c.key)
-      }
-    })
-    return initial
-  })
-
-  const [exporting, setExporting] = useState(false)
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
-    null
+  const [selectedScope, setSelectedScope] = useState<string>(
+    defaultScope || (scopes && scopes.length > 0 ? scopes[0].id : '')
   )
+  const [selectedKeys, setSelectedKeys] = useState<string[]>(() => {
+    if (defaultSelectedKeys && defaultSelectedKeys.length > 0) {
+      return defaultSelectedKeys
+    }
+    const defs = effectiveColumns
+      .filter((c) => c.defaultSelected !== false)
+      .map((c) => c.key)
+    return defs.length > 0 ? defs : effectiveColumns.map((c) => c.key)
+  })
+  const [csvDelimiter, setCsvDelimiter] = useState<';' | ','>(';')
+  const [customTitle, setCustomTitle] = useState('')
+  const [columnSearch, setColumnSearch] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
 
   if (!isOpen) return null
 
   const toggleColumn = (key: string) => {
-    setSelectedKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) {
-        if (next.size > 1) next.delete(key) // Keep at least one
-      } else {
-        next.add(key)
-      }
-      return next
-    })
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    )
   }
 
-  const selectAll = () => {
-    setSelectedKeys(new Set(effectiveColumns.map((c) => c.key)))
-  }
-
+  const selectAll = () => setSelectedKeys(effectiveColumns.map((c) => c.key))
   const deselectAll = () => {
     if (effectiveColumns.length > 0) {
-      setSelectedKeys(new Set([effectiveColumns[0].key]))
+      setSelectedKeys([effectiveColumns[0].key])
     }
   }
 
+  const applyPreset = (preset: ExportPresetDef) => {
+    setSelectedKeys(preset.keys)
+    toast.info(`Préréglage appliqué : ${preset.name}`)
+  }
+
+  const filteredColumns = effectiveColumns.filter(
+    (c) =>
+      c.label.toLowerCase().includes(columnSearch.toLowerCase()) ||
+      c.key.toLowerCase().includes(columnSearch.toLowerCase())
+  )
+
   const handleExport = async () => {
-    if (selectedKeys.size === 0) {
-      setFeedback({ type: 'error', message: 'Veuillez sélectionner au moins une colonne.' })
+    if (selectedKeys.length === 0) {
+      toast.error('Veuillez sélectionner au moins une colonne à exporter.')
       return
     }
 
-    setExporting(true)
-    setFeedback(null)
+    setIsExporting(true)
+    const toastId = toast.loading('Préparation et extraction des données...')
 
     try {
+      let exportRows: Record<string, unknown>[] = []
+
+      if (fetchData) {
+        exportRows = await fetchData(selectedScope)
+      } else if (data) {
+        exportRows = data
+      }
+
+      if (!exportRows || exportRows.length === 0) {
+        toast.dismiss(toastId)
+        toast.warning('Aucune donnée ne correspond aux critères sélectionnés.')
+        setIsExporting(false)
+        return
+      }
+
       const activeColumns = effectiveColumns
-        .filter((c) => selectedKeys.has(c.key))
+        .filter((c) => selectedKeys.includes(c.key))
         .map((c) => ({
           key: c.key,
           label: c.label,
           width: c.width
         }))
 
-      const result = await window.api.export.file({
+      const resolvedYear = schoolYear || currentYear || ''
+      const cleanFilename = `${defaultFilename}_${new Date().toISOString().split('T')[0]}`
+
+      const exportResult = await window.api.export.file({
         format,
-        data,
+        data: exportRows,
         columns: activeColumns,
-        defaultFilename: filename.trim() || defaultFilename,
-        title: title || schoolConfig?.school_name || 'Exportation',
-        subtitle: subtitle || `Année scolaire ${currentYear}`,
+        defaultFilename: cleanFilename,
+        title: customTitle.trim() || title || schoolConfig?.school_name || 'Export des données',
+        subtitle: subtitle || (resolvedYear ? `Année scolaire : ${resolvedYear}` : undefined),
         schoolName: schoolConfig?.school_name || 'Établissement Scolaire',
-        schoolYear: currentYear,
+        schoolYear: resolvedYear,
         csvDelimiter
       })
 
-      if (result.success) {
-        setFeedback({
-          type: 'success',
-          message: `Fichier exporté avec succès !`
+      toast.dismiss(toastId)
+
+      if (exportResult.success) {
+        toast.success(`Export réussi (${exportRows.length} enregistrements)`, {
+          description: exportResult.filePath
+            ? `Fichier enregistré : ${exportResult.filePath}`
+            : 'Le fichier a été généré avec succès.',
+          duration: 5000
         })
-        setTimeout(() => {
-          onClose()
-          setFeedback(null)
-        }, 1500)
-      } else {
-        setFeedback({
-          type: 'error',
-          message: result.error || "Erreur lors de l'exportation."
-        })
+        onClose()
+      } else if (exportResult.error !== 'Export annulé par l’utilisateur') {
+        toast.error(`Erreur d'export : ${exportResult.error || 'Erreur inconnue'}`)
       }
     } catch (err: unknown) {
-      setFeedback({
-        type: 'error',
-        message: err instanceof Error ? err.message : "Erreur inattendue lors de l'exportation."
-      })
+      toast.dismiss(toastId)
+      const msg = err instanceof Error ? err.message : "Erreur inattendue lors de l'export"
+      toast.error(msg)
     } finally {
-      setExporting(false)
+      setIsExporting(false)
     }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-card border border-border w-full max-w-xl rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/40">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-              <Download className="w-5 h-5" />
+      <div className="bg-card text-card-foreground rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[92vh] overflow-hidden border border-border">
+        {/* Header with Project Signature Theme */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/60 bg-gradient-to-r from-primary/90 via-primary to-primary/80 text-primary-foreground">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white/10 rounded-xl backdrop-blur-md border border-white/10 shadow-inner">
+              <Download className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">{title}</h2>
-              <p className="text-xs text-muted-foreground">
-                {data.length} enregistrement(s) prêt(s) à être exporté(s)
+              <h2 className="text-xl font-bold tracking-tight text-white">{title}</h2>
+              <p className="text-xs text-white/80">
+                {subtitle ||
+                  (schoolConfig?.school_name
+                    ? `${schoolConfig.school_name} • Génération multi-formats (Excel, CSV, PDF, JSON)`
+                    : 'Génération de fichiers aux normes professionnelles (Excel, CSV, PDF, JSON)')}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground rounded-lg p-1.5 hover:bg-muted transition-colors"
+            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/80 hover:text-white"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
-          {/* Format selection */}
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Format de fichier
+        {/* Content */}
+        <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-background/50">
+          {/* SECTION 1: Choix du format */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2.5 block">
+              1. Format de fichier aux normes
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {/* Excel */}
               <button
                 type="button"
                 onClick={() => setFormat('xlsx')}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-center transition-all ${
+                className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
                   format === 'xlsx'
-                    ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20'
-                    : 'border-border bg-card hover:bg-muted/50 text-muted-foreground'
+                    ? 'border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm'
+                    : 'border-border bg-card hover:border-primary/50 hover:bg-accent/40'
                 }`}
               >
-                <FileSpreadsheet className="w-6 h-6" />
-                <span className="text-xs font-semibold">Excel (.xlsx)</span>
+                {format === 'xlsx' && (
+                  <span className="absolute top-2.5 right-2.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
+                    <Check className="w-3 h-3" />
+                  </span>
+                )}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 rounded-lg">
+                    <FileSpreadsheet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-foreground text-sm block">Excel</span>
+                    <span className="text-[10px] text-emerald-800 dark:text-emerald-300 font-semibold uppercase bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                      .xlsx / .xls
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  Tableau formaté avec en-têtes stylisés et colonnes ajustées
+                </p>
               </button>
 
+              {/* CSV */}
               <button
                 type="button"
                 onClick={() => setFormat('csv')}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-center transition-all ${
+                className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
                   format === 'csv'
-                    ? 'border-blue-500/50 bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-2 ring-blue-500/20'
-                    : 'border-border bg-card hover:bg-muted/50 text-muted-foreground'
+                    ? 'border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm'
+                    : 'border-border bg-card hover:border-primary/50 hover:bg-accent/40'
                 }`}
               >
-                <FileText className="w-6 h-6" />
-                <span className="text-xs font-semibold">CSV (.csv)</span>
+                {format === 'csv' && (
+                  <span className="absolute top-2.5 right-2.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
+                    <Check className="w-3 h-3" />
+                  </span>
+                )}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200 rounded-lg">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-foreground text-sm block">CSV</span>
+                    <span className="text-[10px] text-amber-900 dark:text-amber-200 font-semibold uppercase bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded">
+                      UTF-8 BOM
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  Compatible Excel FR, séparateur point-virgule ou virgule
+                </p>
               </button>
 
+              {/* PDF */}
               <button
                 type="button"
                 onClick={() => setFormat('pdf')}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-center transition-all ${
+                className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
                   format === 'pdf'
-                    ? 'border-rose-500/50 bg-rose-500/10 text-rose-600 dark:text-rose-400 ring-2 ring-rose-500/20'
-                    : 'border-border bg-card hover:bg-muted/50 text-muted-foreground'
+                    ? 'border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm'
+                    : 'border-border bg-card hover:border-primary/50 hover:bg-accent/40'
                 }`}
               >
-                <FileText className="w-6 h-6" />
-                <span className="text-xs font-semibold">PDF (.pdf)</span>
+                {format === 'pdf' && (
+                  <span className="absolute top-2.5 right-2.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
+                    <Check className="w-3 h-3" />
+                  </span>
+                )}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 rounded-lg">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-foreground text-sm block">PDF</span>
+                    <span className="text-[10px] text-rose-800 dark:text-rose-300 font-semibold uppercase bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">
+                      Paysage A4
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  Prêt à imprimer avec en-tête d'établissement et numérotation
+                </p>
               </button>
 
+              {/* JSON */}
               <button
                 type="button"
                 onClick={() => setFormat('json')}
-                className={`flex flex-col items-center gap-2 p-3 rounded-xl border text-center transition-all ${
+                className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
                   format === 'json'
-                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-2 ring-amber-500/20'
-                    : 'border-border bg-card hover:bg-muted/50 text-muted-foreground'
+                    ? 'border-primary bg-primary/10 ring-2 ring-primary/30 shadow-sm'
+                    : 'border-border bg-card hover:border-primary/50 hover:bg-accent/40'
                 }`}
               >
-                <Code className="w-6 h-6" />
-                <span className="text-xs font-semibold">JSON (.json)</span>
+                {format === 'json' && (
+                  <span className="absolute top-2.5 right-2.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
+                    <Check className="w-3 h-3" />
+                  </span>
+                )}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-2 bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 rounded-lg">
+                    <Code className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-foreground text-sm block">JSON</span>
+                    <span className="text-[10px] text-blue-800 dark:text-blue-300 font-semibold uppercase bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded">
+                      Brut UTF-8
+                    </span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  Export structuré brut pour archivage technique ou intégration
+                </p>
               </button>
             </div>
           </div>
 
-          {/* CSV Delimiter Option */}
-          {format === 'csv' && (
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
-              <span className="text-xs font-medium text-foreground">Séparateur CSV</span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCsvDelimiter(';')}
-                  className={`px-3 py-1 rounded text-xs font-semibold border transition-all ${
-                    csvDelimiter === ';'
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background text-muted-foreground border-border'
-                  }`}
-                >
-                  Point-virgule (;)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCsvDelimiter(',')}
-                  className={`px-3 py-1 rounded text-xs font-semibold border transition-all ${
-                    csvDelimiter === ','
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background text-muted-foreground border-border'
-                  }`}
-                >
-                  Virgule (,)
-                </button>
+          {/* SECTION 2: Périmètre des données (si scopes fournis) */}
+          {scopes && scopes.length > 0 && (
+            <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                <Filter className="w-4 h-4 text-primary" />
+                2. Périmètre des données à exporter
+              </label>
+              <div className="space-y-2">
+                {scopes.map((scope) => (
+                  <label
+                    key={scope.id}
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                      selectedScope === scope.id
+                        ? 'border-primary bg-primary/10 text-foreground'
+                        : 'border-border hover:bg-accent/40 text-foreground'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="export_scope"
+                      value={scope.id}
+                      checked={selectedScope === scope.id}
+                      onChange={() => setSelectedScope(scope.id)}
+                      className="mt-1 text-primary focus:ring-primary"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-sm">{scope.label}</span>
+                        {typeof scope.count === 'number' && (
+                          <span className="text-xs font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                            {scope.count} enregistrement(s)
+                          </span>
+                        )}
+                      </div>
+                      {scope.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {scope.description}
+                        </p>
+                      )}
+                    </div>
+                  </label>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Filename input */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Nom du fichier
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={filename}
-                onChange={(e) => setFilename(e.target.value)}
-                placeholder={defaultFilename}
-                className="flex-1 px-3 py-2 text-sm rounded-lg bg-background border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-              <span className="text-xs font-mono text-muted-foreground px-2 py-2 rounded bg-muted">
-                .{format}
-              </span>
-            </div>
-          </div>
-
-          {/* Columns selection */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Colonnes à inclure ({selectedKeys.size}/{effectiveColumns.length})
+          {/* SECTION 3: Sélection des Colonnes */}
+          <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-primary" />
+                {scopes && scopes.length > 0 ? '3.' : '2.'} Colonnes à exporter ({selectedKeys.length} sélectionnée(s))
               </label>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={selectAll}
-                  className="text-xs text-primary hover:underline font-medium"
+                  className="text-xs text-primary hover:underline font-medium flex items-center gap-1"
                 >
-                  Tout cocher
+                  <CheckSquare className="w-3.5 h-3.5" /> Tout cocher
                 </button>
-                <span className="text-muted-foreground text-xs">•</span>
+                <span className="text-muted-foreground">|</span>
                 <button
                   type="button"
                   onClick={deselectAll}
-                  className="text-xs text-muted-foreground hover:underline"
+                  className="text-xs text-muted-foreground hover:text-foreground font-medium flex items-center gap-1"
                 >
-                  Décocher
+                  <Square className="w-3.5 h-3.5" /> Réinitialiser
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 rounded-lg border border-border bg-background/50">
-              {effectiveColumns.map((col) => {
-                const isSelected = selectedKeys.has(col.key)
-                return (
+            {/* Presets buttons */}
+            {presets && Object.keys(presets).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {Object.entries(presets).map(([k, p]) => (
                   <button
-                    key={col.key}
+                    key={k}
                     type="button"
-                    onClick={() => toggleColumn(col.key)}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left text-xs transition-colors ${
-                      isSelected
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    onClick={() => applyPreset(p)}
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-card hover:bg-primary/10 hover:border-primary/50 text-foreground font-medium transition-colors flex items-center gap-1"
+                  >
+                    {p.icon && <span>{p.icon}</span>}
+                    <span>{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Column search filter */}
+            {effectiveColumns.length > 6 && (
+              <div className="mb-3">
+                <Input
+                  placeholder="Filtrer les colonnes..."
+                  value={columnSearch}
+                  onChange={(e) => setColumnSearch(e.target.value)}
+                  className="h-8 text-xs bg-background"
+                />
+              </div>
+            )}
+
+            {/* Checkbox columns grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1 border border-border/60 rounded-lg bg-background/50">
+              {filteredColumns.map((col) => {
+                const isChecked = selectedKeys.includes(col.key)
+                return (
+                  <label
+                    key={col.key}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md border text-xs cursor-pointer select-none transition-colors ${
+                      isChecked
+                        ? 'border-primary bg-primary/15 text-foreground font-medium'
+                        : 'border-border bg-card text-muted-foreground hover:bg-accent/40'
                     }`}
                   >
-                    {isSelected ? (
-                      <CheckSquare className="w-4 h-4 text-primary shrink-0" />
-                    ) : (
-                      <Square className="w-4 h-4 text-muted-foreground shrink-0" />
-                    )}
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleColumn(col.key)}
+                      className="rounded text-primary focus:ring-primary w-3.5 h-3.5"
+                    />
                     <span className="truncate">{col.label}</span>
-                  </button>
+                  </label>
                 )
               })}
             </div>
           </div>
 
-          {/* Feedback alert */}
-          {feedback && (
-            <div
-              className={`p-3 rounded-lg flex items-center gap-2.5 text-xs font-medium animate-in fade-in ${
-                feedback.type === 'success'
-                  ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
-                  : 'bg-destructive/10 border border-destructive/30 text-destructive'
-              }`}
-            >
-              {feedback.type === 'success' ? (
-                <CheckCircle className="w-4 h-4 shrink-0" />
-              ) : (
-                <AlertCircle className="w-4 h-4 shrink-0" />
+          {/* SECTION 4: Options Avancées */}
+          <div className="bg-card p-4 rounded-xl border border-border shadow-sm">
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+              <Settings2 className="w-4 h-4 text-primary" />
+              {scopes && scopes.length > 0 ? '4.' : '3.'} Options avancées
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-foreground block mb-1">
+                  Titre personnalisé du document
+                </label>
+                <Input
+                  placeholder={`Ex : ${title}`}
+                  value={customTitle}
+                  onChange={(e) => setCustomTitle(e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              {format === 'csv' && (
+                <div>
+                  <label className="text-xs font-medium text-foreground block mb-1">
+                    Séparateur CSV
+                  </label>
+                  <select
+                    value={csvDelimiter}
+                    onChange={(e) => setCsvDelimiter(e.target.value as ';' | ',')}
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value=";">Point-virgule ( ; ) — Standard Excel Français</option>
+                    <option value=",">Virgule ( , ) — Standard International</option>
+                  </select>
+                </div>
               )}
-              <span>{feedback.message}</span>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-muted/40">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={exporting}>
-            Annuler
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleExport}
-            disabled={exporting || selectedKeys.size === 0}
-            className="min-w-[120px]"
-          >
-            {exporting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Exportation...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                Exporter
-              </>
-            )}
-          </Button>
+        <div className="px-6 py-4 bg-accent/20 border-t border-border flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Format sélectionné : <strong className="uppercase text-foreground font-bold">{format}</strong> •{' '}
+            {selectedKeys.length} colonne(s)
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={onClose} disabled={isExporting}>
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleExport}
+              disabled={isExporting || selectedKeys.length === 0}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[150px] shadow-sm font-semibold"
+            >
+              {isExporting ? (
+                'Génération...'
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-1.5" />
+                  Exporter le fichier
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

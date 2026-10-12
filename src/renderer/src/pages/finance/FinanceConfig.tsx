@@ -11,6 +11,7 @@ import { useAppStore } from '@/store/useAppStore'
 import { usePermissions } from '@/lib/usePermissions'
 import { useAuthStore } from '@/store/useAuthStore'
 import ReadOnlyBanner from '@/components/shared/ReadOnlyBanner'
+import EnrollmentReconciliation from '@/components/finance/EnrollmentReconciliation'
 
 export default function FinanceConfig() {
   const { prices: storedPrices, fetchPrices, savePrices, loading: storeLoading } = useFinanceStore()
@@ -282,6 +283,9 @@ export default function FinanceConfig() {
           </div>
         </div>
       </div>
+
+      {/* Module d'Harmonisation Droits Inscription & Réinscription */}
+      <EnrollmentReconciliation onUpdated={fetchPrices} />
 
       {/* Ecolage & Classes */}
       <div className="p-4 border rounded-lg bg-white shadow-sm">

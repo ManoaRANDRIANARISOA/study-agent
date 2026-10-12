@@ -154,7 +154,7 @@ export class StudentRepository {
     try {
       const result = db
         .prepare("SELECT value FROM settings WHERE key = 'finance_prices'")
-        .get() as { value: string }
+        .get() as { value: string } | undefined
       if (result && result.value) {
         prices = JSON.parse(result.value)
       }
@@ -162,17 +162,26 @@ export class StudentRepository {
       console.error('Error resolving tuition config:', e)
     }
 
-    const tuitionPrices = prices && prices.tuition ? prices.tuition : {}
+    const tuitionPrices =
+      prices && prices.tuition && Object.keys(prices.tuition).length > 0
+        ? (prices.tuition as Record<string, number>)
+        : {}
 
-    // Try to find matching key in tuition prices
     const keys = Object.keys(tuitionPrices)
-    // Sort by length descending to match longest specific key first
     keys.sort((a, b) => b.length - a.length)
 
-    const normalizedClass = className.trim()
+    const normalizedClass = className.trim().toLowerCase()
 
+    // 1. Exact match first
     for (const key of keys) {
-      if (normalizedClass.includes(key)) {
+      if (normalizedClass === key.trim().toLowerCase()) {
+        return { price: Number(tuitionPrices[key]) || 0, key: key }
+      }
+    }
+
+    // 2. Contains match
+    for (const key of keys) {
+      if (normalizedClass.includes(key.trim().toLowerCase())) {
         return { price: Number(tuitionPrices[key]) || 0, key: key }
       }
     }
@@ -1405,6 +1414,195 @@ export class StudentRepository {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
       console.error('Error rectifying enrollment type:', error)
+      return { success: false, error: message }
+    }
+  }
+
+  /**
+   * Récupère la liste des élèves ayant des paiements d'inscription (ex: 115 000 Ar au lieu de 140 000 Ar)
+   * pour que la responsable puisse les vérifier et les convertir en réinscription d'un seul clic.
+   */
+  static getPendingEnrollmentRectifications(schoolYear: string): {
+    success: boolean
+    items?: Array<{
+      student_id: string
+      first_name: string
+      last_name: string
+      class_name: string
+      amount_paid: number
+      payment_date: string
+      receipt_number: string
+      payment_type: string
+      is_reenrollment: number
+      past_years_count: number
+      expected_if_new: number
+      expected_if_returning: number
+      balance_if_new: number
+      balance_if_returning: number
+    }>
+    error?: string
+  } {
+    try {
+      const cleanYear = (schoolYear || this.getCurrentSchoolYear() || '')
+        .replace(/['"]/g, '')
+        .trim()
+      let prices: Record<string, any> = { registration: 140000, reenrollment: 115000 }
+      try {
+        const row = db
+          .prepare("SELECT value FROM settings WHERE key = 'finance_prices'")
+          .get() as { value?: string } | undefined
+        if (row?.value) prices = { ...prices, ...JSON.parse(row.value) }
+      } catch {}
+
+      const regPrice = Number(prices.registration) || 140000
+      const reenPrice = Number(prices.reenrollment) || 115000
+      const tenantId = this.getSetting('ecole_id')
+
+      let query = `
+        SELECT s.id as student_id, s.first_name, s.last_name, 
+               COALESCE(sf.class_name, s.class, '') as class_name,
+               COALESCE(sf.is_reenrollment, 0) as is_reenrollment,
+               p.amount as amount_paid, p.payment_date, p.receipt_number, p.payment_type,
+               (SELECT COUNT(*) FROM student_fees sf_past 
+                WHERE sf_past.student_id = s.id 
+                  AND REPLACE(REPLACE(sf_past.school_year, '"', ''), '''', '') < ?
+                  AND sf_past.deleted = 0) as past_years_count
+        FROM student_payments p
+        JOIN students s ON s.id = p.student_id
+        LEFT JOIN student_fees sf ON sf.student_id = s.id 
+             AND REPLACE(REPLACE(sf.school_year, '"', ''), '''', '') = ? 
+             AND sf.deleted = 0
+        WHERE p.deleted = 0 
+          AND s.deleted = 0
+          AND p.payment_type = 'enrollment'
+          AND (
+            p.amount = ? 
+            OR (p.amount < ? AND p.amount >= 50000)
+          )
+          AND (REPLACE(REPLACE(p.school_year, '"', ''), '''', '') = ? OR p.school_year IS NULL)
+      `
+      const params: any[] = [cleanYear, cleanYear, reenPrice, regPrice, cleanYear]
+
+      if (tenantId) {
+        query += ' AND (s.ecole_id = ? OR s.ecole_id IS NULL)'
+        params.push(tenantId)
+      }
+
+      query += ' ORDER BY s.last_name, s.first_name'
+
+      const rows = db.prepare(query).all(...params) as Array<any>
+
+      const items = rows.map((r) => ({
+        student_id: r.student_id,
+        first_name: r.first_name,
+        last_name: r.last_name,
+        class_name: r.class_name || '-',
+        amount_paid: Number(r.amount_paid) || 0,
+        payment_date: r.payment_date || '',
+        receipt_number: r.receipt_number || '',
+        payment_type: r.payment_type,
+        is_reenrollment: Number(r.is_reenrollment) || 0,
+        past_years_count: Number(r.past_years_count) || 0,
+        expected_if_new: regPrice,
+        expected_if_returning: reenPrice,
+        balance_if_new: Math.max(0, regPrice - (Number(r.amount_paid) || 0)),
+        balance_if_returning: Math.max(0, reenPrice - (Number(r.amount_paid) || 0))
+      }))
+
+      return { success: true, items }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      return { success: false, error: message }
+    }
+  }
+
+  /**
+   * Requalifie en lot une sélection d'élèves en Réinscription ou Inscription.
+   */
+  static batchRectifyEnrollmentType(
+    studentIds: string[],
+    schoolYear: string,
+    targetType: 'reenrollment' | 'enrollment'
+  ): { success: boolean; count?: number; error?: string } {
+    try {
+      if (!Array.isArray(studentIds) || studentIds.length === 0) {
+        return { success: true, count: 0 }
+      }
+      let count = 0
+      const transaction = db.transaction(() => {
+        for (const id of studentIds) {
+          const res = this.rectifyEnrollmentType(id, schoolYear, targetType)
+          if (res.success) count++
+        }
+      })
+      transaction()
+      return { success: true, count }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      return { success: false, error: message }
+    }
+  }
+
+  /**
+   * Synchronise les tarifs statiques de student_fees avec la configuration centralisée finance_prices
+   * pour l'année scolaire indiquée (sauf enfants du personnel).
+   */
+  static syncFeesWithPricing(
+    schoolYear: string
+  ): { success: boolean; updatedCount?: number; error?: string } {
+    try {
+      const cleanYear = (schoolYear || this.getCurrentSchoolYear() || '')
+        .replace(/['"]/g, '')
+        .trim()
+      const tenantId = this.getSetting('ecole_id')
+      let query = `
+        SELECT sf.id, sf.student_id, sf.class_name, sf.tuition_level, sf.monthly_tuition,
+               s.is_personnel_child
+        FROM student_fees sf
+        JOIN students s ON s.id = sf.student_id
+        WHERE REPLACE(REPLACE(sf.school_year, '"', ''), '''', '') = ?
+          AND sf.deleted = 0 AND s.deleted = 0
+      `
+      const params: any[] = [cleanYear]
+      if (tenantId) {
+        query += ' AND (sf.ecole_id = ? OR sf.ecole_id IS NULL)'
+        params.push(tenantId)
+      }
+
+      const fees = db.prepare(query).all(...params) as Array<{
+        id: string
+        student_id: string
+        class_name: string
+        tuition_level?: string
+        monthly_tuition: number
+        is_personnel_child?: unknown
+      }>
+
+      let updatedCount = 0
+      const transaction = db.transaction(() => {
+        for (const f of fees) {
+          if (f.is_personnel_child === 1 || f.is_personnel_child === true) {
+            continue
+          }
+          const level = f.class_name || f.tuition_level || ''
+          const config = this.resolveTuitionConfig(level)
+          if (config.price > 0 && Math.abs(f.monthly_tuition - config.price) >= 1) {
+            db.prepare(
+              'UPDATE student_fees SET monthly_tuition = ?, tuition_level = COALESCE(tuition_level, ?), updated_at = CURRENT_TIMESTAMP, version = version + 1, sync_status = "pending" WHERE id = ?'
+            ).run(config.price, config.key || level, f.id)
+
+            addToSyncQueue('student_fees', f.id, 'update', {
+              monthly_tuition: config.price,
+              tuition_level: config.key || level
+            })
+            updatedCount++
+          }
+        }
+      })
+      transaction()
+      return { success: true, updatedCount }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
       return { success: false, error: message }
     }
   }

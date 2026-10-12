@@ -1,4 +1,4 @@
-import { useAppStore } from '@/store/useAppStore'
+import { useAppStore, getDynamicSchoolYear } from '@/store/useAppStore'
 import { useEffect, useState } from 'react'
 import { useStudentStore } from '@/store/useStudentStore'
 import { Button } from '@/components/ui/button'
@@ -140,21 +140,19 @@ export default function StudentDetail({ studentId, onBack, onEdit }: StudentDeta
       setSelectedYear(yearFromUrl)
       return
     }
-    const globalYear = useAppStore.getState().currentYear
-    if (currentFeesHistory && currentFeesHistory.length > 0) {
-      // Assuming history is sorted DESC by year (from repository)
-      setSelectedYear(currentFeesHistory[0].school_year)
+    const globalYear = useAppStore.getState().currentYear || getDynamicSchoolYear()
+    const cleanGlobal = globalYear.replace(/['"]/g, '').trim()
+    const isEnrolledInGlobalYear = currentFeesHistory?.some(
+      (f) => !f.deleted && f.school_year?.replace(/['"]/g, '').trim() === cleanGlobal
+    )
+    if (isEnrolledInGlobalYear) {
+      setSelectedYear(cleanGlobal)
+    } else if (currentFeesHistory && currentFeesHistory.length > 0) {
+      setSelectedYear(currentFeesHistory[0].school_year.replace(/['"]/g, '').trim())
     } else if (currentFees?.school_year) {
-      setSelectedYear(currentFees.school_year)
-    } else if (globalYear) {
-      setSelectedYear(globalYear)
+      setSelectedYear(currentFees.school_year.replace(/['"]/g, '').trim())
     } else {
-      const now = new Date()
-      const yearStr =
-        now.getMonth() >= 7
-          ? `${now.getFullYear()}-${now.getFullYear() + 1}`
-          : `${now.getFullYear() - 1}-${now.getFullYear()}`
-      setSelectedYear(yearStr)
+      setSelectedYear(cleanGlobal)
     }
   }, [currentFees, currentFeesHistory, searchParams])
 

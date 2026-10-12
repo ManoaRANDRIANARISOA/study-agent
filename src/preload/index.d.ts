@@ -209,6 +209,36 @@ interface APIType {
       schoolYear: string,
       newType: 'enrollment' | 'reenrollment'
     ) => Promise<{ success: boolean; error?: string }>
+    getPendingEnrollmentRectifications: (schoolYear?: string) => Promise<{
+      success: boolean
+      items?: Array<{
+        student_id: string
+        first_name: string
+        last_name: string
+        class_name: string
+        amount_paid: number
+        payment_date: string
+        receipt_number: string
+        payment_type: string
+        is_reenrollment: number
+        past_years_count: number
+        expected_if_new: number
+        expected_if_returning: number
+        balance_if_new: number
+        balance_if_returning: number
+      }>
+      error?: string
+    }>
+    batchRectifyEnrollmentType: (
+      studentIds: string[],
+      schoolYear: string,
+      targetType: 'reenrollment' | 'enrollment'
+    ) => Promise<{ success: boolean; count?: number; error?: string }>
+    syncFeesWithPricing: (schoolYear?: string) => Promise<{
+      success: boolean
+      updatedCount?: number
+      error?: string
+    }>
   }
   payment: {
     create: (
@@ -235,7 +265,13 @@ interface APIType {
         first_name: string
         last_name: string
         class_name: string
-        unpaid_items: Array<{ type: string; description: string; amount: number }>
+        unpaid_items: Array<{
+          type: string
+          description: string
+          label?: string
+          amount: number
+          month?: string
+        }>
         total_due: number
       }>
       error?: string
@@ -782,11 +818,18 @@ interface APIType {
       success: boolean
       isSyncing: boolean
       isOnline: boolean
+      isInternetOk?: boolean
       latencyMs?: number
       healthError?: string | null
       pendingCount: number
       errorCount: number
       lastSyncTime: string | null
+      error?: string
+    }>
+    checkHealth: () => Promise<{
+      ok: boolean
+      isInternetOk?: boolean
+      latencyMs?: number
       error?: string
     }>
     start: (forceFullSync?: boolean) => Promise<{
@@ -811,6 +854,54 @@ interface APIType {
     }>
     retryErrors: () => Promise<{ success: boolean; error?: string }>
     quarantineAndUnblock: () => Promise<{ success: boolean; quarantinedCount?: number; error?: string }>
+    getReconciliationItems: () => Promise<
+      Array<{
+        id: number
+        table_name: string
+        record_id: string
+        action: string
+        status: string
+        payload: any
+        error_message?: string
+        retry_count: number
+        created_at: string
+        updated_at: string
+        amount?: number
+        date?: string
+        receipt_number?: string
+        student_id?: string
+        student_name?: string
+        class_name?: string
+      }>
+    >
+    reconcileAttachStudent: (
+      queueId: number,
+      targetStudentId: string
+    ) => Promise<{ success: boolean; message?: string; error?: string }>
+    reconcileCreateMissingStudent: (
+      queueId: number,
+      studentData: {
+        first_name: string
+        last_name: string
+        class_name?: string
+        gender?: string
+        registration_number?: string
+      }
+    ) => Promise<{ success: boolean; message?: string; student_id?: string; error?: string }>
+    reconcileConvertToGeneralCash: (
+      queueId: number
+    ) => Promise<{ success: boolean; message?: string; error?: string }>
+    reconcileDiscardOrphan: (
+      queueId: number,
+      reason: string
+    ) => Promise<{ success: boolean; message?: string; error?: string }>
+    runDeepConvergence: () => Promise<{
+      success: boolean
+      reconciled?: number
+      createdStudents?: number
+      purgedTombstones?: number
+      error?: string
+    }>
     onProgress: (callback: (data: {
       phase: 'idle' | 'checking' | 'pushing' | 'pulling' | 'completed' | 'failed'
       currentTable?: string
@@ -840,11 +931,46 @@ interface APIType {
       error?: string
     }>
     clearStationErrors: () => Promise<{ success: boolean; clearedCount?: number; error?: string }>
+    fetchWorkstationHeartbeats: () => Promise<{
+      success: boolean
+      cloudCounts?: Record<string, number>
+      stations?: Array<{
+        station: string
+        hostname: string
+        platform: string
+        app_version: string
+        last_seen: string
+        counts: Record<string, number>
+        queue: { pending: number; errors: number; failed: number; quarantined: number }
+        queue_pending?: number
+        queue_failed?: number
+        queue_quarantined?: number
+        blocked_summary?: any[]
+        station_error_count?: number
+        last_sync?: string
+      }>
+      error?: string
+    }>
+    broadcastRemoteCommand: (
+      command: string,
+      params?: any
+    ) => Promise<{ success: boolean; error?: string }>
     reportError: (
       context: string,
       error: unknown,
       metadata?: Record<string, unknown>
     ) => Promise<{ success: boolean; error?: string }>
+  }
+  updater: {
+    check: () => Promise<{ success: boolean; error?: string; isDev?: boolean }>
+    install: () => void
+    getDownloadedInfo: () => Promise<{ version: string; releaseNotes?: any } | null>
+    onChecking: (callback: () => void) => () => void
+    onUpdateAvailable: (callback: (info: any) => void) => () => void
+    onUpdateNotAvailable: (callback: (info: any) => void) => () => void
+    onDownloadProgress: (callback: (progress: any) => void) => () => void
+    onUpdateDownloaded: (callback: (info: any) => void) => () => void
+    onError: (callback: (err: any) => void) => () => void
   }
 }
 

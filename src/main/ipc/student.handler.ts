@@ -228,4 +228,57 @@ export function registerStudentHandlers(): void {
     }
     return result
   })
+
+  // --------------------------------------------
+  // BATCH ENROLLMENT RECTIFICATION & PRICING SYNC
+  // --------------------------------------------
+  ipcMain.handle('student:getPendingEnrollmentRectifications', async (_, schoolYear) => {
+    if (!canRead('students')) {
+      return { success: false, error: 'Accès refusé' }
+    }
+    return StudentRepository.getPendingEnrollmentRectifications(schoolYear)
+  })
+
+  ipcMain.handle(
+    'student:batchRectifyEnrollmentType',
+    async (_, studentIds, schoolYear, targetType) => {
+      if (!canWrite('students')) {
+        return { success: false, error: 'Accès refusé : modification inscription élève' }
+      }
+      const result = StudentRepository.batchRectifyEnrollmentType(
+        studentIds,
+        schoolYear,
+        targetType
+      )
+      if (result.success) {
+        logAction(
+          getCurrentUser()?.id || null,
+          'update',
+          'students',
+          'batch',
+          null,
+          `Batch rectified ${result.count || 0} students to ${targetType} for year ${schoolYear}`
+        )
+      }
+      return result
+    }
+  )
+
+  ipcMain.handle('student:syncFeesWithPricing', async (_, schoolYear) => {
+    if (!canWrite('settings') && !canWrite('payments')) {
+      return { success: false, error: 'Accès refusé : synchronisation tarifs' }
+    }
+    const result = StudentRepository.syncFeesWithPricing(schoolYear)
+    if (result.success) {
+      logAction(
+        getCurrentUser()?.id || null,
+        'update',
+        'student_fees',
+        'batch',
+        null,
+        `Synchronized ${result.updatedCount || 0} fee records with central pricing for ${schoolYear}`
+      )
+    }
+    return result
+  })
 }

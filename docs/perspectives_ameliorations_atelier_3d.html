@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perspectives d'Avenir &amp; Améliorations — Atelier 3D Flow | Missi Innovation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-canvas: #EFECE6;
+            --paper-sheet: #FFFFFF;
+            --paper-warm: #FAF8F5;
+            --copper: #C2672B;
+            --copper-dark: #9A4C1B;
+            --copper-light: #FDF6F0;
+            --copper-border: #F0DFC8;
+            --wire-gold: #C99B72;
+            --wire-gold-subtle: rgba(201, 155, 114, 0.4);
+            --text-main: #1D1A17;
+            --text-muted: #5E5852;
+            --text-subtle: #8E877F;
+            --shadow-3d-paper: 
+                0 2px 4px rgba(44, 30, 20, 0.04),
+                0 12px 28px rgba(44, 30, 20, 0.09),
+                0 24px 60px rgba(44, 30, 20, 0.07);
+            --shadow-3d-card:
+                0 2px 5px rgba(44, 30, 20, 0.05),
+                0 10px 24px rgba(44, 30, 20, 0.08);
+            --shadow-3d-cup:
+                15px 25px 35px rgba(40, 25, 15, 0.22),
+                5px 10px 15px rgba(40, 25, 15, 0.15);
+            --shadow-stacked-edges:
+                3px 3px 0 #E8E2D8,
+                6px 6px 0 #DFD7CB;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-canvas);
+            background-image: 
+                radial-gradient(circle at 50% 20%, #FAF8F3 0%, #EFEBE3 50%, #E4DEC8 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 60px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .serif {
+            font-family: 'Playfair Display', Georgia, serif;
+        }
+
+        /* TOP ACTION BAR */
+        .top-bar-nav {
+            position: sticky;
+            top: 0;
+            z-index: 99999;
+            background: rgba(29, 26, 23, 0.94);
+            backdrop-filter: blur(16px);
+            border-bottom: 2px solid var(--copper);
+            padding: 12px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+        }
+
+        .top-bar-nav .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .top-bar-nav .style-tag {
+            background: rgba(194, 103, 43, 0.25);
+            border: 1px solid var(--copper);
+            color: #FED7AA;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .top-bar-nav .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-nav {
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .btn-nav-glass {
+            background: rgba(255,255,255,0.08);
+            color: #E7E5E4;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .btn-nav-glass:hover {
+            background: rgba(255,255,255,0.18);
+            color: white;
+        }
+
+        .btn-nav-copper {
+            background: var(--copper);
+            color: white;
+            border: 1px solid var(--copper);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(194, 103, 43, 0.35);
+        }
+
+        .btn-nav-copper:hover {
+            background: var(--copper-dark);
+        }
+
+        /* 3D WORKSPACE ARTBOARD (CANVAS COMPOSITION - INSPIRATION IMAGE 1) */
+        .artboard-container {
+            max-width: 1200px;
+            margin: 30px auto;
+            position: relative;
+            padding: 20px 20px 80px 20px;
+        }
+
+        /* SVG SCHEMATIC WIREFRAME NETWORK (UNDERLAY) */
+        .schematic-svg-layer {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* TACTILE 3D ELEMENTS */
+
+        /* 3D CERAMIC COFFEE CUP (IMAGE 1 TOP-RIGHT & MID-RIGHT) */
+        .cup-saucer-3d {
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #FFFFFF 0%, #EFE8DE 65%, #DDD3C5 100%);
+            box-shadow: var(--shadow-3d-cup);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .cup-saucer-3d::after {
+            content: '';
+            position: absolute;
+            width: 74px;
+            height: 74px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 40%, #874C23 0%, #4D260D 70%, #291204 100%);
+            box-shadow: inset 2px 4px 8px rgba(0,0,0,0.6), 0 2px 5px rgba(255,255,255,0.4);
+            border: 4px solid #FFFFFF;
+        }
+
+        .cup-saucer-3d .cup-spoon {
+            position: absolute;
+            width: 80px;
+            height: 9px;
+            background: linear-gradient(180deg, #FFFFFF 0%, #D4CDCA 50%, #99908B 100%);
+            border-radius: 5px;
+            transform: rotate(-35deg) translate(28px, -20px);
+            box-shadow: 2px 4px 6px rgba(40,25,15,0.25);
+            z-index: 11;
+        }
+
+        .tea-cup-3d {
+            position: absolute;
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #FFFFFF 0%, #EFE8DE 65%, #DCD2C3 100%);
+            box-shadow: var(--shadow-3d-cup);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .tea-cup-3d::after {
+            content: '';
+            position: absolute;
+            width: 66px;
+            height: 66px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 45% 45%, #F4B258 0%, #C47926 70%, #7D4609 100%);
+            box-shadow: inset 1px 3px 6px rgba(0,0,0,0.4), 0 1px 3px rgba(255,255,255,0.6);
+            border: 3.5px solid #FFFFFF;
+        }
+
+        /* 3D GOLD COIN / SEAL (IMAGE 1 SEAL BADGES) */
+        .gold-seal-3d {
+            position: absolute;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #FFFFFF 0%, #F5E8D3 35%, #D4A870 70%, #9E7036 100%);
+            box-shadow: 0 4px 12px rgba(44, 30, 20, 0.15), 0 1px 3px rgba(44, 30, 20, 0.2), inset 0 2px 2px #FFFFFF;
+            border: 2px solid #E4BC84;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 800;
+            color: #7A4E1B;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+            z-index: 15;
+        }
+
+        /* BOTANICAL DRIED FLOWER BRANCH (IMAGE 1 LEFT-CENTER) */
+        .botanical-branch-3d {
+            position: absolute;
+            pointer-events: none;
+            z-index: 8;
+            filter: drop-shadow(8px 14px 16px rgba(44, 30, 20, 0.16));
+        }
+
+        /* 3D FLOATING PAPER SHEETS (IMAGE 1 LAYERED CARDS) */
+        .paper-sheet-3d {
+            position: relative;
+            background: var(--paper-sheet);
+            border-radius: 12px;
+            box-shadow: var(--shadow-3d-paper), var(--shadow-stacked-edges);
+            border: 1px solid rgba(235, 226, 215, 0.9);
+            z-index: 5;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .paper-sheet-3d:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 4px 8px rgba(44, 30, 20, 0.05),
+                0 18px 40px rgba(44, 30, 20, 0.12),
+                3px 3px 0 #E8E2D8,
+                6px 6px 0 #DFD7CB;
+        }
+
+        /* TOP-LEFT RELIEF CHART CARD */
+        .top-left-relief-card {
+            width: 250px;
+            padding: 18px;
+            border-radius: 14px;
+            background: #FFFFFF;
+            box-shadow: var(--shadow-3d-card), var(--shadow-stacked-edges);
+            border: 1px solid #EBE4D8;
+            position: absolute;
+            top: 40px;
+            left: 20px;
+            z-index: 6;
+        }
+
+        .relief-cloud {
+            position: absolute;
+            top: -18px;
+            right: 25px;
+            width: 70px;
+            height: 38px;
+            background: radial-gradient(circle at 40% 30%, #FFFFFF 0%, #F5ECE0 80%, #DFD3C0 100%);
+            border-radius: 40px;
+            box-shadow: 0 8px 18px rgba(44, 30, 20, 0.12);
+        }
+
+        .relief-cloud::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 14px;
+            width: 32px;
+            height: 32px;
+            background: #FFFFFF;
+            border-radius: 50%;
+        }
+
+        /* TOP-CENTER HERO DISPATCH CARD (IMAGE 1 MAIN TOP PAPER) */
+        .top-center-hero-card {
+            width: 380px;
+            margin: 0 auto 35px auto;
+            padding: 24px 28px;
+            text-align: center;
+            border-radius: 14px;
+        }
+
+        .top-center-hero-card .eyebrow {
+            font-size: 8.5px;
+            font-weight: 800;
+            color: var(--copper);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .top-center-hero-card h1 {
+            font-size: 21px;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1.2;
+            margin-bottom: 6px;
+        }
+
+        .top-center-hero-card p {
+            font-size: 9.5px;
+            color: var(--text-muted);
+            line-height: 1.45;
+            margin-bottom: 14px;
+        }
+
+        .btn-pill-dark {
+            background: #1D1A17;
+            color: white;
+            font-size: 8.5px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            padding: 7px 18px;
+            border-radius: 999px;
+            display: inline-block;
+            text-decoration: none;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+            transition: all 0.15s ease;
+        }
+
+        .btn-pill-dark:hover {
+            background: var(--copper);
+            transform: translateY(-1px);
+        }
+
+        /* TOP-RIGHT CARD */
+        .top-right-side-card {
+            position: absolute;
+            top: 140px;
+            right: 40px;
+            width: 250px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            z-index: 6;
+        }
+
+        /* CENTRAL CURLED PARCHMENT SHEET (IMAGE 1 CENTER SHEET) */
+        .center-parchment-sheet {
+            width: 440px;
+            margin: 45px auto 40px auto;
+            padding: 26px 30px;
+            border-radius: 14px;
+            position: relative;
+            background: #FFFFFF;
+        }
+
+        /* 3D CLIPS ON PARCHMENT */
+        .paper-clip-3d {
+            position: absolute;
+            top: -12px;
+            right: 28px;
+            width: 32px;
+            height: 52px;
+            border: 3.5px solid #D5CEBF;
+            border-radius: 14px;
+            background: transparent;
+            box-shadow: 2px 4px 8px rgba(44, 30, 20, 0.15);
+            z-index: 20;
+        }
+
+        /* BOTTOM 3 TALL VERTICAL CARDS (IMAGE 1 EXACT 3-COLUMN BASE) */
+        .bottom-three-cards-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 35px;
+            position: relative;
+            z-index: 6;
+        }
+
+        .vertical-tall-card {
+            padding: 22px 20px;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 280px;
+        }
+
+        /* 3D EMBOSSED EMBLEM ON CARDS */
+        .card-emblem-3d {
+            width: 54px;
+            height: 54px;
+            border-radius: 12px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(44, 30, 20, 0.08), inset 0 1px 2px #FFFFFF;
+        }
+
+        .card-emblem-3d.ribbed {
+            background: repeating-linear-gradient(90deg, #FAF7F2, #FAF7F2 3px, #EFE8DD 3px, #EFE8DD 6px);
+            border: 1.5px solid #E2D7C8;
+            font-weight: 800;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        .card-emblem-3d.house {
+            background: radial-gradient(circle at 40% 40%, #FFFFFF 0%, #F5ECE0 100%);
+            border: 1.5px solid var(--copper);
+            color: var(--copper);
+        }
+
+        .card-emblem-3d.compass {
+            background: #1D1A17;
+            border: 2px solid #D4A870;
+            color: #FDBA74;
+            clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+        }
+
+        .vertical-tall-card h3 {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 6px;
+            line-height: 1.25;
+        }
+
+        .vertical-tall-card p {
+            font-size: 8.8px;
+            color: var(--text-muted);
+            line-height: 1.45;
+            margin-bottom: 12px;
+        }
+
+        .bullet-list-3d {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            border-top: 1px solid #F0E8DD;
+            padding-top: 10px;
+        }
+
+        .bullet-list-3d li {
+            font-size: 8.2px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            line-height: 1.25;
+        }
+
+        .bullet-list-3d li .dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--copper);
+            flex-shrink: 0;
+        }
+
+        /* FLOATING SIDE MINI CARDS & SPEECH PINS */
+        .speech-pin-card {
+            position: absolute;
+            background: #FFFFFF;
+            border-radius: 9px;
+            padding: 8px 12px;
+            box-shadow: 0 6px 18px rgba(44, 30, 20, 0.1), var(--shadow-stacked-edges);
+            border: 1px solid #EBE4D8;
+            font-size: 8px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            z-index: 7;
+        }
+
+        .speech-pin-card::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 16px;
+            border-width: 6px 6px 0;
+            border-style: solid;
+            border-color: #FFFFFF transparent;
+            display: block;
+            width: 0;
+        }
+
+        /* BOTTOM PILL BUTTON (IMAGE 1 CENTER NODE) */
+        .bottom-pill-node {
+            width: 140px;
+            margin: 25px auto 0 auto;
+            background: radial-gradient(circle at 40% 30%, #FFFFFF 0%, #F5ECE0 80%, #E3D4C0 100%);
+            border: 1.8px solid var(--copper);
+            border-radius: 999px;
+            padding: 8px 14px;
+            text-align: center;
+            box-shadow: 0 6px 18px rgba(44, 30, 20, 0.12), inset 0 1px 2px #FFFFFF;
+            position: relative;
+            z-index: 10;
+        }
+
+        .bottom-pill-node strong {
+            display: block;
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--copper-dark);
+            letter-spacing: 0.5px;
+        }
+
+        .bottom-pill-node span {
+            font-size: 7.2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* FOOTER BRANDING */
+        .footer-3d-note {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 8.5px;
+            color: var(--text-subtle);
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP NAVIGATION -->
+    <header class="top-bar-nav">
+        <a href="index.html" class="brand">
+            <svg width="22" height="22" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="22" fill="#C2672B"/>
+                <path d="M14 34V18L24 25L34 18V34" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Missi Innovation &bull; Study Agent Pro
+        </a>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="style-tag">Style 1 : Atelier 3D &amp; Flow Tactile</span>
+            <div class="nav-links">
+                <a href="perspectives_ameliorations_bento_ui.html" class="btn-nav btn-nav-glass">Style 2 (Bento UI Board) →</a>
+                <a href="https://missi-inovation.web.app/proposition_commerciale.html" target="_blank" rel="noopener" class="btn-nav btn-nav-glass">← Proposition 4 Pages</a>
+                <a href="index.html" class="btn-nav btn-nav-glass">Showroom</a>
+                <button onclick="window.print()" class="btn-nav btn-nav-copper">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    Imprimer Format Planche
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ARTBOARD CANVAS COMPOSITION (EXACT REPRODUCTION IMAGE 1) -->
+    <main class="artboard-container">
+
+        <!-- SVG SCHEMATIC NETWORK WIRES (EXACT WIREFRAME FLOW) -->
+        <svg class="schematic-svg-layer" viewBox="0 0 1200 1100" fill="none">
+            <!-- Wire from Top Center down to Central Sheet -->
+            <path d="M 600 230 L 600 375" stroke="#C99B72" stroke-width="1.8" stroke-dasharray="5 3"/>
+            
+            <!-- Wire branching to Top-Left Relief Card -->
+            <path d="M 410 135 L 340 135 L 340 160" stroke="#C99B72" stroke-width="1.5"/>
+
+            <!-- Wire branching to Top-Right Card -->
+            <path d="M 790 135 L 880 135 L 880 170 L 930 170" stroke="#C99B72" stroke-width="1.5"/>
+
+            <!-- Wire loop connecting to Top-Right Coffee & Medallion -->
+            <path d="M 600 260 L 760 260 L 760 300" stroke="#C99B72" stroke-width="1.5"/>
+
+            <!-- Wire connecting Central Sheet to Right Card & Coffee -->
+            <path d="M 820 460 L 920 460 L 920 540" stroke="#C99B72" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <!-- Wire connecting Central Sheet to Left Elements -->
+            <path d="M 380 460 L 290 460 L 290 600 L 330 600" stroke="#C99B72" stroke-width="1.5"/>
+
+            <!-- Wire down to Bottom 3 Cards via Center Pill -->
+            <path d="M 600 660 L 600 760" stroke="#C99B72" stroke-width="1.8"/>
+            <path d="M 600 790 L 600 840" stroke="#C99B72" stroke-width="1.8"/>
+            <path d="M 230 840 L 970 840" stroke="#C99B72" stroke-width="1.5"/>
+            <path d="M 230 840 L 230 870" stroke="#C99B72" stroke-width="1.5"/>
+            <path d="M 600 840 L 600 870" stroke="#C99B72" stroke-width="1.5"/>
+            <path d="M 970 840 L 970 870" stroke="#C99B72" stroke-width="1.5"/>
+
+            <!-- Small wire nodes / solder points -->
+            <circle cx="600" cy="230" r="4.5" fill="#C2672B"/>
+            <circle cx="600" cy="260" r="3.5" fill="#C2672B"/>
+            <circle cx="760" cy="260" r="3.5" fill="#C2672B"/>
+            <circle cx="340" cy="135" r="3" fill="#C2672B"/>
+            <circle cx="880" cy="135" r="3" fill="#C2672B"/>
+            <circle cx="230" cy="840" r="4" fill="#C2672B"/>
+            <circle cx="600" cy="840" r="4" fill="#C2672B"/>
+            <circle cx="970" cy="840" r="4" fill="#C2672B"/>
+        </svg>
+
+        <!-- TOP-RIGHT COFFEE CUP WITH SAUCER & SPOON (IMAGE 1 EXACT ELEMENT) -->
+        <div class="cup-saucer-3d" style="top: 30px; right: 90px;">
+            <div class="cup-spoon"></div>
+        </div>
+
+        <!-- 3D GOLD COIN / SEAL (IMAGE 1 $ SEAL POSITION) -->
+        <div class="gold-seal-3d" style="top: 240px; right: 380px;">
+            ✦
+        </div>
+
+        <!-- MID-RIGHT TEA/COFFEE CUP WITH AMBER REFLECTION -->
+        <div class="tea-cup-3d" style="top: 480px; right: 170px;"></div>
+
+        <!-- BOTANICAL DRIED FLOWER / BRANCH SHADOW (IMAGE 1 MID-LEFT) -->
+        <svg class="botanical-branch-3d" style="top: 360px; left: 190px; width: 140px; height: 110px;" viewBox="0 0 140 110" fill="none">
+            <path d="M 10 90 Q 60 70 120 30" stroke="#8C7D6B" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Leaves & delicate petals -->
+            <path d="M 45 75 Q 35 55 50 50 Q 60 65 45 75 Z" fill="#E8DDD0" stroke="#C5B8A5" stroke-width="1"/>
+            <path d="M 80 55 Q 75 35 90 32 Q 98 48 80 55 Z" fill="#F0E8DC" stroke="#C5B8A5" stroke-width="1"/>
+            <path d="M 115 32 Q 118 15 130 18 Q 132 32 115 32 Z" fill="#E8DDD0" stroke="#C5B8A5" stroke-width="1"/>
+            <circle cx="120" cy="30" r="4" fill="#C4976E"/>
+        </svg>
+
+        <!-- FLOATING PINS / TAGS (IMAGE 1 MID-LEFT) -->
+        <div class="speech-pin-card" style="top: 310px; left: 90px;">
+            <span style="color: var(--copper);">📱</span> Portail Mobile Familles
+        </div>
+        <div class="speech-pin-card" style="top: 390px; left: 80px;">
+            <span style="color: #059669;">⚡</span> 100% Hors-Ligne Résilient
+        </div>
+        <div class="speech-pin-card" style="top: 470px; left: 110px;">
+            <span style="color: var(--copper);">🏛️</span> Marque Blanche Pure
+        </div>
+
+        <!-- 1. TOP-LEFT CARD: RELIEF TOPOGRAPHIC CHART (IMAGE 1 TOP-LEFT) -->
+        <div class="top-left-relief-card">
+            <div class="relief-cloud"></div>
+            <div style="font-size: 7.8px; font-weight: 800; color: var(--copper); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
+                MODÈLE DE RENTABILITÉ
+            </div>
+            <strong style="font-size: 11px; color: var(--text-main); display: block; margin-bottom: 6px;" class="serif">
+                Amortissement Immédiat (ROI)
+            </strong>
+            <p style="font-size: 8px; color: var(--text-muted); line-height: 1.35; margin-bottom: 10px;">
+                Suppression intégrale des fuites de trésorerie, fin des carnets papier et gain de 3h par jour pour le secrétariat.
+            </p>
+            <!-- Topographic Relief Waves SVG -->
+            <svg width="100%" height="70" viewBox="0 0 200 70" fill="none">
+                <path d="M 0 50 Q 40 20 80 40 T 160 25 T 200 45 L 200 70 L 0 70 Z" fill="url(#waveGrad1)" opacity="0.6"/>
+                <path d="M 0 58 Q 50 35 100 50 T 180 38 T 200 52 L 200 70 L 0 70 Z" fill="url(#waveGrad2)"/>
+                <path d="M 0 50 Q 40 20 80 40 T 160 25 T 200 45" stroke="#C2672B" stroke-width="2"/>
+                <defs>
+                    <linearGradient id="waveGrad1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#F2D8C0"/>
+                        <stop offset="100%" stop-color="#E5C3A1"/>
+                    </linearGradient>
+                    <linearGradient id="waveGrad2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#D9A87C"/>
+                        <stop offset="100%" stop-color="#B87B45"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
+
+        <!-- 2. TOP-CENTER HERO DISPATCH CARD (IMAGE 1 MAIN FLOATING PAPER) -->
+        <div class="paper-sheet-3d top-center-hero-card">
+            <div class="eyebrow">ROADMAP TECHNOLOGIQUE &bull; ÉDITION 2026-2027</div>
+            <h1 class="serif">Perspectives d'Avenir &amp; Catalogue Modulaire</h1>
+            <p>
+                La plateforme ERP scolaire évolutive pensée pour la pérennité de votre établissement. Activez les modules à la carte au fil de votre croissance, sur votre base souveraine.
+            </p>
+            <a href="#central-flow" class="btn-pill-dark">EXPLORER L'ARCHITECTURE</a>
+        </div>
+
+        <!-- 3. TOP-RIGHT SIDE CARD (IMAGE 1 RIGHT PAPER) -->
+        <div class="paper-sheet-3d top-right-side-card">
+            <div style="font-size: 7.8px; font-weight: 800; color: var(--copper); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
+                ÉCOSYSTÈME FAMILLE
+            </div>
+            <h3 class="serif" style="font-size: 12.5px; color: var(--text-main); margin-bottom: 5px;">
+                Portail Parents &amp; Mobile
+            </h3>
+            <p style="font-size: 8.2px; color: var(--text-muted); line-height: 1.35; margin-bottom: 8px;">
+                Consultation instantanée des notes, retards, bulletins et solde d'écolages 24h/24 par SMS &amp; WhatsApp.
+            </p>
+            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                <span style="font-size: 7.2px; font-weight: 700; color: var(--copper-dark); background: var(--copper-light); border: 1px solid var(--copper-border); padding: 2px 7px; border-radius: 4px;">
+                    ★ Le Plus Demandé
+                </span>
+                <span style="font-size: 7.2px; font-weight: 600; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 2px 7px; border-radius: 4px;">
+                    -80% Files d'Attente
+                </span>
+            </div>
+        </div>
+
+        <!-- 4. CENTRAL LARGE PARCHMENT SHEET WITH 3D CLIPS (IMAGE 1 MAIN CENTER SHEET) -->
+        <div class="paper-sheet-3d center-parchment-sheet" id="central-flow">
+            <div class="paper-clip-3d"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1.5px solid #F0E8DD; padding-bottom: 6px;">
+                <div style="font-size: 8.5px; font-weight: 800; color: var(--copper); text-transform: uppercase; letter-spacing: 1px;">
+                    LE CŒUR DU SYSTÈME &bull; ARCHITECTURE SOUVERAINE
+                </div>
+                <span style="font-size: 7.5px; color: var(--text-subtle);">Déploiement 48h</span>
+            </div>
+
+            <h2 class="serif" style="font-size: 16px; color: var(--text-main); margin-bottom: 6px;">
+                Auto-Guérison Cloud Supabase &amp; Zéro Coupure JIRAMA
+            </h2>
+            <p style="font-size: 9px; color: var(--text-muted); line-height: 1.45; margin-bottom: 14px;">
+                Chaque poste fonctionne en mode autonome ultrarapide sur moteur local SQLite. À 18h, la synchronisation intelligente LWW (Last-Write-Wins) consolide l'ensemble des encaissements sur Supabase PostgreSQL et transmet le bilan scellé à la direction générale par email.
+            </p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 8.2px;">
+                <div style="background: var(--paper-warm); padding: 8px 10px; border-radius: 6px; border: 1px solid #EFE6DC;">
+                    <strong style="color: var(--copper-dark); display: block; margin-bottom: 2px;">⚡ Caisse Locale 4 Secondes :</strong>
+                    Émission instantanée du ticket thermique 80 mm POS avec billetage physique scellé.
+                </div>
+                <div style="background: var(--paper-warm); padding: 8px 10px; border-radius: 6px; border: 1px solid #EFE6DC;">
+                    <strong style="color: var(--copper-dark); display: block; margin-bottom: 2px;">🛡️ Sauvegarde Miroir 18h :</strong>
+                    Restauration immédiate sur PC de secours sous 4h en cas de sinistre matériel.
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. MID-LEFT STACKED PAPERS (IMAGE 1 MID-LEFT PAPER STACK) -->
+        <div class="paper-sheet-3d" style="position: absolute; top: 580px; left: 140px; width: 230px; padding: 14px 18px; border-radius: 12px; z-index: 6;">
+            <div style="font-size: 7.5px; font-weight: 800; color: var(--copper); text-transform: uppercase; margin-bottom: 3px;">
+                RH &amp; GESTION DU PERSONNEL
+            </div>
+            <strong style="font-size: 11px; color: var(--text-main); display: block; margin-bottom: 4px;" class="serif">
+                Recrutement Web &amp; Pointage
+            </strong>
+            <p style="font-size: 8px; color: var(--text-muted); line-height: 1.35; margin-bottom: 6px;">
+                Formulaires d'embauche en ligne à l'image de l'école, grille d'évaluation, et calcul automatisé de la pré-paie IRSA/CNaPS.
+            </p>
+            <div style="font-size: 7.5px; font-weight: 700; color: #1E1B18;">
+                ✓ Zéro litige d'horaires &bull; Fiches PDF
+            </div>
+        </div>
+
+        <!-- 6. MID-RIGHT STACKED PAPERS (IMAGE 1 MID-RIGHT DOCUMENT) -->
+        <div class="paper-sheet-3d" style="position: absolute; top: 580px; right: 80px; width: 260px; padding: 14px 18px; border-radius: 12px; z-index: 6;">
+            <div style="font-size: 7.5px; font-weight: 800; color: var(--copper); text-transform: uppercase; margin-bottom: 3px;">
+                FINANCE &amp; SANS ESPÈCES
+            </div>
+            <strong style="font-size: 11px; color: var(--text-main); display: block; margin-bottom: 4px;" class="serif">
+                Paiement Mobile Money Intégré
+            </strong>
+            <p style="font-size: 8px; color: var(--text-muted); line-height: 1.35; margin-bottom: 6px;">
+                Règlement de l'écolage par Mvola, Orange Money et Airtel Money 24h/24. Réconciliation automatique en 2 secondes et reçu SMS officiel.
+            </p>
+            <div style="font-size: 7.5px; font-weight: 700; color: var(--copper-dark);">
+                ✓ Moins d'espèces en caisse &bull; Traçabilité totale
+            </div>
+        </div>
+
+        <!-- 7. BOTTOM CENTER EMBOSSED CIRCULAR PILL NODE (IMAGE 1 CENTER NODE) -->
+        <div class="bottom-pill-node">
+            <strong>MISSI INNOVATION</strong>
+            <span>GARANTIE DE DÉPLOIEMENT SOUS 48H</span>
+        </div>
+
+        <!-- 8. BOTTOM 3 VERTICAL TALL CARDS (IMAGE 1 EXACT 3-COLUMN STRUCTURE) -->
+        <div class="bottom-three-cards-row">
+            <!-- CARD 1 (LEFT RIBBED COVER) -->
+            <div class="paper-sheet-3d vertical-tall-card">
+                <div>
+                    <div class="card-emblem-3d ribbed">All</div>
+                    <h3 class="serif">1. Vie Scolaire, Badge RFID &amp; Cantine</h3>
+                    <p>
+                        Éliminez les files d'attente au réfectoire et sécurisez les sorties grâce aux cartes d'élèves sans contact.
+                    </p>
+                </div>
+                <ul class="bullet-list-3d">
+                    <li><span class="dot"></span> <strong>Badges RFID élèves sans contact</strong></li>
+                    <li><span class="dot"></span> Passage borne cantine en 2 secondes</li>
+                    <li><span class="dot"></span> Débit automatique des forfaits repas prépayés</li>
+                    <li><span class="dot"></span> Suivi strict des allergies et régimes alimentaires</li>
+                    <li><span class="dot"></span> Activités périscolaires, clubs &amp; garderie du soir</li>
+                </ul>
+            </div>
+
+            <!-- CARD 2 (CENTER EMBOSSED SEAL) -->
+            <div class="paper-sheet-3d vertical-tall-card" style="border-top: 3.5px solid var(--copper);">
+                <div>
+                    <div class="card-emblem-3d house">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/></svg>
+                    </div>
+                    <h3 class="serif">2. Organisation Académique &amp; Inscriptions</h3>
+                    <p>
+                        Dématérialisez la rentrée scolaire et concevez des emplois du temps parfaits sans le moindre conflit de salle.
+                    </p>
+                </div>
+                <ul class="bullet-list-3d">
+                    <li><span class="dot"></span> <strong>Inscriptions &amp; réinscriptions en ligne</strong></li>
+                    <li><span class="dot"></span> Téléversement des pièces justificatives par les parents</li>
+                    <li><span class="dot"></span> Emploi du temps interactif par glisser-déposer</li>
+                    <li><span class="dot"></span> Détection instantanée des chevauchements profs/salles</li>
+                    <li><span class="dot"></span> Bibliothèque &amp; CDI avec gestion des prêts par douchette</li>
+                </ul>
+            </div>
+
+            <!-- CARD 3 (RIGHT COMPASS / CLOCK) -->
+            <div class="paper-sheet-3d vertical-tall-card">
+                <div>
+                    <div class="card-emblem-3d compass">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <h3 class="serif">3. Sécurité, Flotte Bus &amp; Forteresse</h3>
+                    <p>
+                        Assurez la tranquillité des familles avec le suivi GPS en temps réel des navettes scolaires et le billetage scellé.
+                    </p>
+                </div>
+                <ul class="bullet-list-3d">
+                    <li><span class="dot"></span> <strong>Transport scolaire &amp; suivi GPS en direct</strong></li>
+                    <li><span class="dot"></span> Liste d'appel numérique par arrêt de ramassage</li>
+                    <li><span class="dot"></span> Billetage physique de 20 000 à 100 Ar &amp; Ticket Z</li>
+                    <li><span class="dot"></span> Facturation automatique des navettes par zone</li>
+                    <li><span class="dot"></span> Clôture de caisse quotidienne inaltérable</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-3d-note">
+            <strong>Missi Innovation</strong> &bull; Plateforme ERP Scolaire Clés-en-Main &bull; Tous les modules s'intègrent nativement à votre base locale existante.
+        </div>
+    </main>
+
+</body>
+</html>

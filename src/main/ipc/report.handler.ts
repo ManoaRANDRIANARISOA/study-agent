@@ -54,7 +54,7 @@ export function registerReportHandlers(): void {
   })
 
   ipcMain.handle('export:file', async (_, options) => {
-    if (!canRead('students') && !canRead('reports') && !canRead('personnel')) {
+    if (!canRead('students') && !canRead('reports') && !canRead('personnel') && !canRead('payments') && !canRead('cash_journal')) {
       return { success: false, error: 'Accès refusé : droits insuffisants' }
     }
     return ExportService.exportData(options)

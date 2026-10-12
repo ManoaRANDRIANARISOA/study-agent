@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" width="48" height="48">
+  <defs>
+    <linearGradient id="missiGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#C2672B"/>
+    </linearGradient>
+    <linearGradient id="missiBase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#262220"/>
+      <stop offset="100%" stop-color="#141211"/>
+    </linearGradient>
+  </defs>
+  <!-- Base Squircle -->
+  <rect width="48" height="48" rx="12" fill="url(#missiBase)"/>
+  <rect x="0.75" y="0.75" width="46.5" height="46.5" rx="11.25" stroke="#443E3A" stroke-width="1.5"/>
+  <!-- Geometric Monogram M + i (Missi Innovation) -->
+  <!-- Outer Pillars (M) in Crisp Warm White -->
+  <path d="M12 34V17.5C12 16.1 13.6 15.3 14.7 16.2L24 23.5L33.3 16.2C34.4 15.3 36 16.1 36 17.5V34" stroke="#FAF8F5" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Center Innovation Beacon (i) in Warm Amber / Copper Glow -->
+  <circle cx="24" cy="12.5" r="2.5" fill="url(#missiGlow)"/>
+  <path d="M24 25.5V34" stroke="url(#missiGlow)" stroke-width="3.2" stroke-linecap="round"/>
+</svg>

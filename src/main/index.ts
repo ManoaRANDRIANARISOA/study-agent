@@ -34,6 +34,8 @@ import { registerSyncHandlers } from './ipc/sync.handler'
 import { startPeriodicSync } from './services/sync.service'
 import { startSessionMonitor, stopSessionMonitor } from './auth/session.service'
 import { EmailService } from './services/email.service'
+import { registerUpdaterHandlers } from './ipc/updater.handler'
+import { UpdaterService } from './services/updater.service'
 
 // Auth handlers are now registered via registerAuthHandlers() below
 
@@ -54,6 +56,7 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+    UpdaterService.init(mainWindow)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -116,6 +119,7 @@ app.whenReady().then(() => {
   registerDuplicateHandlers()
   registerSyncHandlers()
   setupPrinterHandlers()
+  registerUpdaterHandlers()
 
   // Register custom protocol for local resources
   protocol.handle('local-resource', async (req) => {

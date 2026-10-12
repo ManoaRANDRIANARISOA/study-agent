@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perspectives d'Avenir &amp; Améliorations — Bento UI Board | Missi Innovation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-bento-canvas: #EAE6DE;
+            --widget-white: #FFFFFF;
+            --widget-warm: #FAF8F5;
+            --copper-primary: #C2672B;
+            --copper-dark: #9A4C1B;
+            --copper-subtle: #FDF6F0;
+            --copper-border: #F2DEC9;
+            --ink-dark: #191613;
+            --ink-muted: #57524D;
+            --ink-light: #8E8880;
+            --green-active: #059669;
+            --green-subtle: #ECFDF5;
+            --border-bento: rgba(228, 218, 206, 0.85);
+            --shadow-bento-widget: 
+                0 2px 4px rgba(40, 25, 15, 0.03),
+                0 10px 28px rgba(40, 25, 15, 0.06);
+            --shadow-inner-glow:
+                inset 0 1.5px 2px rgba(255, 255, 255, 1),
+                inset 0 -1px 2px rgba(40, 25, 15, 0.03);
+            --radius-widget-lg: 24px;
+            --radius-widget-md: 18px;
+            --radius-widget-sm: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-bento-canvas);
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.9) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(240, 215, 192, 0.35) 0%, transparent 50%);
+            color: var(--ink-dark);
+            min-height: 100vh;
+            padding-bottom: 70px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .serif {
+            font-family: 'Playfair Display', Georgia, serif;
+        }
+
+        /* TOP NAVIGATION */
+        .top-nav-bento {
+            position: sticky;
+            top: 0;
+            z-index: 99999;
+            background: rgba(25, 22, 19, 0.95);
+            backdrop-filter: blur(16px);
+            border-bottom: 2px solid var(--copper-primary);
+            padding: 12px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+
+        .top-nav-bento .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .top-nav-bento .badge-style {
+            background: rgba(194, 103, 43, 0.25);
+            border: 1px solid var(--copper-primary);
+            color: #FED7AA;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .top-nav-bento .actions-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-bento-nav {
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .btn-bento-glass {
+            background: rgba(255,255,255,0.08);
+            color: #E7E5E4;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .btn-bento-glass:hover {
+            background: rgba(255,255,255,0.18);
+            color: white;
+        }
+
+        .btn-bento-copper {
+            background: var(--copper-primary);
+            color: white;
+            border: 1px solid var(--copper-primary);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(194, 103, 43, 0.35);
+        }
+
+        .btn-bento-copper:hover {
+            background: var(--copper-dark);
+        }
+
+        /* BENTO BOARD CONTAINER (EXACT COMPOSITION IMAGE 2) */
+        .bento-board-container {
+            max-width: 1240px;
+            margin: 25px auto;
+            padding: 0 20px;
+        }
+
+        /* TITLE BANNER */
+        .bento-header-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 22px;
+            padding: 0 6px;
+        }
+
+        .bento-header-banner h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--ink-dark);
+            line-height: 1.15;
+        }
+
+        .bento-header-banner p {
+            font-size: 9.5px;
+            color: var(--ink-muted);
+            margin-top: 2px;
+        }
+
+        /* WIDGET BASE STYLING (IMAGE 2 NEUMORPHIC FROSTED CARDS) */
+        .bento-widget {
+            background: var(--widget-white);
+            border-radius: var(--radius-widget-lg);
+            border: 1px solid var(--border-bento);
+            box-shadow: var(--shadow-bento-widget), var(--shadow-inner-glow);
+            padding: 16px 18px;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .bento-widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 4px 8px rgba(40, 25, 15, 0.04),
+                0 16px 36px rgba(40, 25, 15, 0.09);
+        }
+
+        /* WIDGET HEADER */
+        .widget-top-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .widget-label-tiny {
+            font-size: 7.8px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--ink-light);
+        }
+
+        .widget-arrow-icon {
+            font-size: 10px;
+            color: var(--ink-light);
+        }
+
+        /* 5-COLUMN CSS GRID MATCHING IMAGE 2 EXACT ARCHITECTURE */
+        .grid-bento-master {
+            display: grid;
+            grid-template-columns: 180px 200px 1.4fr 200px 220px;
+            gap: 16px;
+            align-items: start;
+        }
+
+        /* COLUMN 1 : CLOCK & SLIDERS */
+        .bento-col-1 {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* WIDGET : ANALOG CLOCK (IMAGE 2 TOP-LEFT) */
+        .widget-analog-clock {
+            height: 170px;
+            background: linear-gradient(135deg, #2D1A10 0%, #170E08 100%);
+            border-radius: var(--radius-widget-lg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 8px 24px rgba(40, 25, 15, 0.3), inset 0 1px 2px rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(194, 103, 43, 0.4);
+        }
+
+        .clock-face {
+            width: 105px;
+            height: 105px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .clock-hour-hand {
+            position: absolute;
+            width: 3px;
+            height: 32px;
+            background: white;
+            border-radius: 3px;
+            top: 22px;
+            left: 50px;
+            transform-origin: bottom center;
+            transform: rotate(180deg);
+        }
+
+        .clock-minute-hand {
+            position: absolute;
+            width: 2px;
+            height: 42px;
+            background: var(--copper-primary);
+            border-radius: 2px;
+            top: 11px;
+            left: 51px;
+            transform-origin: bottom center;
+            transform: rotate(0deg);
+        }
+
+        .clock-center-pin {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: white;
+            position: absolute;
+        }
+
+        .clock-caption {
+            font-size: 7.8px;
+            font-weight: 700;
+            color: #FED7AA;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        /* WIDGET : SLIDER / SEGMENT */
+        .widget-slider-control {
+            padding: 14px 16px;
+        }
+
+        .slider-bar-wrap {
+            height: 6px;
+            background: #EFE8DE;
+            border-radius: 999px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slider-bar-fill {
+            height: 100%;
+            width: 75%;
+            background: linear-gradient(90deg, var(--copper-primary), var(--copper-dark));
+            border-radius: 999px;
+        }
+
+        /* COLUMN 2 : RECEIPT TICKET & BIG NUMBERS */
+        .bento-col-2 {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* WIDGET : THERMAL BARCODE TICKET (IMAGE 2 TOP-COL-2) */
+        .widget-ticket-barcode {
+            padding: 16px;
+            background: #FFFFFF;
+        }
+
+        .barcode-svg {
+            width: 100%;
+            height: 28px;
+            margin: 8px 0;
+        }
+
+        .ticket-info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 7.5px;
+            color: var(--ink-muted);
+            margin-top: 3px;
+        }
+
+        .ticket-price-total {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--copper-dark);
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px dashed #E2D7C8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* BIG NUMBER CARD (1500) */
+        .widget-kpi-1500 {
+            padding: 18px 16px;
+        }
+
+        .kpi-huge-number {
+            font-size: 38px;
+            font-weight: 800;
+            color: var(--ink-dark);
+            line-height: 1;
+            letter-spacing: -1.5px;
+            margin: 4px 0;
+        }
+
+        /* COLUMN 3 : LARGE HERO LANDSCAPE & CIRCULAR PORTAL (CENTER) */
+        .bento-col-3 {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* HERO CARD WITH MOUNTAIN/CAMPUS VISUAL (IMAGE 2 CENTER TOP) */
+        .widget-hero-showcase {
+            height: 240px;
+            border-radius: var(--radius-widget-lg);
+            background: linear-gradient(180deg, rgba(29, 26, 23, 0.4) 0%, rgba(29, 26, 23, 0.85) 100%),
+                        radial-gradient(circle at 60% 40%, #7C4522 0%, #29150B 100%);
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: white;
+            box-shadow: 0 12px 36px rgba(40, 25, 15, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-top-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .frosted-pill-tag {
+            background: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 7.6px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+        }
+
+        .hero-bottom-text h2 {
+            font-size: 19px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+
+        .hero-bottom-text p {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.82);
+            line-height: 1.35;
+        }
+
+        /* CIRCULAR PORTAL CARD WITH RFID MODULES (IMAGE 2 CENTER MIDDLE) */
+        .widget-circular-portal {
+            padding: 18px 20px;
+        }
+
+        .portal-circle-window {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 14px auto;
+            background: radial-gradient(circle at 35% 35%, #FFFFFF 0%, #F5ECE0 60%, #E8D6C2 100%);
+            border: 3px solid #FFFFFF;
+            box-shadow: 0 6px 18px rgba(40, 25, 15, 0.12), inset 0 2px 4px rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .portal-circle-window svg {
+            color: var(--copper-primary);
+        }
+
+        .portal-modules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .portal-module-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--widget-warm);
+            border: 1px solid var(--border-bento);
+            padding: 7px 10px;
+            border-radius: 8px;
+            font-size: 8.5px;
+            font-weight: 600;
+        }
+
+        .portal-module-item .tag {
+            font-size: 7.2px;
+            font-weight: 700;
+            color: var(--copper-dark);
+            background: var(--copper-subtle);
+            padding: 1.5px 6px;
+            border-radius: 4px;
+        }
+
+        /* COLUMN 4 : DIAL 133 & NUMERIC CIRCLES */
+        .bento-col-4 {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* CIRCULAR GAUGE 133 (IMAGE 2 COL 4) */
+        .widget-dial-133 {
+            padding: 18px 16px;
+            text-align: center;
+        }
+
+        .gauge-circle-outer {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            border: 3.5px solid #F0E6D8;
+            border-top-color: var(--copper-primary);
+            border-right-color: var(--copper-primary);
+            margin: 6px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--ink-dark);
+            box-shadow: 0 4px 12px rgba(40,25,15,0.06);
+        }
+
+        /* 3 NUMERIC CIRCLES (4 - 7 - 74) (IMAGE 2 COL 4) */
+        .widget-three-circles {
+            padding: 16px 14px;
+        }
+
+        .three-circles-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .mini-circle-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--widget-warm);
+            border: 1.5px solid var(--border-bento);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(40, 25, 15, 0.04);
+        }
+
+        .mini-circle-box .val {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--copper-dark);
+            line-height: 1;
+        }
+
+        .mini-circle-box .desc {
+            font-size: 6px;
+            color: var(--ink-light);
+            text-transform: uppercase;
+        }
+
+        /* COLUMN 5 : MEDIA PLAYER & ROTARY DIAL (RIGHT) */
+        .bento-col-5 {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* MEDIA / NOTIFICATION PLAYER (IMAGE 2 TOP-RIGHT) */
+        .widget-media-player {
+            padding: 16px;
+        }
+
+        .player-waveform {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            height: 28px;
+            margin: 10px 0;
+        }
+
+        .player-bar {
+            flex: 1;
+            background: #E8DDD0;
+            border-radius: 2px;
+            height: 12px;
+        }
+
+        .player-bar.active {
+            background: var(--copper-primary);
+        }
+
+        /* ROTARY KNOB DIAL (LOOOH) (IMAGE 2 MID-RIGHT) */
+        .widget-rotary-dial {
+            padding: 18px 16px;
+            text-align: center;
+        }
+
+        .rotary-knob-circle {
+            width: 82px;
+            height: 82px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #FFFFFF 0%, #F5ECE0 65%, #DFD1BE 100%);
+            border: 3px solid #FFFFFF;
+            box-shadow: 0 8px 20px rgba(40, 25, 15, 0.15), inset 0 2px 3px white;
+            margin: 10px auto;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rotary-knob-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--copper-primary);
+            position: absolute;
+            top: 10px;
+        }
+
+        /* BOTTOM BENTO STRIP : PILL TOGGLES & CONTROLLERS (IMAGE 2 BOTTOM) */
+        .bottom-toggles-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 18px;
+        }
+
+        .pill-toggle-card {
+            background: #FFFFFF;
+            border-radius: var(--radius-widget-md);
+            border: 1px solid var(--border-bento);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-bento-widget);
+        }
+
+        .pill-toggle-card strong {
+            font-size: 8.5px;
+            color: var(--ink-dark);
+        }
+
+        .pill-toggle-card span {
+            font-size: 7.5px;
+            color: var(--ink-muted);
+            display: block;
+        }
+
+        .toggle-switch-ui {
+            width: 32px;
+            height: 18px;
+            border-radius: 999px;
+            background: #059669;
+            position: relative;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch-ui::after {
+            content: '';
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: white;
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+        }
+
+        /* FOOTER BRANDING */
+        .footer-bento-note {
+            text-align: center;
+            margin-top: 35px;
+            font-size: 8.5px;
+            color: var(--ink-light);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP NAVIGATION -->
+    <header class="top-nav-bento">
+        <a href="index.html" class="brand">
+            <svg width="22" height="22" viewBox="0 0 48 48" fill="none">
+                <circle cx="24" cy="24" r="22" fill="#C2672B"/>
+                <path d="M14 34V18L24 25L34 18V34" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Missi Innovation &bull; Study Agent Pro
+        </a>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="badge-style">Style 2 : Bento UI Board &amp; Widgets</span>
+            <div class="actions-group">
+                <a href="perspectives_ameliorations_atelier_3d.html" class="btn-bento-nav btn-bento-glass">← Style 1 (Atelier 3D)</a>
+                <a href="https://missi-inovation.web.app/proposition_commerciale_bento_glass.html" target="_blank" rel="noopener" class="btn-bento-nav btn-bento-glass">Proposition Bento 4 Pages</a>
+                <a href="index.html" class="btn-bento-nav btn-bento-glass">Showroom</a>
+                <button onclick="window.print()" class="btn-bento-nav btn-bento-copper">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4H7v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    Imprimer Board Bento
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- BENTO BOARD MAIN CANVAS (EXACT 5-COLUMN STRUCTURE IMAGE 2) -->
+    <main class="bento-board-container">
+
+        <!-- TITLE ROW -->
+        <div class="bento-header-banner">
+            <div>
+                <h1 class="serif">Bento Board &bull; Perspectives d'Avenir &amp; Améliorations ERP</h1>
+                <p>Écosystème de modules connectés haute-fidélité pour collèges, lycées et écoles privées d'excellence.</p>
+            </div>
+            <div style="font-size: 8px; font-weight: 700; color: var(--copper-dark); background: var(--copper-subtle); border: 1px solid var(--copper-border); padding: 4px 10px; border-radius: 999px;">
+                ÉDITION DÉMONSTRATION 2026-2027
+            </div>
+        </div>
+
+        <!-- 5-COLUMN MASTER GRID -->
+        <div class="grid-bento-master">
+
+            <!-- ============================================== -->
+            <!-- COLONNE 1 : HORLOGE ANALOGIQUE & SEUILS        -->
+            <!-- ============================================== -->
+            <div class="bento-col-1">
+                <!-- WIDGET 1 : ANALOG CLOCK 18:00 (IMAGE 2 TOP-LEFT) -->
+                <div class="widget-analog-clock">
+                    <div class="clock-face">
+                        <div class="clock-hour-hand"></div>
+                        <div class="clock-minute-hand"></div>
+                        <div class="clock-center-pin"></div>
+                    </div>
+                    <div class="clock-caption">18:00 &bull; Clôture Scellée</div>
+                </div>
+
+                <!-- WIDGET 2 : SLIDER SEUIL DE RECOUVREMENT -->
+                <div class="bento-widget widget-slider-control">
+                    <div class="widget-top-meta">
+                        <span class="widget-label-tiny">Alerte Écolage</span>
+                        <span class="widget-arrow-icon">›</span>
+                    </div>
+                    <strong style="font-size: 11px; display: block; color: var(--ink-dark);">Seuil Relance Auto</strong>
+                    <div class="slider-bar-wrap">
+                        <div class="slider-bar-fill"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 7.5px; color: var(--ink-muted);">
+                        <span>Échéance 5j</span>
+                        <strong style="color: var(--copper-dark);">J+15 (SMS)</strong>
+                    </div>
+                </div>
+
+                <!-- WIDGET 3 : SÉLECTEUR MULTI-POSTES CAISSE -->
+                <div class="bento-widget" style="padding: 12px 14px;">
+                    <div class="widget-top-meta">
+                        <span class="widget-label-tiny">Postes Réseau</span>
+                        <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--green-active);"></span>
+                    </div>
+                    <strong style="font-size: 9.5px; color: var(--ink-dark); display: block;">3 Guichets Ouverts</strong>
+                    <div style="font-size: 7.5px; color: var(--ink-muted); margin-top: 2px;">Caisse 1 &bull; Caisse 2 &bull; Direction</div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- COLONNE 2 : TICKET DE CAISSE BARCODE & KPI     -->
+            <!-- ============================================== -->
+            <div class="bento-col-2">
+                <!-- WIDGET 4 : TICKET THERMIQUE 80 MM CODE-BARRES (IMAGE 2 TICKET) -->
+                <div class="bento-widget widget-ticket-barcode">
+                    <div class="widget-top-meta">
+                        <span class="widget-label-tiny">Ticket Z Fiscal</span>
+                        <span style="font-size: 7px; color: var(--ink-light);">#004829</span>
+                    </div>
+                    <strong style="font-size: 10px; color: var(--ink-dark); display: block;">Imprimante 80 mm POS</strong>
+                    <!-- Stylized Barcode SVG -->
+                    <svg class="barcode-svg" viewBox="0 0 160 28" fill="none">
+                        <rect x="0" width="3" height="28" fill="#191613"/>
+                        <rect x="5" width="2" height="28" fill="#191613"/>
+                        <rect x="9" width="4" height="28" fill="#191613"/>
+                        <rect x="15" width="1.5" height="28" fill="#191613"/>
+                        <rect x="19" width="3" height="28" fill="#191613"/>
+                        <rect x="25" width="5" height="28" fill="#191613"/>
+                        <rect x="33" width="2" height="28" fill="#191613"/>
+                        <rect x="38" width="4" height="28" fill="#191613"/>
+                        <rect x="44" width="2" height="28" fill="#191613"/>
+                        <rect x="49" width="3" height="28" fill="#191613"/>
+                        <rect x="55" width="1.5" height="28" fill="#191613"/>
+                        <rect x="60" width="5" height="28" fill="#191613"/>
+                        <rect x="68" width="2" height="28" fill="#191613"/>
+                        <rect x="73" width="3" height="28" fill="#191613"/>
+                        <rect x="79" width="4" height="28" fill="#191613"/>
+                        <rect x="86" width="2" height="28" fill="#191613"/>
+                        <rect x="91" width="3" height="28" fill="#191613"/>
+                        <rect x="97" width="5" height="28" fill="#191613"/>
+                        <rect x="105" width="2" height="28" fill="#191613"/>
+                        <rect x="110" width="4" height="28" fill="#191613"/>
+                        <rect x="117" width="2" height="28" fill="#191613"/>
+                        <rect x="122" width="3" height="28" fill="#191613"/>
+                        <rect x="128" width="5" height="28" fill="#191613"/>
+                        <rect x="136" width="2" height="28" fill="#191613"/>
+                        <rect x="141" width="4" height="28" fill="#191613"/>
+                        <rect x="148" width="3" height="28" fill="#191613"/>
+                        <rect x="154" width="2" height="28" fill="#191613"/>
+                    </svg>
+                    <div class="ticket-info-row">
+                        <span>Billetage physique :</span>
+                        <strong>Conforme</strong>
+                    </div>
+                    <div class="ticket-info-row">
+                        <span>Écart de caisse :</span>
+                        <strong style="color: var(--green-active);">0 Ar</strong>
+                    </div>
+                    <div class="ticket-price-total">
+                        <span style="font-size: 8px; font-weight: 700; color: var(--ink-muted);">RECETTES MOIS :</span>
+                        <span>22 098 000 Ar</span>
+                    </div>
+                </div>
+
+                <!-- WIDGET 5 : BIG NUMBER KPI 1500 (IMAGE 2 1500 CARD) -->
+                <div class="bento-widget widget-kpi-1500">
+                    <div class="widget-top-meta">
+                        <span class="widget-label-tiny">Capacité Système</span>
+                        <span class="widget-arrow-icon">›</span>
+                    </div>
+                    <div class="kpi-huge-number">1500+</div>
+                    <div style="font-size: 8.5px; font-weight: 700; color: var(--copper-dark);">Élèves Gérés en Direct</div>
+                    <p style="font-size: 7.5px; color: var(--ink-muted); margin-top: 3px; line-height: 1.25;">
+                        Zéro ralentissement même aux heures de pointe d'encaissement du matin.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- COLONNE 3 : HERO PREVIEW & PORTAIL CIRCULAIRE  -->
+            <!-- ============================================== -->
+            <div class="bento-col-3">
+                <!-- WIDGET 6 : HERO SHOWCASE CARD (IMAGE 2 CENTER TOP) -->
+                <div class="widget-hero-showcase">
+                    <div class="hero-top-pills">
+                        <span class="frosted-pill-tag">100% Hors-Ligne</span>
+                        <span class="frosted-pill-tag">Multi-Postes</span>
+                        <span class="frosted-pill-tag">Déploiement 48h</span>
+                    </div>
+                    <div class="hero-bottom-text">
+                        <span style="font-size: 8px; font-weight: 800; letter-spacing: 1px; color: #FED7AA; text-transform: uppercase;">
+                            PLATEFORME INTÉGRÉE D'EXCELLENCE
+                        </span>
+                        <h2 class="serif">Study Agent Pro &bull; Missi Innovation</h2>
+                        <p>
+                            L'ERP scolaire le plus robuste à Madagascar : souverain face aux coupures réseau et scellé fiscalement.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- WIDGET 7 : CIRCULAR PORTAL CARD AVEC RFID (IMAGE 2 PORTAL) -->
+                <div class="bento-widget widget-circular-portal">
+                    <div class="widget-top-meta">
+                        <span class="widget-label-tiny">Objets Connectés &amp; RFID</span>
+                        <span style="font-size: 7.5px; font-weight: 700; color: var(--copper-dark);">SANS CONTACT</span>
+                    </div>
+                    
+                    <!-- Circular Aperture Lens with RFID wave -->
+                    <div class="portal-circle-window">
+                        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 8a7 7 0 0 1 14 0"/>
+                            <path d="M8 11a4 4 0 0 1 8 0"/>
+                            <line x1="12" x2="12" y1="14" y2="14.01"/>
+                        </svg>
+                    </div>
+
+                    <div class="portal-modules-list">
+                        <div class="portal-module-item">
+                            <span>Badge Élève &bull; Borne Cantine</span>
+                            <span class="tag">Passage 2 sec</span>
+                        </div>
+                        <div class="portal-module-item">
+                            <span>Émargement Bus &bull; GPS</span>
+                            <span class="tag">Direct Parents</span>
+                        </div>
+                        <div class="portal-module-item">
+                            <span>Porte-Monnaie Dématérialisé</span>
+                            <span class="tag">Sécurisé</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- COLONNE 4 : CADRAN 133 & CERCLES 4-7-74        -->
+            <!-- ============================================== -->
+            <div class="bento-col-4">
+                <!-- WIDGET 8 : DIAL GAUGE 133 (IMAGE 2 133 CARD) -->
+                <div class="bento-widget widget-dial-133">
+                    <div class="widget-top-meta">
+                        <span class="widget-label-tiny">Inscriptions / Jour</span>
+                        <span class="widget-arrow-icon">›</span>
+                    </div>
+                    <div class="gauge-circle-outer">
+                        133
+                    </div>
+                    <strong style="font-size: 9px; color: var(--ink-dark); display: block; margin-top: 4px;">Dossiers Rentrée</strong>
+                    <div style="font-size: 7.2px; color: var(--ink-muted);">Validés sans aucune resaisie</div>
+                </div>
+
+                <!-- WIDGET 9 : THREE NUMERIC CIRCLES 4 - 7 - 74 (IMAGE 2 THREE CIRCLES) -->
+                <div class="bento-widget widget-three-circles">
+                    <div class="widget-top-meta">
+                        <span class="widget-label-tiny">Métriques Structure</span>
+                    </div>
+                    <div class="three-circles-row">
+                        <div class="mini-circle-box">
+                            <div class="val">4</div>
+                            <div class="desc">Caisses</div>
+                        </div>
+                        <div class="mini-circle-box">
+                            <div class="val">7</div>
+                            <div class="desc">Niveaux</div>
+                        </div>
+                        <div class="mini-circle-box">
+                            <div class="val">74</div>
+                            <div class="desc">Classes</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 7.5px; color: var(--ink-muted); text-align: center; border-top: 1px solid #F0E8DC; padding-top: 6px;">
+                        Isolation stricte des données par classe
+                    </div>
+                </div>
+
+                <!-- WIDGET 10 : ÉTAT RÉSEAU (IMAGE 2 CLOUD WEATHER) -->
+                <div class="bento-widget" style="padding: 12px 14px;">
+                    <div class="widget-top-meta">
+                        <span class="widget-label-tiny">Tolérance JIRAMA</span>
+                        <span style="font-size: 11px;">⚡</span>
+                    </div>
+                    <div style="font-size: 11px; font-weight: 800; color: var(--green-active);">0 SECONDE</div>
+                    <div style="font-size: 7.2px; color: var(--ink-muted); margin-top: 2px;">
+                        Aucun délestage n'interrompt les encaissements.
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- COLONNE 5 : AUDIO PLAYER & ROTARY DIAL (RIGHT) -->
+            <!-- ============================================== -->
+            <div class="bento-col-5">
+                <!-- WIDGET 11 : NOTIFICATION & SMS PLAYER (IMAGE 2 AUDIO PLAYER) -->
+                <div class="bento-widget widget-media-player">
+                    <div class="widget-top-meta">
+                        <span class="widget-label-tiny">SMS &bull; WhatsApp</span>
+                        <span style="font-size: 7px; color: var(--green-active); font-weight: 800;">EN DIRECT</span>
+                    </div>
+                    <strong style="font-size: 9.5px; color: var(--ink-dark); display: block;">Passerelle Mobile Familles</strong>
+                    <div class="player-waveform">
+                        <div class="player-bar active" style="height: 16px;"></div>
+                        <div class="player-bar active" style="height: 22px;"></div>
+                        <div class="player-bar active" style="height: 14px;"></div>
+                        <div class="player-bar active" style="height: 26px;"></div>
+                        <div class="player-bar active" style="height: 18px;"></div>
+                        <div class="player-bar" style="height: 20px;"></div>
+                        <div class="player-bar" style="height: 15px;"></div>
+                        <div class="player-bar" style="height: 8px;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 7.5px; color: var(--ink-muted);">
+                        <span>1 240 transmis</span>
+                        <strong style="color: var(--copper-dark);">99.8% Livrés</strong>
+                    </div>
+                </div>
+
+                <!-- WIDGET 12 : ROTARY KNOB DIAL (IMAGE 2 LOOOH DIAL) -->
+                <div class="bento-widget widget-rotary-dial">
+                    <div class="widget-top-meta">
+                        <span class="widget-label-tiny">Taux Recouvrement</span>
+                        <span class="widget-arrow-icon">›</span>
+                    </div>
+                    <div class="rotary-knob-circle">
+                        <div class="rotary-knob-dot"></div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--copper-dark);">99.4%</div>
+                    </div>
+                    <strong style="font-size: 9px; color: var(--ink-dark); display: block;">Écolages Recouvrés</strong>
+                    <div style="font-size: 7.2px; color: var(--ink-muted); margin-top: 2px;">
+                        Reliquats &bull; Impayés sous contrôle
+                    </div>
+                </div>
+
+                <!-- WIDGET 13 : DUAL METRICS (837 & 46) (IMAGE 2 MID-COL) -->
+                <div class="bento-widget" style="padding: 12px 14px;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #F0E6D8; padding-bottom: 6px; margin-bottom: 6px;">
+                        <div>
+                            <div style="font-size: 14px; font-weight: 800; color: var(--ink-dark);">837</div>
+                            <div style="font-size: 6.8px; color: var(--ink-muted);">Reçus imprimés ce mois</div>
+                        </div>
+                        <span style="color: var(--copper-primary); font-size: 10px;">›</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <div>
+                            <div style="font-size: 14px; font-weight: 800; color: var(--copper-dark);">46</div>
+                            <div style="font-size: 6.8px; color: var(--ink-muted);">Bulletins paie CNaPS</div>
+                        </div>
+                        <span style="color: var(--copper-primary); font-size: 10px;">›</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================== -->
+        <!-- BOTTOM MASTER ROW : PILL TOGGLES & STATUS      -->
+        <!-- ============================================== -->
+        <div class="bottom-toggles-strip">
+            <div class="pill-toggle-card">
+                <div>
+                    <strong>Mode 100% Hors-Ligne</strong>
+                    <span>Zéro dépendance Internet</span>
+                </div>
+                <div class="toggle-switch-ui"></div>
+            </div>
+
+            <div class="pill-toggle-card">
+                <div>
+                    <strong>Auto-Guérison LWW</strong>
+                    <span>Synchronisation Cloud 18h</span>
+                </div>
+                <div class="toggle-switch-ui"></div>
+            </div>
+
+            <div class="pill-toggle-card">
+                <div>
+                    <strong>Billetage Espèces</strong>
+                    <span>20 000 à 100 Ar scellé</span>
+                </div>
+                <div class="toggle-switch-ui"></div>
+            </div>
+
+            <div class="pill-toggle-card">
+                <div>
+                    <strong>Marque Blanche Pure</strong>
+                    <span>Logo &bull; Armoiries école</span>
+                </div>
+                <div class="toggle-switch-ui"></div>
+            </div>
+        </div>
+
+        <!-- FOOTER BRANDING NOTE -->
+        <div class="footer-bento-note">
+            <strong>Missi Innovation</strong> &bull; Progiciel Study Agent Pro &bull; Architecture Modulaire &bull; Déploiement garanti sous 48h ouvrées.
+        </div>
+    </main>
+
+</body>
+</html>
