@@ -22,7 +22,7 @@
 | A6 | P | Identifier la **seconde adresse Supabase** de la CSP (`src/renderer/index.html`, ligne 9, hôte commençant par `onxn`). Est-ce un autre projet à vous ? Contient-il des données réelles (par exemple celles du projet LMS) ? **Ne rien modifier.** | ✅ FAIT (Résidu initial commit 3310a10, aucun flux actif) |
 | A7 | P | Archiver dans `docs/archive/` : `audit_technique_et_qa_complet.md` (ancien rapport d'Antigravity) et `rapport_maitre_consolide_study_agent.md` (v2). Tout leur contenu est repris dans la v3. | ✅ FAIT (archivés dans docs/archive/) |
 | A8 | P | Placer dans `audit/` du dépôt : le rapport v3, `AGENT_PACK_LOT1.md` et ce fichier. | ✅ FAIT (audit/ contient les 3 fichiers) |
-| A9 | AG | Créer un tag git `pre-audit-2026-10-11` et une branche `audit/lot1` (déjà prévu dans le prompt). | ⏳ Prêt après snapshot git |
+| A9 | AG | Créer un tag git `pre-audit-2026-10-11` et une branche `audit/lot1` (déjà prévu dans le prompt). | ✅ FAIT (tag et branche audit/lot1 créés et pushés) |
 
 ---
 
